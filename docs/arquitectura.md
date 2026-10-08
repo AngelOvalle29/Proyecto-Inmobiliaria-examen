@@ -126,8 +126,21 @@ apps/ventas/
 ```
 
 **Comunicación entre apps:** una app llama a los **servicios y selectores** de
-otra, nunca a sus modelos directamente. `core` y `usuarios` pueden ser
-importadas por todas; ellas no importan a nadie.
+otra, nunca a sus modelos directamente.
+
+Hay tres apps **transversales** que cualquier app puede importar: `core`,
+`usuarios` y `auditoria`. Entre ellas, la dependencia es fija:
+
+```
+core       → no importa ninguna app
+auditoria  → no importa ninguna app (referencia al usuario con
+             settings.AUTH_USER_MODEL)
+usuarios   → core, auditoria
+```
+
+Ningún modelo concreto de `core` hereda de `ModeloBase`: si lo hiciera, `core`
+dependería de `usuarios` en las migraciones y se formaría un ciclo, porque
+`Usuario` apunta a `core.Pais`. Justificación en `specs/001-fundacion.md` §10.
 
 ---
 
@@ -169,10 +182,10 @@ Dos bitácoras separadas, ambas en PostgreSQL.
 | Campo | Descripción |
 |---|---|
 | `id` | Identificador |
-| `usuario` | FK a usuario, nulo si la acción es del sistema |
+| `usuario` | FK a usuario, nulo si la acción es del sistema o un login fallido |
 | `entidad` | Nombre de la tabla afectada |
-| `entidad_id` | Identificador del registro |
-| `accion` | CREAR, ACTUALIZAR, ELIMINAR, APROBAR, ANULAR |
+| `entidad_id` | Identificador del registro, nulo si no hay registro asociado |
+| `accion` | CREAR, ACTUALIZAR, ELIMINAR, APROBAR, ANULAR, INICIAR_SESION, LOGIN_FALLIDO |
 | `valores_anteriores` | JSONB |
 | `valores_nuevos` | JSONB |
 | `ip` | Dirección de origen |

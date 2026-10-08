@@ -207,9 +207,12 @@ autorización explícita registrada.
 ## 8. Seguridad — app `usuarios`
 
 ### Usuario
-Extiende `AbstractUser` de Django.
-`id` · `email` (login) · `nombre_completo` · `rol` (FK) · `pais` (FK) ·
-`telefono` · `ultimo_acceso` · `activo`
+Extiende `AbstractUser` de Django, sin `username`, `first_name` ni `last_name`.
+`id` · `email` (login) · `nombre_completo` · `rol` (FK) · `pais` (FK, opcional) ·
+`telefono` · `last_login` (último acceso) · `is_active` (borrado lógico)
+
+Se reutilizan los campos de Django en lugar de duplicarlos. Detalle en
+`specs/001-fundacion.md` §4.
 
 ### Rol
 `id` · `nombre` (ADMINISTRADOR, GERENTE, AGENTE, CONTABILIDAD, CONSULTA) ·
