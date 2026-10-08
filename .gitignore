@@ -1,0 +1,71 @@
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credenciales*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+/static_root/
+
+# Pruebas y cobertura
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+
+# Herramientas
+.ruff_cache/
+.mypy_cache/
+
+# Node y frontend
+node_modules/
+dist/
+.vite/
+*.local
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Reportes generados en desarrollo
+/reportes_generados/
+*.xlsx
+*.pdf
+!docs/**/*.pdf
+
+# Power BI (los .pbix sí se versionan, los temporales no)
+*.pbix.tmp
+~$*
+
+# Agentes de IA
+.claude/settings.local.json
+.aider*

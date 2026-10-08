@@ -1,0 +1,62 @@
+# Infraestructura para DESARROLLO LOCAL.
+# En producción, Railway provee PostgreSQL y RabbitMQ como servicios propios.
+#
+#   docker compose up -d
+#
+# Django y Celery se corren a mano en el entorno virtual, para tener recarga
+# automática y depuración cómoda.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: inmobiliaria_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-inmobiliaria}
+      POSTGRES_USER: ${POSTGRES_USER:-inmobiliaria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inmobiliaria}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-inmobiliaria}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: inmobiliaria_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-inmobiliaria}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-inmobiliaria}
+    ports:
+      - "5672:5672"      # protocolo AMQP
+      - "15672:15672"    # panel de administración
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis queda comentado a propósito: Celery usa RabbitMQ como broker y
+  # todavía no necesitamos backend de resultados ni cache. Descomentar solo
+  # cuando haga falta de verdad, y documentarlo en la spec correspondiente.
+  #
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: inmobiliaria_redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  # redis_data:
