@@ -54,7 +54,7 @@ Detalle en `docs/modelo-datos.md` y `docs/requisitos.md`.
 | API | Python 3.12 · Django 5 · Django REST Framework |
 | Base de datos | PostgreSQL 16 (con extensión pgvector) |
 | Mensajería | RabbitMQ · Celery |
-| Cache | Redis |
+| Cache | Redis (fuera por ahora; se agrega con su spec si hace falta) |
 | Reportes | openpyxl (Excel) · WeasyPrint (PDF) |
 | Autenticación | JWT (SimpleJWT) |
 | Frontend | React 19 · Vite · TypeScript · TanStack Query y Table · shadcn/ui |
