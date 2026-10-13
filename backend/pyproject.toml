@@ -1,0 +1,28 @@
+# Configuración de herramientas. El backend no se publica como paquete, así
+# que este archivo solo configura ruff y pytest.
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+# Las migraciones las genera Django; no se revisan ni se formatean a mano.
+extend-exclude = ["**/migrations/**"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle: errores de estilo
+    "F",   # pyflakes: nombres sin usar, importaciones rotas
+    "I",   # isort: orden de las importaciones
+    "B",   # bugbear: errores comunes de lógica
+    "UP",  # pyupgrade: sintaxis moderna de Python 3.12
+    "DJ",  # flake8-django: malas prácticas propias de Django
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Los settings por entorno heredan de base.py con "from .base import *". Es el
+# patrón documentado por Django para separar entornos, así que aquí se
+# permiten las importaciones con asterisco y los nombres que traen.
+"config/settings/*.py" = ["F403", "F405"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]

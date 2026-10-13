@@ -1,0 +1,9 @@
+# Dependencias que la aplicación necesita en cualquier entorno.
+# Versiones fijadas con == para que los cuatro integrantes, la integración
+# continua y producción instalen exactamente lo mismo.
+#
+# Cada incremento agrega aquí solo lo que usa, con su justificación.
+
+Django==5.2.18              # framework; 5.2 es la versión LTS de la serie 5.x
+django-environ==0.14.0      # lee la configuración desde variables de entorno y .env
+psycopg[binary]==3.3.6      # controlador de PostgreSQL (psycopg 3)
