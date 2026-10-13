@@ -7,3 +7,4 @@ ruff==0.17.0                # formato y revisión de estilo
 pytest==9.1.1               # ejecutor de pruebas
 pytest-django==4.14.0       # integra pytest con Django: settings y base de pruebas
 pytest-cov==7.1.0           # cobertura; la integración continua corre pytest --cov
+factory-boy==3.3.3          # fábricas de datos de prueba (docs/arquitectura.md §10)
