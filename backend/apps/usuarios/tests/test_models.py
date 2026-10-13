@@ -1,0 +1,104 @@
+"""Pruebas del modelo de usuario, su manager y los roles (spec 001, reglas 1 a 3)."""
+
+import pytest
+from django.contrib.auth import authenticate
+from django.core.management import call_command
+from django.db.models import ProtectedError
+
+from apps.usuarios.enums import NombreRol
+from apps.usuarios.models import Rol, Usuario
+
+pytestmark = pytest.mark.django_db
+
+CONTRASENA = "contrasena-de-prueba-123"
+
+
+@pytest.fixture
+def rol_agente():
+    return Rol.objects.get(nombre=NombreRol.AGENTE)
+
+
+def test_los_cinco_roles_existen_despues_de_migrar():
+    """La migración de datos los crea; no hace falta ningún paso manual."""
+    nombres = set(Rol.objects.values_list("nombre", flat=True))
+
+    assert nombres == set(NombreRol.values)
+
+
+def test_el_usuario_inicia_sesion_con_su_correo(rol_agente):
+    """Regla 1."""
+    usuario = Usuario.objects.create_user(
+        email="agente@demo.test",
+        password=CONTRASENA,
+        nombre_completo="Agente Demo",
+        rol=rol_agente,
+    )
+
+    autenticado = authenticate(email="agente@demo.test", password=CONTRASENA)
+
+    assert autenticado == usuario
+
+
+def test_el_correo_es_obligatorio(rol_agente):
+    with pytest.raises(ValueError):
+        Usuario.objects.create_user(
+            email="", password=CONTRASENA, nombre_completo="Sin Correo", rol=rol_agente
+        )
+
+
+def test_el_rol_es_obligatorio():
+    """Regla 2: exactamente un rol, nunca ninguno."""
+    with pytest.raises(ValueError):
+        Usuario.objects.create_user(
+            email="sinrol@demo.test", password=CONTRASENA, nombre_completo="Sin Rol"
+        )
+
+
+def test_un_rol_con_usuarios_no_se_puede_borrar(rol_agente):
+    """Regla 2."""
+    Usuario.objects.create_user(
+        email="agente@demo.test",
+        password=CONTRASENA,
+        nombre_completo="Agente Demo",
+        rol=rol_agente,
+    )
+
+    with pytest.raises(ProtectedError):
+        rol_agente.delete()
+
+
+def test_create_superuser_asigna_el_rol_administrador():
+    """Regla 3."""
+    usuario = Usuario.objects.create_superuser(
+        email="admin@demo.test", password=CONTRASENA, nombre_completo="Admin Demo"
+    )
+
+    assert usuario.rol.nombre == NombreRol.ADMINISTRADOR
+    assert usuario.is_superuser
+    assert usuario.is_staff
+
+
+def test_create_superuser_ignora_un_rol_distinto(rol_agente):
+    """Regla 3: aunque se pida otro rol, un superusuario es ADMINISTRADOR."""
+    usuario = Usuario.objects.create_superuser(
+        email="admin@demo.test",
+        password=CONTRASENA,
+        nombre_completo="Admin Demo",
+        rol=rol_agente,
+    )
+
+    assert usuario.rol.nombre == NombreRol.ADMINISTRADOR
+
+
+def test_el_comando_createsuperuser_funciona_sin_nombre_de_usuario():
+    """Criterio de aceptación: pide correo y nombre completo, no username."""
+    call_command(
+        "createsuperuser",
+        interactive=False,
+        email="admin@demo.test",
+        nombre_completo="Admin Demo",
+        verbosity=0,
+    )
+
+    usuario = Usuario.objects.get(email="admin@demo.test")
+    assert usuario.rol.nombre == NombreRol.ADMINISTRADOR

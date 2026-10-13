@@ -61,6 +61,11 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS
 
+# Modelo de usuario propio (login por correo). Debe estar definido antes del
+# primer migrate: cambiarlo después obliga a recrear la base de datos, porque
+# las tablas de Django (admin, permisos) ya apuntarían al User estándar.
+AUTH_USER_MODEL = "usuarios.Usuario"
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
