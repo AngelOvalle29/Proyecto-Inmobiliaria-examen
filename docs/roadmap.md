@@ -45,7 +45,8 @@ Objetivo: que los cuatro puedan programar sin pisarse.
 
 - Repositorio en GitHub con ramas protegidas
 - Estructura del proyecto Django con las apps vacías
-- `docker-compose.yml` con PostgreSQL, RabbitMQ y Redis
+- `docker-compose.yml` con PostgreSQL (con pgvector) y RabbitMQ. Redis queda
+  fuera por ahora (ver `docs/arquitectura.md` §6)
 - Modelo base abstracto con campos de rastro
 - Entidades de `core`: país, ciudad, moneda, tipo de cambio
 - Autenticación JWT y roles

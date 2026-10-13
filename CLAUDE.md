@@ -50,7 +50,7 @@ El enunciado prohíbe explícitamente el vibecoding. Esto significa, en la prác
 | Base de datos | PostgreSQL 16 | SQLite está prohibido, ni siquiera en desarrollo |
 | Vectores (RAG) | pgvector sobre la misma PostgreSQL | |
 | Mensajería | RabbitMQ + Celery | |
-| Cache / resultados | Redis | |
+| Cache / resultados | Redis | Fuera por ahora: Celery usa RabbitMQ como broker y no hay backend de resultados. Ver `docs/arquitectura.md` §6 |
 | Excel | openpyxl | |
 | PDF | WeasyPrint | |
 | Auth | djangorestframework-simplejwt | |
@@ -220,7 +220,7 @@ pregunta:
 > documentación.
 
 ```bash
-# Levantar infraestructura (PostgreSQL, RabbitMQ, Redis)
+# Levantar infraestructura (PostgreSQL con pgvector y RabbitMQ)
 docker compose up -d
 
 # Entorno de desarrollo
