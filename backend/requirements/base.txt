@@ -10,3 +10,4 @@ psycopg[binary]==3.3.6      # controlador de PostgreSQL (psycopg 3)
 djangorestframework==3.18.3 # la API REST: vistas, serializadores, paginación
 drf-spectacular==0.30.0     # genera el esquema OpenAPI y la documentación en /api/docs/
 django-cors-headers==4.9.0  # permite que el frontend en Vercel llame a la API
+djangorestframework-simplejwt==5.5.1  # autenticación con tokens JWT

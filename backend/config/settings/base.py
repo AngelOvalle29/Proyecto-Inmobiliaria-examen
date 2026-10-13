@@ -6,6 +6,7 @@ distinto en su entorno. Todo valor que dependa del entorno o sea secreto se
 lee de variables de entorno; nunca se escribe aquí.
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -45,6 +46,8 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "rest_framework",
+    # Instalada como app para que sus mensajes de error salgan en español.
+    "rest_framework_simplejwt",
     "drf_spectacular",
     "corsheaders",
 ]
@@ -161,10 +164,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # ---------- API (Django REST Framework) ----------
 
 REST_FRAMEWORK = {
-    # Vacío por ahora: la autenticación JWT llega en el incremento 8. Se deja
-    # vacío a propósito en lugar de usar el valor por defecto de DRF, que
-    # activaría autenticación por sesión y básica, y esas no se van a usar.
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    # Solo JWT. Se declara explícitamente para no heredar el valor por defecto
+    # de DRF, que activaría autenticación por sesión y básica.
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
     # Cerrado por defecto: todo endpoint exige autenticación salvo que diga
     # explícitamente lo contrario (como /health/). Olvidar un permiso deja el
     # endpoint cerrado, no abierto.
@@ -175,6 +179,39 @@ REST_FRAMEWORK = {
     # Toda respuesta de error sale en el formato uniforme.
     "EXCEPTION_HANDLER": "apps.core.manejador_errores.manejar_excepcion",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Límite de peticiones por IP. Solo lo usan las vistas que declaran
+    # throttle_scope = "auth": login y renovación de token (arquitectura.md §9).
+    "DEFAULT_THROTTLE_RATES": {"auth": "10/min"},
+    # Cuántos proxies propios hay delante de Django. Define qué IP es la real:
+    # 0 (desarrollo) ignora X-Forwarded-For, que cualquier cliente puede
+    # inventar; en Railway hay uno y se configura NUM_PROXIES=1 (spec 002).
+    "NUM_PROXIES": env.int("NUM_PROXIES", default=0),
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=env.int("JWT_ACCESS_TOKEN_MINUTES", default=30)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=env.int("JWT_REFRESH_TOKEN_DAYS", default=7)
+    ),
+    # El último acceso lo actualiza registrar_acceso de forma explícita, junto
+    # con su registro de auditoría (spec 001, §6).
+    "UPDATE_LAST_LOGIN": False,
+}
+
+
+# ---------- Caché ----------
+
+# En PostgreSQL y no en memoria: la usa el límite de peticiones, y en
+# producción gunicorn corre varios procesos. Con caché en memoria cada proceso
+# contaría por separado y el límite real se multiplicaría. La tabla la crea la
+# migración core.0002, así que basta con correr migrate.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "cache_django",
+    }
 }
 
 # Documentación automática en /api/docs/.

@@ -263,21 +263,40 @@ def registrar_auditoria(
     """Registra una operación. Se llama dentro de la transacción de quien escribe."""
 
 # usuarios/services.py
+def iniciar_sesion(*, email: str, password: str, ip: str | None, user_agent: str | None) -> dict[str, str]
+    """Verifica credenciales, audita el intento y entrega access y refresh.
+    No es atómica: el LOGIN_FALLIDO debe sobrevivir a CredencialesInvalidas."""
+
 def registrar_acceso(*, usuario: Usuario, ip: str | None, user_agent: str | None) -> None
     """Actualiza last_login y registra INICIAR_SESION, en una sola transacción."""
 
 def registrar_login_fallido(*, email: str, ip: str | None, user_agent: str | None) -> None
     """Registra LOGIN_FALLIDO con el correo intentado. Nunca guarda la contraseña."""
+
+# usuarios/selectors.py
+def obtener_id_usuario_por_email(*, email: str) -> int | None
+    """Para asociar un login fallido a la cuenta atacada, si existe."""
 ```
+
+`iniciar_sesion` y `obtener_id_usuario_por_email` se agregaron durante la
+implementación (incremento 8): la vista no puede autenticar ni consultar
+modelos, así que esa orquestación necesitaba un servicio propio.
 
 `last_login` se actualiza explícitamente en `registrar_acceso` y no con la
 opción `UPDATE_LAST_LOGIN` de SimpleJWT, para que la escritura sea visible en
 el código.
 
-La IP del cliente se obtiene en la capa HTTP (`apps/core/http.py`): primer
-valor de `X-Forwarded-For` si existe (Railway pone la API detrás de un proxy),
-si no `REMOTE_ADDR`. El servicio recibe la IP ya resuelta y no conoce
-`request`.
+La IP del cliente se obtiene en la capa HTTP (`apps/core/http.py`) y el
+servicio la recibe ya resuelta, sin conocer `request`. Con `NUM_PROXIES=0`
+(desarrollo) se usa `REMOTE_ADDR` y se ignora `X-Forwarded-For`. Con
+`NUM_PROXIES=1` (Railway) se toma el último valor de `X-Forwarded-For`, el que
+agregó el proxy propio.
+
+*Corrección durante la implementación:* el borrador decía "primer valor de
+`X-Forwarded-For`". Ese valor lo escribe el cliente y se puede falsificar: un
+atacante registraría una IP inventada en la bitácora y, además, evadiría el
+límite de peticiones cambiándola en cada intento. Se usa la misma regla que
+DRF aplica al límite, así la IP auditada y la limitada coinciden.
 
 ## 7. Auditoría
 
@@ -424,6 +443,20 @@ El `Dockerfile` corre `collectstatic` con los settings de producción al
 construir la imagen, así que la spec 002 debe pasar valores ficticios solo a ese
 paso y decidir cómo se sirven los archivos estáticos.
 
+**Caché de Django en PostgreSQL** (decidido en el incremento 8). El límite de
+peticiones guarda sus contadores en la caché. En memoria, cada proceso de
+gunicorn contaría por separado: con 3 procesos el límite real sería 30 intentos
+por minuto, y se reiniciaría con cada despliegue. Redis lo resolvería, pero
+está fuera del stack por ahora. La caché en la base de datos usa la PostgreSQL
+que ya existe, a costa de una consulta extra por intento de login. La tabla la
+crea la migración `core.0002`, así que `migrate` sigue siendo el único paso.
+
+**`iniciar_sesion` no es atómica.** Si envolviera todo en una transacción,
+lanzar `CredencialesInvalidas` revertiría también el registro `LOGIN_FALLIDO`,
+y los intentos fallidos son justo los que más interesa conservar. La parte que
+sí debe ser atómica, actualizar `last_login` y auditar el acceso, vive en
+`registrar_acceso`.
+
 ## 11. Trabajo con agentes de IA
 
 **Sesión 2026-10-08, revisión de la spec antes de implementar (Claude Code).**
@@ -464,7 +497,7 @@ en la caché de Django. Sin Redis, la caché por defecto vive en la memoria de
 cada proceso, y en producción gunicorn corre 3 procesos: cada uno contaría por
 separado y el límite real sería el triple. Hay que decidir entre la caché en
 la base de datos de Django (tabla propia en PostgreSQL) o aceptar la
-imprecisión. Se resuelve antes del incremento 8.
+imprecisión. *Resuelto en el incremento 8: caché en PostgreSQL (ver §10).*
 
 Por completar durante la implementación: qué se generó con el agente, qué se
 corrigió a mano y qué se descartó en cada incremento.
