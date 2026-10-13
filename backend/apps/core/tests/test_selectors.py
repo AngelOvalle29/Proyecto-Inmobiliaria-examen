@@ -4,9 +4,14 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from django.db import OperationalError
 
 from apps.core.exceptions import TipoCambioNoDisponible
-from apps.core.selectors import convertir_monto, obtener_tipo_cambio
+from apps.core.selectors import (
+    convertir_monto,
+    obtener_tipo_cambio,
+    verificar_base_datos,
+)
 
 from .factories import MonedaFactory, TipoCambioFactory
 
@@ -161,3 +166,21 @@ def test_convertir_a_la_misma_moneda_devuelve_el_mismo_monto(usd):
     )
 
     assert monto == Decimal("250.00")
+
+
+# ---------- verificar_base_datos ----------
+
+
+def test_verificar_base_datos_responde_true_si_la_base_contesta():
+    assert verificar_base_datos() is True
+
+
+def test_verificar_base_datos_responde_false_si_la_base_falla(monkeypatch):
+    """Se simula la caída haciendo que abrir un cursor falle."""
+
+    def cursor_que_falla():
+        raise OperationalError("la base no responde")
+
+    monkeypatch.setattr("apps.core.selectors.connection.cursor", cursor_que_falla)
+
+    assert verificar_base_datos() is False

@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 001 |
-| **Estado** | En revisión |
+| **Estado** | Implementada, pendiente de aprobación del pull request |
 | **Autor** | Equipo |
 | **Revisor** | Por asignar |
 | **Fecha** | 2026-10-08 |
 | **Apps afectadas** | `config`, `core`, `usuarios`, `auditoria` (y creación vacía de las once apps) |
 | **Rama** | `feature/001-fundacion` |
-| **Pull request** | — |
+| **Pull request** | [DouGMV/Proyecto-Inmobiliaria#2](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/2) |
 
 ---
 
@@ -319,46 +319,61 @@ DRF aplica al límite, así la IP auditada y la limitada coinciden.
 ## 8. Criterios de aceptación
 
 **Infraestructura y configuración**
-- [ ] `docker compose up -d` levanta PostgreSQL con pgvector y RabbitMQ
-- [ ] `python manage.py migrate` corre sin errores sobre PostgreSQL
-- [ ] Existen las once apps bajo `backend/apps/`, cada una con su estructura de
+- [x] `docker compose up -d` levanta PostgreSQL con pgvector y RabbitMQ
+- [x] `python manage.py migrate` corre sin errores sobre PostgreSQL
+- [x] Existen las once apps bajo `backend/apps/`, cada una con su estructura de
       archivos
-- [ ] Existen `config/settings/base.py`, `dev.py`, `test.py` y `prod.py`
-- [ ] `prod.py` falla al arrancar si faltan `SECRET_KEY` o `DATABASE_URL` (sin
+- [x] Existen `config/settings/base.py`, `dev.py`, `test.py` y `prod.py`
+- [x] `prod.py` falla al arrancar si faltan `SECRET_KEY` o `DATABASE_URL` (sin
       valores por defecto)
-- [ ] No hay ninguna credencial en el repositorio; todo viene de `.env`
+- [x] No hay ninguna credencial en el repositorio; todo viene de `.env`
 
 **Usuarios y autenticación**
-- [ ] `createsuperuser` pide correo y nombre completo (no nombre de usuario) y
+- [x] `createsuperuser` pide correo y nombre completo (no nombre de usuario) y
       asigna el rol `ADMINISTRADOR`
-- [ ] Los cinco roles existen después de `migrate`, sin pasos manuales
-- [ ] `POST /api/v1/auth/login/` devuelve un par de tokens válidos
-- [ ] Un login con credenciales inválidas devuelve 401 con el código
+- [x] Los cinco roles existen después de `migrate`, sin pasos manuales
+- [x] `POST /api/v1/auth/login/` devuelve un par de tokens válidos
+- [x] Un login con credenciales inválidas devuelve 401 con el código
       `CREDENCIALES_INVALIDAS` en el formato uniforme
-- [ ] Un endpoint protegido devuelve 401 sin token y 200 con token válido
-- [ ] El undécimo intento de login en un minuto desde la misma IP devuelve 429
-- [ ] Un login exitoso actualiza `last_login` y deja un registro `INICIAR_SESION`
-- [ ] Un login fallido deja un registro `LOGIN_FALLIDO` sin la contraseña
-- [ ] Las contraseñas de menos de 10 caracteres se rechazan
+- [x] Un endpoint protegido devuelve 401 sin token y 200 con token válido
+- [x] El undécimo intento de login en un minuto desde la misma IP devuelve 429
+- [x] Un login exitoso actualiza `last_login` y deja un registro `INICIAR_SESION`
+- [x] Un login fallido deja un registro `LOGIN_FALLIDO` sin la contraseña
+- [x] Las contraseñas de menos de 10 caracteres se rechazan
 
 **Catálogos**
-- [ ] Los listados están paginados de 25 en 25
-- [ ] `/api/v1/ciudades/?pais=<id>` devuelve solo ciudades de ese país
-- [ ] `/api/v1/tipos-cambio/` filtra por monedas y rango de fechas
-- [ ] La base de datos rechaza dos tipos de cambio iguales para la misma fecha,
+- [x] Los listados están paginados de 25 en 25
+- [x] `/api/v1/ciudades/?pais=<id>` devuelve solo ciudades de ese país
+- [x] `/api/v1/tipos-cambio/` filtra por monedas y rango de fechas
+- [x] La base de datos rechaza dos tipos de cambio iguales para la misma fecha,
       una tasa menor o igual a cero, y una moneda convertida a sí misma
-- [ ] El panel de Django no permite borrar catálogos
-- [ ] `obtener_tipo_cambio` devuelve la tasa correcta cuando no hay registro
+- [x] El panel de Django no permite borrar catálogos
+- [x] `obtener_tipo_cambio` devuelve la tasa correcta cuando no hay registro
       exacto para la fecha
-- [ ] `seed_demo` carga países, ciudades, monedas y tipos de cambio ficticios, y
+- [x] `seed_demo` carga países, ciudades, monedas y tipos de cambio ficticios, y
       correrlo dos veces no duplica datos
 
 **API y calidad**
-- [ ] `GET /api/v1/health/` responde 200 sin autenticación
-- [ ] `/api/docs/` muestra la documentación generada automáticamente
-- [ ] `ruff check` y `ruff format --check` pasan sin advertencias
-- [ ] `pytest` pasa y corre contra PostgreSQL, no contra SQLite
-- [ ] `makemigrations --check` no detecta migraciones pendientes
+- [x] `GET /api/v1/health/` responde 200 sin autenticación
+- [x] `/api/docs/` muestra la documentación generada automáticamente
+- [x] `ruff check` y `ruff format --check` pasan sin advertencias
+- [x] `pytest` pasa y corre contra PostgreSQL, no contra SQLite
+- [x] `makemigrations --check` no detecta migraciones pendientes
+
+**Verificación del cierre (incremento 11).** Cada criterio tiene una prueba
+automática, salvo cuatro que se verificaron a mano:
+
+- `docker compose up -d`: contenedores sanos; la extensión `vector` 0.8.7
+  está disponible en la imagen.
+- `migrate`: las 23 migraciones corren sobre una base vacía creada para la
+  verificación; una segunda corrida no encuentra nada pendiente.
+- `prod.py`: sin `SECRET_KEY` responde `ImproperlyConfigured`.
+- Credenciales: ningún `.env` versionado; `.env.example` solo tiene marcadores
+  y las contraseñas locales de Docker.
+
+Resultado: 94 pruebas contra PostgreSQL, 100 % de cobertura en servicios y
+selectores, `ruff` y `makemigrations --check` sin observaciones, y el esquema
+OpenAPI validado sin advertencias.
 
 ## 9. Pruebas
 
@@ -494,7 +509,7 @@ El equipo aceptó las recomendaciones y la spec se actualizó a esta versión.
    guarda DRF los contadores (ver la nota del incremento 6)
 9. Endpoints de catálogos con filtros
 10. `seed_demo`
-11. Cierre: README y esta sección
+11. Cierre: verificación de criterios, README y esta sección
 
 **Nota del incremento 6.** DRF guarda los contadores del límite de peticiones
 en la caché de Django. Sin Redis, la caché por defecto vive en la memoria de
@@ -503,5 +518,45 @@ separado y el límite real sería el triple. Hay que decidir entre la caché en
 la base de datos de Django (tabla propia en PostgreSQL) o aceptar la
 imprecisión. *Resuelto en el incremento 8: caché en PostgreSQL (ver §10).*
 
-Por completar durante la implementación: qué se generó con el agente, qué se
-corrigió a mano y qué se descartó en cada incremento.
+**Sesiones 2026-10-12, implementación de los 11 incrementos (Claude Code).**
+
+*Cómo se trabajó.* El agente implementó un incremento a la vez, con sus
+pruebas. Después de cada uno explicó qué hizo y por qué, y esperó la
+autorización del equipo antes de seguir. Cada incremento es un commit con la
+línea `Co-Authored-By: Claude`. Las dependencias se agregaron una por una, en
+el incremento que las usa, con su justificación en `requirements/`.
+
+*Decisiones que tomó el equipo cuando el agente las planteó:*
+- Puerto de PostgreSQL configurable (`POSTGRES_PORT`), porque en una de las
+  máquinas el 5432 lo ocupaba un PostgreSQL instalado en Windows.
+- Agregar factory-boy (incremento 5) y `.gitattributes` con finales de línea
+  LF.
+- Caché de Django en PostgreSQL para el límite de peticiones (incremento 8).
+- Países de la demostración: Guatemala, México, Colombia, Costa Rica y El
+  Salvador (incremento 10).
+
+*Errores que encontraron las pruebas o las verificaciones, y se corrigieron:*
+- **IP falsificable (incremento 8).** El borrador de la spec tomaba el primer
+  valor de `X-Forwarded-For`, que escribe el cliente. Habría permitido
+  registrar IPs inventadas y saltarse el límite de 10 intentos. Se corrigió la
+  spec (§6).
+- **Fechas ambiguas (incremento 9).** Con el idioma en español, los filtros
+  aceptaban `10/05/2026` como día/mes. Ahora solo aceptan ISO (§5).
+- **Serializador duplicado (incremento 9).** `PaisResumenSerializer` existía en
+  `core` y en `usuarios`, y el esquema OpenAPI salía incorrecto.
+- **Advertencia del esquema (incremento 6).** Dos campos con las mismas
+  opciones; se les dio un nombre explícito.
+- **Cobertura del cierre (incremento 11).** El criterio de contraseñas de 10
+  caracteres solo tenía prueba de configuración, no de comportamiento, y la
+  rama de error de `verificar_base_datos` no se ejecutaba. Se agregaron ambas
+  pruebas.
+
+*Cambios al plan durante la implementación:* el límite de peticiones se movió
+del incremento 6 al 8, y se agregaron dos funciones que el borrador no tenía:
+`iniciar_sesion` y `obtener_id_usuario_por_email` (§6).
+
+*Lo que revisó, corrigió o descartó el equipo a mano.* **Pendiente: lo
+completa el equipo.** Para cada incremento: qué se leyó, qué se cambió del
+código generado, qué preguntas surgieron y qué se descartó. Esta parte es la
+evidencia de que el código se entendió y no se aceptó sin leerlo
+(`docs/convenciones.md` §5).

@@ -2,6 +2,8 @@
 
 import pytest
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db.models import ProtectedError
 
@@ -102,3 +104,14 @@ def test_el_comando_createsuperuser_funciona_sin_nombre_de_usuario():
 
     usuario = Usuario.objects.get(email="admin@demo.test")
     assert usuario.rol.nombre == NombreRol.ADMINISTRADOR
+
+
+def test_una_contrasena_de_menos_de_diez_caracteres_se_rechaza():
+    """
+    arquitectura.md §9. validate_password es lo que usan createsuperuser y el
+    formulario del panel antes de guardar una contraseña.
+    """
+    with pytest.raises(ValidationError):
+        validate_password("Corta-9ch")
+
+    validate_password("Diez-chars")  # 10 caracteres: se acepta

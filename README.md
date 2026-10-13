@@ -68,16 +68,13 @@ Detalle en `docs/modelo-datos.md` y `docs/requisitos.md`.
 
 ## Arranque rápido
 
-> El proyecto Django se crea en la fase 0. Mientras tanto este repositorio
-> contiene únicamente la documentación y las especificaciones.
-
 Requisitos previos: Docker, Docker Compose y Python 3.12.
 
 ```bash
-git clone <url-del-repositorio>
+git clone https://github.com/DouGMV/Proyecto-Inmobiliaria.git
 cd Proyecto-Inmobiliaria
 
-cp .env.example .env            # completar las variables
+cp .env.example .env            # cambiar SECRET_KEY por una clave aleatoria
 
 docker compose up -d            # PostgreSQL con pgvector y RabbitMQ
 
@@ -86,18 +83,35 @@ python -m venv .venv
 source .venv/bin/activate       # en Windows: .venv\Scripts\activate
 pip install -r requirements/dev.txt
 
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py seed_demo
+python manage.py migrate        # también crea los 5 roles y la tabla de caché
+python manage.py createsuperuser   # pide correo y nombre completo
+python manage.py seed_demo      # países, ciudades, monedas y tipos de cambio
 python manage.py runserver
 ```
 
-En otra terminal, el worker de tareas asíncronas:
+**Si ya tienes PostgreSQL instalado en tu máquina**, el puerto 5432 estará
+ocupado y `docker compose up -d` fallará. Elige otro puerto en `.env` y úsalo
+también en la cadena de conexión:
 
 ```bash
-cd backend && source .venv/bin/activate
-celery -A config worker -l info
+POSTGRES_PORT=5434
+DATABASE_URL=postgresql://inmobiliaria:inmobiliaria@localhost:5434/inmobiliaria
 ```
+
+Para generar una `SECRET_KEY` de desarrollo:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(50))"
+```
+
+Calidad, antes de cada commit (desde `backend/`):
+
+```bash
+ruff format . && ruff check . && pytest
+```
+
+El worker de Celery se configura en la spec 002; hasta entonces el contenedor
+de RabbitMQ corre, pero ningún flujo lo usa todavía.
 
 El frontend, a partir de la fase 2:
 
@@ -112,6 +126,7 @@ npm run dev
 |---|---|
 | Frontend | http://localhost:5173/ |
 | API | http://localhost:8000/api/v1/ |
+| Estado del servicio | http://localhost:8000/api/v1/health/ |
 | Documentación de la API | http://localhost:8000/api/docs/ |
 | Panel de administración | http://localhost:8000/admin/ |
 | Panel de RabbitMQ | http://localhost:15672/ |
