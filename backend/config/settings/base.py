@@ -34,7 +34,7 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
 # ---------- Aplicaciones ----------
 
-INSTALLED_APPS = [
+DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -42,6 +42,24 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
+
+# Primero las transversales, que cualquier app puede importar, y luego los
+# dominios del negocio (docs/arquitectura.md §3).
+LOCAL_APPS = [
+    "apps.core",
+    "apps.usuarios",
+    "apps.auditoria",
+    "apps.catalogo",
+    "apps.crm",
+    "apps.ventas",
+    "apps.arrendamientos",
+    "apps.compras",
+    "apps.construccion",
+    "apps.reportes",
+    "apps.ia",
+]
+
+INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

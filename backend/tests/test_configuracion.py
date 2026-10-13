@@ -5,7 +5,29 @@ Protegen reglas de CLAUDE.md que un cambio descuidado en settings podría
 romper sin que ninguna otra prueba lo note.
 """
 
+from django.apps import apps
 from django.conf import settings
+
+APPS_DEL_PROYECTO = {
+    "core",
+    "usuarios",
+    "auditoria",
+    "catalogo",
+    "crm",
+    "ventas",
+    "arrendamientos",
+    "compras",
+    "construccion",
+    "reportes",
+    "ia",
+}
+
+
+def test_las_once_apps_estan_instaladas():
+    """Cada dominio del negocio es una app (docs/arquitectura.md §3)."""
+    instaladas = {config.label for config in apps.get_app_configs()}
+
+    assert APPS_DEL_PROYECTO <= instaladas
 
 
 def test_la_base_de_datos_es_postgresql():
