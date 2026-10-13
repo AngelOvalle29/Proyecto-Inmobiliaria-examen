@@ -7,3 +7,6 @@
 Django==5.2.18              # framework; 5.2 es la versión LTS de la serie 5.x
 django-environ==0.14.0      # lee la configuración desde variables de entorno y .env
 psycopg[binary]==3.3.6      # controlador de PostgreSQL (psycopg 3)
+djangorestframework==3.18.3 # la API REST: vistas, serializadores, paginación
+drf-spectacular==0.30.0     # genera el esquema OpenAPI y la documentación en /api/docs/
+django-cors-headers==4.9.0  # permite que el frontend en Vercel llame a la API

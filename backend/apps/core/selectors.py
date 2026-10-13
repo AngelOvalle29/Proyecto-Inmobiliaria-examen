@@ -6,6 +6,8 @@ Nunca escriben en la base de datos.
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
+from django.db import DatabaseError, connection
+
 from .exceptions import TipoCambioNoDisponible
 from .models import Moneda, TipoCambio
 
@@ -53,3 +55,19 @@ def convertir_monto(
     """
     tasa = obtener_tipo_cambio(origen=origen, destino=destino, fecha=fecha)
     return (monto * tasa).quantize(CENTAVOS, rounding=ROUND_HALF_UP)
+
+
+def verificar_base_datos() -> bool:
+    """
+    True si la base de datos responde.
+
+    Lo usa el endpoint de salud: el servicio solo está sano si puede leer sus
+    datos. Que Django arranque no basta, porque sin base de datos ninguna
+    operación funciona.
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+    except DatabaseError:
+        return False
+    return True

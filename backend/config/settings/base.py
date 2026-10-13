@@ -43,6 +43,12 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
 ]
 
+THIRD_PARTY_APPS = [
+    "rest_framework",
+    "drf_spectacular",
+    "corsheaders",
+]
+
 # Primero las transversales, que cualquier app puede importar, y luego los
 # dominios del negocio (docs/arquitectura.md §3).
 LOCAL_APPS = [
@@ -59,7 +65,7 @@ LOCAL_APPS = [
     "apps.ia",
 ]
 
-INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # Modelo de usuario propio (login por correo). Debe estar definido antes del
 # primer migrate: cambiarlo después obliga a recrear la base de datos, porque
@@ -69,6 +75,9 @@ AUTH_USER_MODEL = "usuarios.Usuario"
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # Antes de CommonMiddleware: debe agregar las cabeceras de CORS incluso a
+    # las respuestas que CommonMiddleware genera por su cuenta (redirecciones).
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -147,3 +156,43 @@ STATIC_URL = "static/"
 
 # Destino de collectstatic. Cómo se sirven en producción lo decide la spec 002.
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
+# ---------- API (Django REST Framework) ----------
+
+REST_FRAMEWORK = {
+    # Vacío por ahora: la autenticación JWT llega en el incremento 8. Se deja
+    # vacío a propósito en lugar de usar el valor por defecto de DRF, que
+    # activaría autenticación por sesión y básica, y esas no se van a usar.
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    # Cerrado por defecto: todo endpoint exige autenticación salvo que diga
+    # explícitamente lo contrario (como /health/). Olvidar un permiso deja el
+    # endpoint cerrado, no abierto.
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # Paginación obligatoria en todo listado, de 25 en 25 (arquitectura.md §4).
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
+    # Toda respuesta de error sale en el formato uniforme.
+    "EXCEPTION_HANDLER": "apps.core.manejador_errores.manejar_excepcion",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# Documentación automática en /api/docs/.
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API Inmobiliaria",
+    "DESCRIPTION": "ERP inmobiliario: proyecto final de Programación Comercial.",
+    "VERSION": "1.0.0",
+    # El esquema se sirve en /api/schema/; no hace falta repetirlo dentro de sí.
+    "SERVE_INCLUDE_SCHEMA": False,
+    # Nombre de los conjuntos de opciones que aparecen en más de un campo.
+    "ENUM_NAME_OVERRIDES": {
+        "EstadoSaludEnum": "apps.core.serializers.ESTADOS_SALUD",
+    },
+}
+
+
+# ---------- CORS ----------
+
+# Solo el frontend puede llamar a la API desde un navegador
+# (arquitectura.md §9). Vacío por defecto: ningún otro origen.
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])

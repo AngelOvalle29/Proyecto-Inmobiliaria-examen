@@ -449,12 +449,22 @@ El equipo aceptó las recomendaciones y la spec se actualizó a esta versión.
    `migrate`**: hacerlo antes de este punto crea las tablas con el usuario por
    defecto de Django, y cambiarlo después obliga a recrear la base
 5. Selectores de tipo de cambio y conversión, con pruebas
-6. Configuración de DRF, manejador de errores, health y documentación
+6. Configuración de DRF, manejador de errores, CORS, health y documentación
 7. `LogAuditoria` y `registrar_auditoria`
-8. Autenticación JWT con registro de acceso
+8. Autenticación JWT con registro de acceso y límite de peticiones en login.
+   El límite se movió aquí desde el incremento 6 durante la implementación:
+   solo aplica a `auth/login/` y `auth/refresh/`, y necesita decidir dónde
+   guarda DRF los contadores (ver la nota del incremento 6)
 9. Endpoints de catálogos con filtros
 10. `seed_demo`
 11. Cierre: README y esta sección
+
+**Nota del incremento 6.** DRF guarda los contadores del límite de peticiones
+en la caché de Django. Sin Redis, la caché por defecto vive en la memoria de
+cada proceso, y en producción gunicorn corre 3 procesos: cada uno contaría por
+separado y el límite real sería el triple. Hay que decidir entre la caché en
+la base de datos de Django (tabla propia en PostgreSQL) o aceptar la
+imprecisión. Se resuelve antes del incremento 8.
 
 Por completar durante la implementación: qué se generó con el agente, qué se
 corrigió a mano y qué se descartó en cada incremento.
