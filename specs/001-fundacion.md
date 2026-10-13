@@ -175,7 +175,11 @@ Configuración común a todos los endpoints:
 
 - Autenticación por defecto: JWT. Permiso por defecto: autenticado.
 - Paginación por número de página, 25 elementos (`?page=N`).
-- Filtros con `django-filter`.
+- Filtros con `django-filter`. Las fechas se aceptan solo en formato ISO
+  (`2026-10-05`); cualquier otro formato responde 400 `VALIDACION`. *Agregado
+  en el incremento 9:* con el idioma en español, Django aceptaba también
+  `05/10/2026` como día/mes/año, y un cliente que enviara mes/día recibía otra
+  fecha sin aviso.
 - Tokens: acceso de 30 minutos, refresco de 7 días, tomados de
   `JWT_ACCESS_TOKEN_MINUTES` y `JWT_REFRESH_TOKEN_DAYS`.
 - Límite de peticiones en `auth/login/` y `auth/refresh/`: 10 por minuto por IP.

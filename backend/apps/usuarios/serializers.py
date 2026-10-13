@@ -5,6 +5,8 @@ Sin reglas de negocio ni acceso a la base de datos.
 
 from rest_framework import serializers
 
+from apps.core.serializers import PaisResumenSerializer
+
 from .models import Usuario
 
 
@@ -17,11 +19,6 @@ class LoginSerializer(serializers.Serializer):
 class TokensSerializer(serializers.Serializer):
     access = serializers.CharField()
     refresh = serializers.CharField()
-
-
-class PaisResumenSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    nombre = serializers.CharField()
 
 
 class UsuarioActualSerializer(serializers.ModelSerializer):

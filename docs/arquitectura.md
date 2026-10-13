@@ -34,6 +34,7 @@ revés. Un modelo jamás importa un servicio.
 |---|---|---|
 | `views.py` | Recibe la petición, delega, devuelve la respuesta | Reglas de negocio, consultas a modelos |
 | `serializers.py` | Valida formato de entrada y arma la salida | Reglas de negocio, acceso a base de datos |
+| `filters.py` | Traduce los parámetros de un listado (`?pais=`) a filtros sobre la consulta del selector (django-filter) | Decidir qué registros son visibles: eso es del selector |
 | `services.py` | Reglas de negocio de escritura, transacciones, auditoría | Hablar HTTP, conocer `request` |
 | `selectors.py` | Consultas, filtros, agregaciones, optimización | Escribir en la base de datos |
 | `models.py` | Campos, relaciones, constraints, validación propia | Llamar servicios, enviar correos |
@@ -111,6 +112,7 @@ apps/ventas/
 ├── enums.py
 ├── exceptions.py
 ├── serializers.py
+├── filters.py          # solo si la app tiene listados con filtros
 ├── services.py
 ├── selectors.py
 ├── views.py

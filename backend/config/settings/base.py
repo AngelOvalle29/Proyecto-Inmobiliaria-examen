@@ -48,6 +48,7 @@ THIRD_PARTY_APPS = [
     "rest_framework",
     # Instalada como app para que sus mensajes de error salgan en español.
     "rest_framework_simplejwt",
+    "django_filters",
     "drf_spectacular",
     "corsheaders",
 ]
@@ -176,6 +177,9 @@ REST_FRAMEWORK = {
     # Paginación obligatoria en todo listado, de 25 en 25 (arquitectura.md §4).
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
+    # Los listados se filtran con la clase filterset_class que declara cada
+    # vista (filters.py de cada app).
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     # Toda respuesta de error sale en el formato uniforme.
     "EXCEPTION_HANDLER": "apps.core.manejador_errores.manejar_excepcion",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
