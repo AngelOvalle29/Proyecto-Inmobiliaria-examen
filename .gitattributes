@@ -1,0 +1,23 @@
+# Finales de línea. El repositorio siempre guarda LF, y los archivos de texto
+# también se escriben con LF en la copia de trabajo, incluso en Windows.
+# Así un Dockerfile o un script de shell editado en Windows no se rompe dentro
+# de un contenedor Linux, y los diffs no se llenan de cambios invisibles.
+* text=auto eol=lf
+
+# Scripts que solo corren en Windows necesitan CRLF.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binarios: Git no debe tocarlos ni intentar mostrar su diff.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.xlsx binary
+*.docx binary
+*.pbix binary
+*.woff binary
+*.woff2 binary
