@@ -18,7 +18,7 @@ inteligencia artificial y conexión a Power BI.
 | Integrante | GitHub | Rol | Responsable de |
 |---|---|---|---|
 | Douglas Gerardo Morales Velásquez | DouGMV | A | Base, arquitectura y autenticación (`core`, `usuarios`, `catalogo`); despliegue e integración continua; apoyo a los demás |
-| *por agregar* | Lilfacce | B | Flujo comercial (`crm`, `ventas`, `arrendamientos`) |
+| Marco André Bolaños Rojas | Lilfacce | B | Flujo comercial (`crm`, `ventas`, `arrendamientos`) |
 | *por agregar* | AngelOvalle29 | C | Adquisiciones y agente de IA (`compras`, `construccion`, `ia`) |
 | *por agregar* | NathalyR15 | D | Reportería, Power BI, auditoría y mensajería (`reportes`, `auditoria`) |
 
