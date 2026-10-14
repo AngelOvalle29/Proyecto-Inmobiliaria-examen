@@ -5,7 +5,7 @@
 | **Número** | 001 |
 | **Estado** | Implementada, pendiente de aprobación del pull request |
 | **Autor** | Equipo |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-08 |
 | **Apps afectadas** | `config`, `core`, `usuarios`, `auditoria` (y creación vacía de las once apps) |
 | **Rama** | `feature/001-fundacion` |
@@ -57,10 +57,12 @@ sus dominios sin bloquearse.
 ## 3. Reglas de negocio
 
 1. Todo usuario se autentica con su correo electrónico. No existe nombre de
-   usuario.
+   usuario. El correo no distingue mayúsculas: `Ana@demo.test` y
+   `ana@demo.test` son la misma cuenta.
 2. Todo usuario tiene exactamente un rol. Un rol con usuarios asignados no se
    puede borrar.
-3. Todo superusuario tiene el rol `ADMINISTRADOR`.
+3. Todo superusuario tiene el rol `ADMINISTRADOR`. Se cumple al crearlo
+   (`create_superuser`) y al editarlo desde el panel (`Usuario.clean()`).
 4. Un tipo de cambio es único por combinación de moneda origen, moneda destino
    y fecha.
 5. Una tasa de cambio es siempre mayor que cero, y su moneda origen es distinta
@@ -144,7 +146,7 @@ Extiende `AbstractUser`, con estos cambios:
 |---|---|---|
 | `username` | — | Eliminado. El login es por `email` |
 | `first_name`, `last_name` | — | Eliminados. Los sustituye `nombre_completo` |
-| `email` | EmailField | Único. `USERNAME_FIELD` |
+| `email` | EmailField | Único sin distinguir mayúsculas (constraint sobre `Lower("email")`). Se guarda en minúsculas. `USERNAME_FIELD` |
 | `nombre_completo` | CharField | Obligatorio. En `REQUIRED_FIELDS` |
 | `rol` | FK Rol | Obligatorio, `PROTECT` |
 | `pais` | FK `core.Pais` | Opcional, `PROTECT` |
@@ -155,7 +157,12 @@ Extiende `AbstractUser`, con estos cambios:
 - Se reutiliza `is_active` de Django como borrado lógico. No se agrega
   `activo`, porque Django ya impide autenticarse a un usuario inactivo.
 - Un manager propio (`UsuarioManager`) crea usuarios por correo; su
-  `create_superuser` asigna el rol `ADMINISTRADOR`.
+  `create_superuser` asigna el rol `ADMINISTRADOR`. Su `normalize_email` pasa
+  el correo completo a minúsculas y su `get_by_natural_key` lo busca sin
+  distinguir mayúsculas, que es lo que usa `authenticate()` en el login.
+- `Usuario.clean()` rechaza un superusuario con un rol distinto de
+  `ADMINISTRADOR` (regla 3). No es un constraint de la base porque compara con
+  otra tabla.
 
 ### `auditoria.LogAuditoria` (tabla `auditoria_log_sistema`)
 
@@ -313,6 +320,11 @@ DRF aplica al límite, así la IP auditada y la limitada coinciden.
   escritura todavía. Cuando una spec agregue escritura de catálogos vía API, esa
   escritura pasará por servicios auditados. Para respetar la regla 10, el panel
   no permite borrar catálogos: se desactivan con `activo`.
+- **Misma excepción para los usuarios:** las altas y ediciones de usuarios
+  desde el panel (cambio de rol, desactivación) tampoco se auditan en esta
+  fase, porque todavía no hay servicios de escritura de usuarios. Cuando una
+  spec agregue la administración de usuarios vía API, pasará por servicios
+  auditados.
 - La bitácora del panel de Django (`django_admin_log`) sigue existiendo y deja
   rastro mínimo de esas ediciones mientras tanto.
 
@@ -340,6 +352,9 @@ DRF aplica al límite, así la IP auditada y la limitada coinciden.
 - [x] Un login exitoso actualiza `last_login` y deja un registro `INICIAR_SESION`
 - [x] Un login fallido deja un registro `LOGIN_FALLIDO` sin la contraseña
 - [x] Las contraseñas de menos de 10 caracteres se rechazan
+- [x] Un correo con otras mayúsculas inicia sesión en la misma cuenta y no
+      permite crear una segunda
+- [x] El panel no guarda un superusuario cuyo rol no sea `ADMINISTRADOR`
 
 **Catálogos**
 - [x] Los listados están paginados de 25 en 25
@@ -391,6 +406,10 @@ OpenAPI validado sin advertencias.
 | Modelo | No se pueden crear dos tipos de cambio iguales para la misma fecha |
 | Modelo | Se rechaza una tasa menor o igual a cero y una moneda origen igual a la destino |
 | Modelo | `create_superuser` asigna el rol `ADMINISTRADOR` |
+| Modelo | El correo se guarda en minúsculas y el login no distingue mayúsculas |
+| Modelo | La base rechaza el mismo correo con otras mayúsculas |
+| Modelo | `full_clean` rechaza un superusuario con rol distinto de `ADMINISTRADOR` |
+| Panel | El formulario de edición no guarda un superusuario sin rol `ADMINISTRADOR` |
 | API | Login correcto devuelve tokens |
 | API | Login con credenciales inválidas devuelve 401 con formato uniforme |
 | API | `/auth/yo/` devuelve 401 sin token y 200 con token |
@@ -560,3 +579,18 @@ completa el equipo.** Para cada incremento: qué se leyó, qué se cambió del
 código generado, qué preguntas surgieron y qué se descartó. Esta parte es la
 evidencia de que el código se entendió y no se aceptó sin leerlo
 (`docs/convenciones.md` §5).
+
+**Sesión 2026-10-14, revisión del PR de la spec 001 (Claude Code, integrante B).**
+El integrante B revisó los commits del PR con ayuda del agente y corrió las
+pruebas en su máquina. La revisión encontró dos huecos, que se probaron a mano
+antes de corregirlos:
+
+- **Correo con mayúsculas.** Se pudieron crear `ana@demo.test` y
+  `Ana@demo.test` como dos cuentas, y el login con `ANA@demo.test` devolvía
+  401. Se corrigió con la migración `usuarios.0003` (no editando la 0001, para
+  no obligar a recrear las bases locales).
+- **Regla 3 desde el panel.** Se pudo guardar un superusuario con rol
+  `AGENTE`. Se agregó `Usuario.clean()`.
+
+También se documentó en §7 que las ediciones de usuarios en el panel quedan
+bajo la misma excepción temporal de auditoría que los catálogos.
