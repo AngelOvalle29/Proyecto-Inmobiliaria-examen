@@ -20,7 +20,7 @@ inteligencia artificial y conexión a Power BI.
 | Douglas Gerardo Morales Velásquez | DouGMV | A | Base, arquitectura y autenticación (`core`, `usuarios`, `catalogo`); despliegue e integración continua; apoyo a los demás |
 | Marco André Bolaños Rojas | Lilfacce | B | Flujo comercial (`crm`, `ventas`, `arrendamientos`) |
 | *por agregar* | AngelOvalle29 | C | Adquisiciones y agente de IA (`compras`, `construccion`, `ia`) |
-| *por agregar* | NathalyR15 | D | Reportería, Power BI, auditoría y mensajería (`reportes`, `auditoria`) |
+| Nathaly Saraí Reyes Cifuentes | NathalyR15 | D | Reportería, Power BI, auditoría y mensajería (`reportes`, `auditoria`) |
 
 Cada quien agrega su nombre en esta tabla. El detalle del reparto está en
 `docs/roadmap.md`.
