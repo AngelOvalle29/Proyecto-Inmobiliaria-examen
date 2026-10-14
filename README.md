@@ -15,14 +15,15 @@ inteligencia artificial y conexión a Power BI.
 
 ## Equipo
 
-| Integrante | Rol principal |
-|---|---|
-| Douglas Gerardo Morales Velásquez | *por definir* |
-| *pendiente* | *por definir* |
-| *pendiente* | *por definir* |
-| *pendiente* | *por definir* |
+| Integrante | GitHub | Rol | Responsable de |
+|---|---|---|---|
+| Douglas Gerardo Morales Velásquez | DouGMV | A | Base, arquitectura y autenticación (`core`, `usuarios`, `catalogo`); despliegue e integración continua; apoyo a los demás |
+| *por agregar* | Lilfacce | B | Flujo comercial (`crm`, `ventas`, `arrendamientos`) |
+| *por agregar* | AngelOvalle29 | C | Adquisiciones y agente de IA (`compras`, `construccion`, `ia`) |
+| *por agregar* | NathalyR15 | D | Reportería, Power BI, auditoría y mensajería (`reportes`, `auditoria`) |
 
-El reparto sugerido de módulos está en `docs/roadmap.md`.
+Cada quien agrega su nombre en esta tabla. El detalle del reparto está en
+`docs/roadmap.md`.
 
 ---
 

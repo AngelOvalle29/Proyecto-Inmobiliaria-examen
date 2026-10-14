@@ -18,22 +18,29 @@ Cada integrante es dueño de un bloque vertical: modelo, servicios, API,
 frontend y pruebas de sus apps. Así cada quien puede defender su parte y el
 trabajo no se bloquea entre sí.
 
-| Responsable | Apps | Componente de la rúbrica |
-|---|---|---|
-| **A** | `core`, `usuarios`, `catalogo` | Sistema base, arquitectura, autenticación |
-| **B** | `crm`, `ventas`, `arrendamientos` | Sistema base, flujo comercial |
-| **C** | `compras`, `construccion`, `ia` | Agente de IA y RAG |
-| **D** | `reportes`, `auditoria`, infraestructura | Reportería, Power BI, RabbitMQ, despliegue |
+| Rol | Responsable | Apps y áreas | Componente de la rúbrica |
+|---|---|---|---|
+| **A** | DouGMV | `core`, `usuarios`, `catalogo`; despliegue e integración continua | Sistema base, arquitectura, autenticación, despliegue |
+| **B** | Lilfacce | `crm`, `ventas`, `arrendamientos` | Sistema base, flujo comercial |
+| **C** | AngelOvalle29 | `compras`, `construccion`, `ia` | Agente de IA y RAG |
+| **D** | NathalyR15 | `reportes`, `auditoria`; mensajería (RabbitMQ y Celery) | Reportería, Power BI, RabbitMQ |
+
+Asignado el 2026-10-14. Los nombres están como usuarios de GitHub; cada
+integrante agrega su nombre real en el README.
 
 **Responsabilidades compartidas:**
 - El integrante **A** define los modelos base y las convenciones de código en la
   fase 0; el resto construye sobre eso.
-- El integrante **D** monta el despliegue y la canalización de integración
-  continua en la fase 1, y es quien mantiene el entorno de producción.
+- El integrante **A** monta el despliegue y la integración continua (spec 002)
+  y mantiene el entorno de producción. Se movió del rol D al A al asignar los
+  roles. Cualquier integrante puede colaborar en el despliegue con pull
+  requests; A es quien los aprueba.
+- El integrante **A** además apoya a los demás en sus apps cuando haga falta,
+  siguiendo la regla de `docs/convenciones.md` §4: el cambio se marca en el
+  pull request y lo aprueba el dueño de esa app.
+- El integrante **D** es dueño de `auditoria`, que se creó con la spec 001: su
+  primer paso es leer esa app y su sección de la spec.
 - Todos revisan pull requests de todos.
-
-> Asignar los nombres reales a A, B, C y D en la primera reunión, y reflejarlo
-> en el README.
 
 ---
 
