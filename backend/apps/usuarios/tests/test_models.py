@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
+from django.db import IntegrityError
 from django.db.models import ProtectedError
 
 from apps.usuarios.enums import NombreRol
@@ -115,3 +116,46 @@ def test_una_contrasena_de_menos_de_diez_caracteres_se_rechaza():
         validate_password("Corta-9ch")
 
     validate_password("Diez-chars")  # 10 caracteres: se acepta
+
+
+def test_el_correo_se_guarda_en_minusculas(rol_agente):
+    """Regla 1: Ana@Demo.test y ana@demo.test son el mismo correo."""
+    usuario = Usuario.objects.create_user(
+        email="Ana@Demo.Test",
+        password=CONTRASENA,
+        nombre_completo="Agente Demo",
+        rol=rol_agente,
+    )
+
+    assert usuario.email == "ana@demo.test"
+
+
+def test_el_login_no_distingue_mayusculas_en_el_correo(rol_agente):
+    usuario = Usuario.objects.create_user(
+        email="agente@demo.test",
+        password=CONTRASENA,
+        nombre_completo="Agente Demo",
+        rol=rol_agente,
+    )
+
+    autenticado = authenticate(email="AGENTE@demo.test", password=CONTRASENA)
+
+    assert autenticado == usuario
+
+
+def test_la_base_rechaza_el_mismo_correo_con_otras_mayusculas(rol_agente):
+    """
+    Aunque alguien salte el manager (un script, un update), la base no acepta
+    dos cuentas con el mismo correo escrito distinto.
+    """
+    Usuario.objects.create_user(
+        email="agente@demo.test",
+        password=CONTRASENA,
+        nombre_completo="Agente Demo",
+        rol=rol_agente,
+    )
+
+    with pytest.raises(IntegrityError):
+        Usuario(
+            email="Agente@demo.test", nombre_completo="Copia", rol=rol_agente
+        ).save()

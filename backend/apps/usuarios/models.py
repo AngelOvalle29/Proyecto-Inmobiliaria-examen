@@ -5,6 +5,7 @@ No llaman a servicios ni envían correos.
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.db.models.functions import Lower
 
 from .enums import NombreRol
 
@@ -40,6 +41,23 @@ class UsuarioManager(BaseUserManager):
     """
 
     use_in_migrations = True
+
+    @classmethod
+    def normalize_email(cls, email):
+        """
+        Correo completo en minúsculas (regla 1). Django solo baja el dominio,
+        así que Ana@demo.test y ana@demo.test serían dos cuentas. Este método
+        lo usan el manager, el formulario del panel (AbstractUser.clean) y el
+        selector de logins fallidos, así que todos guardan y buscan igual.
+        """
+        return super().normalize_email(email).lower()
+
+    def get_by_natural_key(self, email):
+        """
+        Lo usa authenticate() en el login. Sin distinguir mayúsculas, para que
+        también encuentre cuentas guardadas antes de normalizar el correo.
+        """
+        return self.get(email__iexact=email)
 
     def _crear_usuario(self, email, password, **campos):
         if not email:
@@ -103,6 +121,13 @@ class Usuario(AbstractUser):
         ordering = ["email"]
         verbose_name = "usuario"
         verbose_name_plural = "usuarios"
+        constraints = [
+            # Regla 1: un correo, una cuenta, sin importar mayúsculas. unique=True
+            # en el campo no basta, porque distingue Ana@ de ana@.
+            models.UniqueConstraint(
+                Lower("email"), name="usuarios_usuario_email_unico_sin_mayusculas"
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.email
