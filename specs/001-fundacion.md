@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 001 |
-| **Estado** | En revisión |
+| **Estado** | Implementada, pendiente de aprobación del pull request |
 | **Autor** | Equipo |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-08 |
 | **Apps afectadas** | `config`, `core`, `usuarios`, `auditoria` (y creación vacía de las once apps) |
 | **Rama** | `feature/001-fundacion` |
-| **Pull request** | — |
+| **Pull request** | [DouGMV/Proyecto-Inmobiliaria#2](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/2) |
 
 ---
 
@@ -57,10 +57,12 @@ sus dominios sin bloquearse.
 ## 3. Reglas de negocio
 
 1. Todo usuario se autentica con su correo electrónico. No existe nombre de
-   usuario.
+   usuario. El correo no distingue mayúsculas: `Ana@demo.test` y
+   `ana@demo.test` son la misma cuenta.
 2. Todo usuario tiene exactamente un rol. Un rol con usuarios asignados no se
    puede borrar.
-3. Todo superusuario tiene el rol `ADMINISTRADOR`.
+3. Todo superusuario tiene el rol `ADMINISTRADOR`. Se cumple al crearlo
+   (`create_superuser`) y al editarlo desde el panel (`Usuario.clean()`).
 4. Un tipo de cambio es único por combinación de moneda origen, moneda destino
    y fecha.
 5. Una tasa de cambio es siempre mayor que cero, y su moneda origen es distinta
@@ -144,7 +146,7 @@ Extiende `AbstractUser`, con estos cambios:
 |---|---|---|
 | `username` | — | Eliminado. El login es por `email` |
 | `first_name`, `last_name` | — | Eliminados. Los sustituye `nombre_completo` |
-| `email` | EmailField | Único. `USERNAME_FIELD` |
+| `email` | EmailField | Único sin distinguir mayúsculas (constraint sobre `Lower("email")`). Se guarda en minúsculas. `USERNAME_FIELD` |
 | `nombre_completo` | CharField | Obligatorio. En `REQUIRED_FIELDS` |
 | `rol` | FK Rol | Obligatorio, `PROTECT` |
 | `pais` | FK `core.Pais` | Opcional, `PROTECT` |
@@ -155,7 +157,12 @@ Extiende `AbstractUser`, con estos cambios:
 - Se reutiliza `is_active` de Django como borrado lógico. No se agrega
   `activo`, porque Django ya impide autenticarse a un usuario inactivo.
 - Un manager propio (`UsuarioManager`) crea usuarios por correo; su
-  `create_superuser` asigna el rol `ADMINISTRADOR`.
+  `create_superuser` asigna el rol `ADMINISTRADOR`. Su `normalize_email` pasa
+  el correo completo a minúsculas y su `get_by_natural_key` lo busca sin
+  distinguir mayúsculas, que es lo que usa `authenticate()` en el login.
+- `Usuario.clean()` rechaza un superusuario con un rol distinto de
+  `ADMINISTRADOR` (regla 3). No es un constraint de la base porque compara con
+  otra tabla.
 
 ### `auditoria.LogAuditoria` (tabla `auditoria_log_sistema`)
 
@@ -175,7 +182,11 @@ Configuración común a todos los endpoints:
 
 - Autenticación por defecto: JWT. Permiso por defecto: autenticado.
 - Paginación por número de página, 25 elementos (`?page=N`).
-- Filtros con `django-filter`.
+- Filtros con `django-filter`. Las fechas se aceptan solo en formato ISO
+  (`2026-10-05`); cualquier otro formato responde 400 `VALIDACION`. *Agregado
+  en el incremento 9:* con el idioma en español, Django aceptaba también
+  `05/10/2026` como día/mes/año, y un cliente que enviara mes/día recibía otra
+  fecha sin aviso.
 - Tokens: acceso de 30 minutos, refresco de 7 días, tomados de
   `JWT_ACCESS_TOKEN_MINUTES` y `JWT_REFRESH_TOKEN_DAYS`.
 - Límite de peticiones en `auth/login/` y `auth/refresh/`: 10 por minuto por IP.
@@ -263,21 +274,40 @@ def registrar_auditoria(
     """Registra una operación. Se llama dentro de la transacción de quien escribe."""
 
 # usuarios/services.py
+def iniciar_sesion(*, email: str, password: str, ip: str | None, user_agent: str | None) -> dict[str, str]
+    """Verifica credenciales, audita el intento y entrega access y refresh.
+    No es atómica: el LOGIN_FALLIDO debe sobrevivir a CredencialesInvalidas."""
+
 def registrar_acceso(*, usuario: Usuario, ip: str | None, user_agent: str | None) -> None
     """Actualiza last_login y registra INICIAR_SESION, en una sola transacción."""
 
 def registrar_login_fallido(*, email: str, ip: str | None, user_agent: str | None) -> None
     """Registra LOGIN_FALLIDO con el correo intentado. Nunca guarda la contraseña."""
+
+# usuarios/selectors.py
+def obtener_id_usuario_por_email(*, email: str) -> int | None
+    """Para asociar un login fallido a la cuenta atacada, si existe."""
 ```
+
+`iniciar_sesion` y `obtener_id_usuario_por_email` se agregaron durante la
+implementación (incremento 8): la vista no puede autenticar ni consultar
+modelos, así que esa orquestación necesitaba un servicio propio.
 
 `last_login` se actualiza explícitamente en `registrar_acceso` y no con la
 opción `UPDATE_LAST_LOGIN` de SimpleJWT, para que la escritura sea visible en
 el código.
 
-La IP del cliente se obtiene en la capa HTTP (`apps/core/http.py`): primer
-valor de `X-Forwarded-For` si existe (Railway pone la API detrás de un proxy),
-si no `REMOTE_ADDR`. El servicio recibe la IP ya resuelta y no conoce
-`request`.
+La IP del cliente se obtiene en la capa HTTP (`apps/core/http.py`) y el
+servicio la recibe ya resuelta, sin conocer `request`. Con `NUM_PROXIES=0`
+(desarrollo) se usa `REMOTE_ADDR` y se ignora `X-Forwarded-For`. Con
+`NUM_PROXIES=1` (Railway) se toma el último valor de `X-Forwarded-For`, el que
+agregó el proxy propio.
+
+*Corrección durante la implementación:* el borrador decía "primer valor de
+`X-Forwarded-For`". Ese valor lo escribe el cliente y se puede falsificar: un
+atacante registraría una IP inventada en la bitácora y, además, evadiría el
+límite de peticiones cambiándola en cada intento. Se usa la misma regla que
+DRF aplica al límite, así la IP auditada y la limitada coinciden.
 
 ## 7. Auditoría
 
@@ -290,52 +320,75 @@ si no `REMOTE_ADDR`. El servicio recibe la IP ya resuelta y no conoce
   escritura todavía. Cuando una spec agregue escritura de catálogos vía API, esa
   escritura pasará por servicios auditados. Para respetar la regla 10, el panel
   no permite borrar catálogos: se desactivan con `activo`.
+- **Misma excepción para los usuarios:** las altas y ediciones de usuarios
+  desde el panel (cambio de rol, desactivación) tampoco se auditan en esta
+  fase, porque todavía no hay servicios de escritura de usuarios. Cuando una
+  spec agregue la administración de usuarios vía API, pasará por servicios
+  auditados.
 - La bitácora del panel de Django (`django_admin_log`) sigue existiendo y deja
   rastro mínimo de esas ediciones mientras tanto.
 
 ## 8. Criterios de aceptación
 
 **Infraestructura y configuración**
-- [ ] `docker compose up -d` levanta PostgreSQL con pgvector y RabbitMQ
-- [ ] `python manage.py migrate` corre sin errores sobre PostgreSQL
-- [ ] Existen las once apps bajo `backend/apps/`, cada una con su estructura de
+- [x] `docker compose up -d` levanta PostgreSQL con pgvector y RabbitMQ
+- [x] `python manage.py migrate` corre sin errores sobre PostgreSQL
+- [x] Existen las once apps bajo `backend/apps/`, cada una con su estructura de
       archivos
-- [ ] Existen `config/settings/base.py`, `dev.py`, `test.py` y `prod.py`
-- [ ] `prod.py` falla al arrancar si faltan `SECRET_KEY` o `DATABASE_URL` (sin
+- [x] Existen `config/settings/base.py`, `dev.py`, `test.py` y `prod.py`
+- [x] `prod.py` falla al arrancar si faltan `SECRET_KEY` o `DATABASE_URL` (sin
       valores por defecto)
-- [ ] No hay ninguna credencial en el repositorio; todo viene de `.env`
+- [x] No hay ninguna credencial en el repositorio; todo viene de `.env`
 
 **Usuarios y autenticación**
-- [ ] `createsuperuser` pide correo y nombre completo (no nombre de usuario) y
+- [x] `createsuperuser` pide correo y nombre completo (no nombre de usuario) y
       asigna el rol `ADMINISTRADOR`
-- [ ] Los cinco roles existen después de `migrate`, sin pasos manuales
-- [ ] `POST /api/v1/auth/login/` devuelve un par de tokens válidos
-- [ ] Un login con credenciales inválidas devuelve 401 con el código
+- [x] Los cinco roles existen después de `migrate`, sin pasos manuales
+- [x] `POST /api/v1/auth/login/` devuelve un par de tokens válidos
+- [x] Un login con credenciales inválidas devuelve 401 con el código
       `CREDENCIALES_INVALIDAS` en el formato uniforme
-- [ ] Un endpoint protegido devuelve 401 sin token y 200 con token válido
-- [ ] El undécimo intento de login en un minuto desde la misma IP devuelve 429
-- [ ] Un login exitoso actualiza `last_login` y deja un registro `INICIAR_SESION`
-- [ ] Un login fallido deja un registro `LOGIN_FALLIDO` sin la contraseña
-- [ ] Las contraseñas de menos de 10 caracteres se rechazan
+- [x] Un endpoint protegido devuelve 401 sin token y 200 con token válido
+- [x] El undécimo intento de login en un minuto desde la misma IP devuelve 429
+- [x] Un login exitoso actualiza `last_login` y deja un registro `INICIAR_SESION`
+- [x] Un login fallido deja un registro `LOGIN_FALLIDO` sin la contraseña
+- [x] Las contraseñas de menos de 10 caracteres se rechazan
+- [x] Un correo con otras mayúsculas inicia sesión en la misma cuenta y no
+      permite crear una segunda
+- [x] El panel no guarda un superusuario cuyo rol no sea `ADMINISTRADOR`
 
 **Catálogos**
-- [ ] Los listados están paginados de 25 en 25
-- [ ] `/api/v1/ciudades/?pais=<id>` devuelve solo ciudades de ese país
-- [ ] `/api/v1/tipos-cambio/` filtra por monedas y rango de fechas
-- [ ] La base de datos rechaza dos tipos de cambio iguales para la misma fecha,
+- [x] Los listados están paginados de 25 en 25
+- [x] `/api/v1/ciudades/?pais=<id>` devuelve solo ciudades de ese país
+- [x] `/api/v1/tipos-cambio/` filtra por monedas y rango de fechas
+- [x] La base de datos rechaza dos tipos de cambio iguales para la misma fecha,
       una tasa menor o igual a cero, y una moneda convertida a sí misma
-- [ ] El panel de Django no permite borrar catálogos
-- [ ] `obtener_tipo_cambio` devuelve la tasa correcta cuando no hay registro
+- [x] El panel de Django no permite borrar catálogos
+- [x] `obtener_tipo_cambio` devuelve la tasa correcta cuando no hay registro
       exacto para la fecha
-- [ ] `seed_demo` carga países, ciudades, monedas y tipos de cambio ficticios, y
+- [x] `seed_demo` carga países, ciudades, monedas y tipos de cambio ficticios, y
       correrlo dos veces no duplica datos
 
 **API y calidad**
-- [ ] `GET /api/v1/health/` responde 200 sin autenticación
-- [ ] `/api/docs/` muestra la documentación generada automáticamente
-- [ ] `ruff check` y `ruff format --check` pasan sin advertencias
-- [ ] `pytest` pasa y corre contra PostgreSQL, no contra SQLite
-- [ ] `makemigrations --check` no detecta migraciones pendientes
+- [x] `GET /api/v1/health/` responde 200 sin autenticación
+- [x] `/api/docs/` muestra la documentación generada automáticamente
+- [x] `ruff check` y `ruff format --check` pasan sin advertencias
+- [x] `pytest` pasa y corre contra PostgreSQL, no contra SQLite
+- [x] `makemigrations --check` no detecta migraciones pendientes
+
+**Verificación del cierre (incremento 11).** Cada criterio tiene una prueba
+automática, salvo cuatro que se verificaron a mano:
+
+- `docker compose up -d`: contenedores sanos; la extensión `vector` 0.8.7
+  está disponible en la imagen.
+- `migrate`: las 23 migraciones corren sobre una base vacía creada para la
+  verificación; una segunda corrida no encuentra nada pendiente.
+- `prod.py`: sin `SECRET_KEY` responde `ImproperlyConfigured`.
+- Credenciales: ningún `.env` versionado; `.env.example` solo tiene marcadores
+  y las contraseñas locales de Docker.
+
+Resultado: 94 pruebas contra PostgreSQL, 100 % de cobertura en servicios y
+selectores, `ruff` y `makemigrations --check` sin observaciones, y el esquema
+OpenAPI validado sin advertencias.
 
 ## 9. Pruebas
 
@@ -353,6 +406,10 @@ si no `REMOTE_ADDR`. El servicio recibe la IP ya resuelta y no conoce
 | Modelo | No se pueden crear dos tipos de cambio iguales para la misma fecha |
 | Modelo | Se rechaza una tasa menor o igual a cero y una moneda origen igual a la destino |
 | Modelo | `create_superuser` asigna el rol `ADMINISTRADOR` |
+| Modelo | El correo se guarda en minúsculas y el login no distingue mayúsculas |
+| Modelo | La base rechaza el mismo correo con otras mayúsculas |
+| Modelo | `full_clean` rechaza un superusuario con rol distinto de `ADMINISTRADOR` |
+| Panel | El formulario de edición no guarda un superusuario sin rol `ADMINISTRADOR` |
 | API | Login correcto devuelve tokens |
 | API | Login con credenciales inválidas devuelve 401 con formato uniforme |
 | API | `/auth/yo/` devuelve 401 sin token y 200 con token |
@@ -424,6 +481,20 @@ El `Dockerfile` corre `collectstatic` con los settings de producción al
 construir la imagen, así que la spec 002 debe pasar valores ficticios solo a ese
 paso y decidir cómo se sirven los archivos estáticos.
 
+**Caché de Django en PostgreSQL** (decidido en el incremento 8). El límite de
+peticiones guarda sus contadores en la caché. En memoria, cada proceso de
+gunicorn contaría por separado: con 3 procesos el límite real sería 30 intentos
+por minuto, y se reiniciaría con cada despliegue. Redis lo resolvería, pero
+está fuera del stack por ahora. La caché en la base de datos usa la PostgreSQL
+que ya existe, a costa de una consulta extra por intento de login. La tabla la
+crea la migración `core.0002`, así que `migrate` sigue siendo el único paso.
+
+**`iniciar_sesion` no es atómica.** Si envolviera todo en una transacción,
+lanzar `CredencialesInvalidas` revertiría también el registro `LOGIN_FALLIDO`,
+y los intentos fallidos son justo los que más interesa conservar. La parte que
+sí debe ser atómica, actualizar `last_login` y auditar el acceso, vive en
+`registrar_acceso`.
+
 ## 11. Trabajo con agentes de IA
 
 **Sesión 2026-10-08, revisión de la spec antes de implementar (Claude Code).**
@@ -449,12 +520,77 @@ El equipo aceptó las recomendaciones y la spec se actualizó a esta versión.
    `migrate`**: hacerlo antes de este punto crea las tablas con el usuario por
    defecto de Django, y cambiarlo después obliga a recrear la base
 5. Selectores de tipo de cambio y conversión, con pruebas
-6. Configuración de DRF, manejador de errores, health y documentación
+6. Configuración de DRF, manejador de errores, CORS, health y documentación
 7. `LogAuditoria` y `registrar_auditoria`
-8. Autenticación JWT con registro de acceso
+8. Autenticación JWT con registro de acceso y límite de peticiones en login.
+   El límite se movió aquí desde el incremento 6 durante la implementación:
+   solo aplica a `auth/login/` y `auth/refresh/`, y necesita decidir dónde
+   guarda DRF los contadores (ver la nota del incremento 6)
 9. Endpoints de catálogos con filtros
 10. `seed_demo`
-11. Cierre: README y esta sección
+11. Cierre: verificación de criterios, README y esta sección
 
-Por completar durante la implementación: qué se generó con el agente, qué se
-corrigió a mano y qué se descartó en cada incremento.
+**Nota del incremento 6.** DRF guarda los contadores del límite de peticiones
+en la caché de Django. Sin Redis, la caché por defecto vive en la memoria de
+cada proceso, y en producción gunicorn corre 3 procesos: cada uno contaría por
+separado y el límite real sería el triple. Hay que decidir entre la caché en
+la base de datos de Django (tabla propia en PostgreSQL) o aceptar la
+imprecisión. *Resuelto en el incremento 8: caché en PostgreSQL (ver §10).*
+
+**Sesiones 2026-10-12, implementación de los 11 incrementos (Claude Code).**
+
+*Cómo se trabajó.* El agente implementó un incremento a la vez, con sus
+pruebas. Después de cada uno explicó qué hizo y por qué, y esperó la
+autorización del equipo antes de seguir. Cada incremento es un commit con la
+línea `Co-Authored-By: Claude`. Las dependencias se agregaron una por una, en
+el incremento que las usa, con su justificación en `requirements/`.
+
+*Decisiones que tomó el equipo cuando el agente las planteó:*
+- Puerto de PostgreSQL configurable (`POSTGRES_PORT`), porque en una de las
+  máquinas el 5432 lo ocupaba un PostgreSQL instalado en Windows.
+- Agregar factory-boy (incremento 5) y `.gitattributes` con finales de línea
+  LF.
+- Caché de Django en PostgreSQL para el límite de peticiones (incremento 8).
+- Países de la demostración: Guatemala, México, Colombia, Costa Rica y El
+  Salvador (incremento 10).
+
+*Errores que encontraron las pruebas o las verificaciones, y se corrigieron:*
+- **IP falsificable (incremento 8).** El borrador de la spec tomaba el primer
+  valor de `X-Forwarded-For`, que escribe el cliente. Habría permitido
+  registrar IPs inventadas y saltarse el límite de 10 intentos. Se corrigió la
+  spec (§6).
+- **Fechas ambiguas (incremento 9).** Con el idioma en español, los filtros
+  aceptaban `10/05/2026` como día/mes. Ahora solo aceptan ISO (§5).
+- **Serializador duplicado (incremento 9).** `PaisResumenSerializer` existía en
+  `core` y en `usuarios`, y el esquema OpenAPI salía incorrecto.
+- **Advertencia del esquema (incremento 6).** Dos campos con las mismas
+  opciones; se les dio un nombre explícito.
+- **Cobertura del cierre (incremento 11).** El criterio de contraseñas de 10
+  caracteres solo tenía prueba de configuración, no de comportamiento, y la
+  rama de error de `verificar_base_datos` no se ejecutaba. Se agregaron ambas
+  pruebas.
+
+*Cambios al plan durante la implementación:* el límite de peticiones se movió
+del incremento 6 al 8, y se agregaron dos funciones que el borrador no tenía:
+`iniciar_sesion` y `obtener_id_usuario_por_email` (§6).
+
+*Lo que revisó, corrigió o descartó el equipo a mano.* **Pendiente: lo
+completa el equipo.** Para cada incremento: qué se leyó, qué se cambió del
+código generado, qué preguntas surgieron y qué se descartó. Esta parte es la
+evidencia de que el código se entendió y no se aceptó sin leerlo
+(`docs/convenciones.md` §5).
+
+**Sesión 2026-10-14, revisión del PR de la spec 001 (Claude Code, integrante B).**
+El integrante B revisó los commits del PR con ayuda del agente y corrió las
+pruebas en su máquina. La revisión encontró dos huecos, que se probaron a mano
+antes de corregirlos:
+
+- **Correo con mayúsculas.** Se pudieron crear `ana@demo.test` y
+  `Ana@demo.test` como dos cuentas, y el login con `ANA@demo.test` devolvía
+  401. Se corrigió con la migración `usuarios.0003` (no editando la 0001, para
+  no obligar a recrear las bases locales).
+- **Regla 3 desde el panel.** Se pudo guardar un superusuario con rol
+  `AGENTE`. Se agregó `Usuario.clean()`.
+
+También se documentó en §7 que las ediciones de usuarios en el panel quedan
+bajo la misma excepción temporal de auditoría que los catálogos.

@@ -22,9 +22,10 @@ dist/
 *.log
 db.sqlite3
 db.sqlite3-journal
-/media/
-/staticfiles/
-/static_root/
+# Sin "/" inicial: estas carpetas se crean dentro de backend/, no en la raíz.
+media/
+staticfiles/
+static_root/
 
 # Pruebas y cobertura
 .pytest_cache/

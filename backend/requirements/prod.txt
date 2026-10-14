@@ -1,0 +1,5 @@
+# Producción: lo de base más el servidor de aplicaciones. Lo usa el Dockerfile.
+
+-r base.txt
+
+gunicorn==26.2.0            # servidor WSGI que arranca Django en el contenedor
