@@ -159,3 +159,31 @@ def test_la_base_rechaza_el_mismo_correo_con_otras_mayusculas(rol_agente):
         Usuario(
             email="Agente@demo.test", nombre_completo="Copia", rol=rol_agente
         ).save()
+
+
+def test_un_superusuario_con_otro_rol_no_pasa_la_validacion(rol_agente):
+    """
+    Regla 3 desde el panel: el formulario llama a full_clean() antes de
+    guardar, y ahí se rechaza.
+    """
+    usuario = Usuario(
+        email="agente@demo.test",
+        nombre_completo="Agente Demo",
+        rol=rol_agente,
+        is_superuser=True,
+    )
+    usuario.set_password(CONTRASENA)
+
+    with pytest.raises(ValidationError) as error:
+        usuario.full_clean()
+
+    assert "rol" in error.value.message_dict
+
+
+def test_un_usuario_normal_con_rol_agente_pasa_la_validacion(rol_agente):
+    usuario = Usuario(
+        email="agente@demo.test", nombre_completo="Agente Demo", rol=rol_agente
+    )
+    usuario.set_password(CONTRASENA)
+
+    usuario.full_clean()

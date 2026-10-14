@@ -4,6 +4,7 @@ No llaman a servicios ni envían correos.
 """
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.functions import Lower
 
@@ -131,6 +132,23 @@ class Usuario(AbstractUser):
 
     def __str__(self) -> str:
         return self.email
+
+    def clean(self) -> None:
+        """
+        Regla 3: todo superusuario tiene el rol ADMINISTRADOR. create_superuser
+        ya lo asigna; esta validación cubre el panel, donde se puede marcar
+        is_superuser a mano. El formulario del panel llama a clean() antes de
+        guardar y muestra el error junto al campo rol.
+        """
+        super().clean()
+        if (
+            self.is_superuser
+            and self.rol_id is not None
+            and self.rol.nombre != NombreRol.ADMINISTRADOR
+        ):
+            raise ValidationError(
+                {"rol": "Un superusuario debe tener el rol Administrador (regla 3)."}
+            )
 
     # AbstractUser arma estos dos a partir de first_name y last_name, que aquí
     # no existen.
