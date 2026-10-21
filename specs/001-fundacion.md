@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 001 |
-| **Estado** | Implementada, pendiente de aprobación del pull request |
+| **Estado** | Implementada |
 | **Autor** | Equipo |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-08 |
