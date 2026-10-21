@@ -3,9 +3,9 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 002 |
-| **Estado** | En revisión |
+| **Estado** | Aprobada, en implementación |
 | **Autor** | Equipo |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-08 (actualizada el 2026-10-21) |
 | **Apps afectadas** | `config`, `core` (migración de pgvector, tarea de diagnóstico), `usuarios` (pendiente de la spec 001), `frontend/`, infraestructura |
 | **Rama** | `feature/002-despliegue` |
@@ -140,7 +140,12 @@ backend de resultados sobra. Si más adelante hace falta cache, se agrega.
   Django en memoria, y Railway cobra por memoria usada. Con el tráfico de una
   demostración, 2 sobran.
 - **Despliegue automático** desde la rama `main`, en `api` y `worker`.
-- **Ruta de salud** de Railway: `/api/v1/health/`.
+- **Ruta de salud** de Railway: `/api/v1/health/`, solo en el servicio `api`.
+  Railway la llama con el host `healthcheck.railway.app`; si ese host no está
+  en `ALLOWED_HOSTS`, Django responde 400 y Railway da el despliegue por
+  fallido. `prod.py` lo agrega siempre (§5.2).
+- **El `worker` no tiene ruta de salud**: no sirve HTTP. Railway lo considera
+  sano mientras el proceso siga corriendo.
 
 **Variables de `api` y `worker`:**
 
@@ -150,9 +155,9 @@ backend de resultados sobra. Si más adelante hace falta cache, se agrega.
 | `SECRET_KEY` | Clave aleatoria generada para producción, distinta de la de desarrollo |
 | `DATABASE_URL` | Referencia a la variable que inyecta el servicio `postgres` |
 | `RABBITMQ_URL` | Referencia a la variable de conexión AMQP que inyecta el servicio `rabbitmq` |
-| `ALLOWED_HOSTS` | `<proyecto>.up.railway.app` |
+| `ALLOWED_HOSTS` | `<proyecto>.up.railway.app` (`prod.py` agrega `healthcheck.railway.app`) |
 | `CORS_ALLOWED_ORIGINS` | `https://<proyecto>.vercel.app` |
-| `NUM_PROXIES` | `1` (spec 001, §6: define de dónde se toma la IP real) |
+| `NUM_PROXIES` | `1` (spec 001, §6: define de dónde se toma la IP real). Se comprueba en producción (§8) |
 
 Las cadenas de conexión se referencian entre servicios en el panel de Railway,
 nunca se copian a mano.
@@ -173,14 +178,17 @@ roadmap estima entre $15 y $20 al mes.
   Django cree que la conexión no es segura, y las cookies seguras y el CSRF
   del panel fallan.
 - `RABBITMQ_URL` obligatoria, sin valor por defecto, como `SECRET_KEY`.
+- `ALLOWED_HOSTS` toma la lista de la variable de entorno y le agrega siempre
+  `healthcheck.railway.app` (§5.1). Va fijo en el código porque es un requisito
+  de la plataforma, no una configuración que cambie entre despliegues.
 - Registro de errores en la salida estándar (`LOGGING`). Con `DEBUG = False`,
   Django no imprime las trazas de los errores 500 en la consola; sin esto, un
   error en producción no deja rastro en los registros de Railway.
 
 No se activa `SECURE_SSL_REDIRECT`, porque Railway ya redirige a HTTPS en su
-proxy y la verificación de salud del `Dockerfile` llama por HTTP dentro del
-contenedor. Tampoco se activa HSTS por ahora, porque un error de configuración
-de HSTS no se puede deshacer desde el servidor.
+proxy y su verificación de salud llama por HTTP dentro de su red: una
+redirección la haría fallar. Tampoco se activa HSTS por ahora, porque un error
+de configuración de HSTS no se puede deshacer desde el servidor.
 
 ### 5.3 Archivos estáticos
 
@@ -206,6 +214,13 @@ python manage.py collectstatic`). Esas variables existen únicamente durante ese
 comando: no quedan guardadas en la imagen ni llegan al contenedor en ejecución,
 que recibe las reales desde Railway. `collectstatic` no se conecta a la base ni
 al broker, así que los valores ficticios no se usan para nada.
+
+**Se quita el `HEALTHCHECK` del `Dockerfile`.** Llamaba a
+`http://localhost:${PORT}/api/v1/health/`, y fallaba por dos razones: con
+settings de producción, `localhost` no está en `ALLOWED_HOSTS`, y el `worker`
+usa la misma imagen pero no sirve HTTP, así que quedaría siempre marcado como
+no sano. Railway no usa el `HEALTHCHECK` de Docker sino su propia ruta de salud
+(§5.1), configurada solo para `api`.
 
 ### 5.5 Celery
 
@@ -312,6 +327,10 @@ fusiona.
 
 **En producción**
 - [ ] `https://<proyecto>.up.railway.app/api/v1/health/` responde 200
+- [ ] El servicio `api` pasa la verificación de salud de Railway en cada
+      despliegue, y el `worker` queda en ejecución
+- [ ] La IP que registra la bitácora en un login de producción es la IP pública
+      real de quien inició sesión (confirma que `NUM_PROXIES=1` es correcto)
 - [ ] `https://<proyecto>.vercel.app` carga el frontend y muestra el estado de
       la API, sin errores de CORS
 - [ ] `/api/docs/` y el panel de Django son accesibles y se ven con estilos
@@ -385,6 +404,12 @@ configuración se confundiría con un error del flujo.
 modelo de la app `ia`. Habilitarla antes permite comprobar en este despliegue
 que la plantilla de Railway la soporta, en lugar de descubrirlo en la fase 5.
 
+**La ruta de salud de Railway y no el `HEALTHCHECK` de Docker.** Se descartó
+conservar el `HEALTHCHECK` agregando `localhost` a `ALLOWED_HOSTS`, porque
+seguiría fallando en el `worker`, que usa la misma imagen. Railway ya tiene su
+propia verificación, configurable por servicio; tener dos que comprueban lo
+mismo solo agrega una forma más de fallar.
+
 **Sin protección de ramas.** GitHub la ofrece en repositorios privados solo con
 el plan Pro. El equipo prefirió reglas internas escritas antes que cambiar de
 plan o hacer público el repositorio (`docs/convenciones.md` §1.1).
@@ -400,11 +425,17 @@ configuración de Celery para el worker, y Vercel no tenía qué desplegar.
 También confirmó que GitHub Actions no se ejecuta por un bloqueo en la cuenta y
 no por el workflow. El equipo aceptó las decisiones de las secciones 5 a 7.
 
+**Revisión de la spec (rol B, 2026-10-21).** Marco aprobó la spec con tres
+observaciones, que se incorporan aquí antes de implementar: `ALLOWED_HOSTS`
+bloqueaba las verificaciones de salud (§5.1 y §5.2), el `worker` heredaba un
+`HEALTHCHECK` que no podía pasar (§5.4) y `NUM_PROXIES=1` debe comprobarse en
+producción (§8).
+
 **Plan de implementación (un commit por incremento):**
 
 1. Pendientes de la spec 001 (§5.7)
 2. Settings de producción para Railway y WhiteNoise (§5.2 y §5.3)
-3. Corrección del `Dockerfile`; construir y correr la imagen localmente, y la
+3. Corrección del `Dockerfile` (sin `HEALTHCHECK`); construir y correr la imagen localmente, y la
    suite completa con Python 3.12 (§5.4 y §7)
 4. Configuración mínima de Celery y la tarea de diagnóstico (§5.5). Revisa D.
 5. Migración de pgvector (§5.6)
