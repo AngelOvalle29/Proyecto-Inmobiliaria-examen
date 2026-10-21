@@ -44,6 +44,100 @@ integrante agrega su nombre real en el README.
 
 ---
 
+## Plan de trabajo por integrante
+
+Acordado el 2026-10-21, con la fase 0 terminada (spec 001). Cada integrante
+implementa el bloque vertical de sus apps: modelo, servicios, API, pantallas y
+pruebas. Se descartó un reparto en el que A implementaba la mayor parte
+(propuesto y cerrado en el PR #5).
+
+**El dato que ordena el plan:** `Propiedad` (`catalogo`, de A) es necesaria
+para cotizaciones, ventas, arrendamientos, compras y construcción. El catálogo
+es el camino crítico. Cada integrante tiene una parte que no depende de nadie y
+que se empieza de inmediato.
+
+### Todos, al empezar
+
+1. Preparar el entorno local con el README y leer la spec 001 y su código: en
+   la defensa individual cualquiera puede ser preguntado por la base.
+2. Escribir la spec de su bloque con `specs/PLANTILLA.md` y que la apruebe otro
+   integrante antes de programar.
+3. Todo cambio va en una rama y con pull request, con mensajes según
+   `docs/convenciones.md`. Nunca editar `develop` directamente desde la web.
+4. Completar su parte de la §11 de la spec 001: qué revisó y qué entendió.
+
+### A · Douglas
+
+1. Destrabar la integración continua (GitHub Actions no se ha ejecutado nunca)
+   y activar la protección de `main` y `develop` (requiere GitHub Pro, gratuito
+   con el Student Developer Pack).
+2. **Spec 002:** despliegue en Railway y Vercel. Incluye cerrar los pendientes de
+   la spec 001 (estado en la cabecera y búsqueda sin mayúsculas en
+   `obtener_id_usuario_por_email`).
+3. **Spec 003, catálogo**, empezando por `TipoPropiedad`, `Propiedad` y `Unidad`
+   en un primer PR, porque desbloquean a B y a C. Avalúos, amenidades,
+   documentos oficiales e historial van en un PR posterior.
+4. Base del frontend: login, menú y cliente de la API. Los demás construyen sus
+   pantallas sobre ella.
+5. Resto del catálogo y sus pantallas; apoyo a quien se atrase.
+
+*A resolver en la spec 003:* `DocumentoOficial` (`catalogo`) apunta a
+`ContratoVenta` (`ventas`) y a `ContratoCompra` (`compras`), que a su vez
+apuntan a `Propiedad`: se forma un ciclo entre apps, como el que se resolvió en
+la spec 001. Se acuerda con B y C antes de escribir la spec.
+
+### B · Marco
+
+1. **Spec de CRM**, empezando por `Cliente` y `Agente`, que no dependen del
+   catálogo.
+2. Cotizaciones y su detalle, cuando `Propiedad` esté en `develop`.
+3. **Spec de ventas:** contratos, planes de pago y cuotas.
+4. **Spec de arrendamientos**, siguiendo el patrón de ventas.
+5. Pantallas de su bloque, sobre la base del frontend.
+
+*A incluir en ventas y arrendamientos* (observaciones de B en el PR #1): cada
+transacción guarda la tasa de cambio aplicada, y una conversión entre dos
+monedas que no son el dólar necesita su propio registro de tipo de cambio.
+
+### C · Angel
+
+1. **Spec del agente de IA y el RAG.** No depende del catálogo y es el bloque de
+   mayor riesgo (2 puntos): interfaz `ProveedorIA` e implementación de Gemini
+   (`docs/arquitectura.md` §7), `DocumentoRAG` y `FragmentoRAG` con pgvector,
+   búsqueda por similitud con citación. Primero: obtener la llave de Gemini y
+   confirmar la dimensión de los embeddings.
+2. **Spec de compras y construcción**, empezando por `Proveedor` y
+   `Constructora`, que no dependen del catálogo.
+3. Contratos de compra, proyectos, avances y pagos, cuando `Propiedad` esté en
+   `develop`.
+4. Herramientas del agente sobre los selectores de las demás apps, conforme
+   existan, y los modos público e interno.
+5. Pantallas de su bloque.
+
+### D · Nathaly
+
+1. Leer a fondo la app `auditoria`, que ya es suya.
+2. Confirmar con el catedrático los puntos pendientes de `docs/requisitos.md`:
+   fechas de entrega y defensa, dominio no tomado, TypeScript en el frontend y
+   formato del manual técnico.
+3. Bitácora del agente (`LogAgenteIA`) en `auditoria`, coordinada con C.
+4. **Spec de la capa genérica de reportes** con exportadores a Excel y PDF. Se
+   empieza con los datos que ya existen (tipos de cambio, catálogos).
+5. **Spec de mensajería:** configuración de Celery y los flujos de
+   notificaciones e ingesta de documentos. La ingesta alimenta el RAG de C y se
+   acuerda con C; el worker en Railway lo configura A en la spec 002.
+6. Los 15 reportes, conforme cada bloque tenga datos.
+7. Power BI y el esquema `bi`, cuando haya tablas con datos.
+
+### Riesgo de este reparto
+
+Los bloques no tienen el mismo tamaño: los de C (IA, compras y construcción) y
+D (15 reportes, Power BI, mensajería y auditoría) son mayores que el de B. Se
+revisa en la reunión semanal, con las fechas reales del catedrático, y se
+mueven piezas a tiempo en lugar de descubrirlo en la última semana.
+
+---
+
 ## Fases
 
 ### Fase 0 · Fundación
