@@ -3,11 +3,11 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 004 |
-| **Estado** | Borrador |
+| **Estado** | En revisión |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
 | **Revisor** | Por asignar |
 | **Fecha** | 2026-10-21 |
-| **Apps afectadas** | `crm`, `usuarios` (permisos por rol), `core` (`seed_demo`) |
+| **Apps afectadas** | `crm` (incluido su comando `cargar_demo_crm`), `usuarios` (permiso por rol) |
 | **Rama** | `feature/004-crm-clientes-agentes` |
 | **Pull request** | — |
 
@@ -36,7 +36,8 @@ las specs siguientes lo reutilizan.
 - Permisos por rol y por objeto (cartera propia del agente)
 - Clases de permiso reutilizables en `usuarios/permissions.py`
 - Auditoría de toda escritura
-- Datos de demostración ficticios: agentes y clientes en `seed_demo`
+- Datos de demostración ficticios: comando `cargar_demo_crm` en `crm`, que
+  `seed_demo` invoca por nombre (el ajuste de `seed_demo` lo hace A en `core`)
 
 **No incluye:**
 - Cotizaciones y su detalle: necesitan `Propiedad` (spec 003). Van en una spec
@@ -71,8 +72,11 @@ las specs siguientes lo reutilizan.
    - Una empresa tiene obligatoriamente razón social y NIT.
 7. No puede haber dos personas con el mismo documento de identidad en el mismo
    país, ni dos empresas con el mismo NIT en el mismo país, aunque una de ellas
-   esté desactivada.
-8. Todo cliente tiene exactamente un agente asignado.
+   esté desactivada. El documento y el NIT se guardan normalizados: sin
+   espacios ni guiones y en mayúsculas, así `1234 56789-0101` y
+   `1234567890101` son el mismo documento.
+8. Todo cliente tiene exactamente un agente asignado. Reasignarlo a su mismo
+   agente no cambia nada y no deja registro en la bitácora.
 9. La ciudad del cliente es opcional, pero si se indica debe pertenecer a su
    país.
 10. El código del cliente (`CLI-00001`) y el del agente (`AGT-001`) los genera
@@ -83,7 +87,9 @@ las specs siguientes lo reutilizan.
 11. `ADMINISTRADOR` y `GERENTE` ven y modifican todos los clientes, y son los
     únicos que administran agentes y reasignan clientes.
 12. Un `AGENTE` solo ve y modifica los clientes de su cartera. Los clientes que
-    crea quedan asignados a él. No puede reasignarlos.
+    crea quedan asignados a él. No puede reasignarlos. Un usuario con rol
+    `AGENTE` que todavía no tiene perfil de agente no ve ningún cliente (lista
+    vacía) y no puede crearlos.
 13. `CONTABILIDAD` y `CONSULTA` ven todos los clientes y agentes, sin
     modificarlos.
 14. Un agente que pide un cliente que no es de su cartera recibe 404, no 403:
@@ -105,7 +111,7 @@ crm → core, usuarios, auditoria
 | Campo | Tipo | Nota |
 |---|---|---|
 | `usuario` | OneToOne `settings.AUTH_USER_MODEL` | `PROTECT`, `related_name="agente"` |
-| `codigo` | CharField(10) | Único, generado (`AGT-001`) |
+| `codigo` | CharField(10) | Único, generado (`AGT-001`). Nulo solo durante la creación |
 | `porcentaje_comision` | DecimalField(5, 2) | Constraint: entre 0 y 100 |
 | `fecha_ingreso` | DateField | |
 
@@ -116,7 +122,7 @@ Se elimina de `docs/modelo-datos.md`: `nombre_completo`, `telefono` y `pais`
 
 | Campo | Tipo | Nota |
 |---|---|---|
-| `codigo` | CharField(10) | Único, generado (`CLI-00001`) |
+| `codigo` | CharField(10) | Único, generado (`CLI-00001`). Nulo solo durante la creación |
 | `tipo` | CharField, enum `TipoCliente` | `PERSONA`, `EMPRESA` |
 | `nombre` | CharField(100) | Obligatorio si es persona |
 | `apellidos` | CharField(100) | Obligatorio si es persona |
@@ -153,10 +159,19 @@ tabla.
 **Índices:** `codigo` (único), `agente_asignado`, `pais` (claves foráneas,
 `docs/modelo-datos.md` §11).
 
-**Generación de códigos (regla 10):** el servicio crea el registro y, en la
-misma transacción, asigna el código a partir del `id`:
-`CLI-{id:05d}` y `AGT-{id:03d}`. El `id` lo da PostgreSQL, así que no hay dos
-iguales aunque dos usuarios creen clientes al mismo tiempo.
+**Generación de códigos (regla 10):** el servicio inserta el registro con
+`codigo` nulo y, en la misma transacción, le asigna el código a partir del
+`id`: `CLI-{id:05d}` y `AGT-{id:03d}`. El `id` lo da PostgreSQL, así que no hay
+dos iguales aunque dos usuarios creen clientes al mismo tiempo. El campo es
+`null=True` y `unique=True`: en PostgreSQL dos nulos no chocan con la
+restricción de unicidad, mientras que dos cadenas vacías sí.
+
+**Concurrencia al asignar y desactivar agentes (reglas 4 y 5):**
+`desactivar_agente`, `crear_cliente` y `reasignar_cliente` bloquean la fila del
+agente con `select_for_update()` antes de comprobar la regla. Así, si una
+petición desactiva al agente mientras otra le asigna un cliente, la segunda
+espera a que termine la primera y ve el estado final, en lugar de dejar un
+agente desactivado con cartera.
 
 ## 5. API
 
@@ -197,7 +212,7 @@ Configuración común de la spec 001: JWT, paginación de 25, errores uniformes.
 
 | Método | Ruta | Descripción | Permiso |
 |---|---|---|---|
-| GET | `/api/v1/clientes/` | Clientes activos visibles para el usuario (reglas 11 a 13). Filtros: `?tipo=`, `?pais=<id>`, `?ciudad=<id>`, `?agente=<id>`, `?buscar=` (nombre, apellidos, razón social, documento, NIT, correo o código) | Autenticado |
+| GET | `/api/v1/clientes/` | Clientes activos visibles para el usuario (reglas 11 a 13; lista vacía para un agente sin perfil). Filtros: `?tipo=`, `?pais=<id>`, `?ciudad=<id>`, `?agente=<id>`, `?buscar=` (nombre, apellidos, razón social, documento, NIT, correo o código) | Autenticado |
 | GET | `/api/v1/clientes/{id}/` | Detalle | Autenticado, con cartera (regla 14) |
 | POST | `/api/v1/clientes/` | Crear | `ADMINISTRADOR`, `GERENTE`, `AGENTE` |
 | PATCH | `/api/v1/clientes/{id}/` | Editar datos (no el agente) | `ADMINISTRADOR`, `GERENTE`, `AGENTE` de su cartera |
@@ -248,6 +263,11 @@ gerente, y se ignora para un agente, que siempre queda asignado a sí mismo
 
 **Reasignar. Petición:** `{ "agente": 5 }`
 
+**Búsqueda (`?buscar=`):** es un filtro más de `crm/filters.py`
+(`CharFilter` de django-filter que busca, sin distinguir mayúsculas, en los
+campos indicados). No usa el `SearchFilter` de DRF, así que no requiere cambiar
+`REST_FRAMEWORK` en `core`.
+
 **Errores nuevos:**
 
 | Código | Situación | HTTP |
@@ -258,7 +278,7 @@ gerente, y se ignora para un agente, que siempre queda asignado a sí mismo
 | `AGENTE_CON_CLIENTES` | Se intenta desactivar un agente con clientes activos (regla 4) | 409 |
 | `USUARIO_NO_ES_AGENTE` | Se crea un perfil de agente para un usuario sin rol `AGENTE` (regla 1) | 400 |
 | `USUARIO_YA_ES_AGENTE` | El usuario ya tiene perfil de agente (regla 1) | 409 |
-| `SIN_PERFIL_DE_AGENTE` | Un usuario con rol `AGENTE` sin perfil intenta crear un cliente | 403 |
+| `SIN_PERFIL_DE_AGENTE` | Un usuario con rol `AGENTE` sin perfil intenta crear un cliente (regla 12) | 403 |
 
 Los datos que faltan según el tipo de cliente (regla 6) se responden con
 `VALIDACION` (400), indicando el campo.
@@ -268,7 +288,9 @@ Los datos que faltan según el tipo de cliente (regla 6) se responden con
 ```python
 # usuarios/permissions.py  (capa HTTP, reutilizable por todas las apps)
 class TieneRol(BasePermission)
-    """Permite el acceso solo a los roles listados en la vista (roles_permitidos)."""
+    """Permite cada método HTTP solo a los roles que la vista declara en
+    roles_por_metodo, por ejemplo {"POST": [ADMINISTRADOR, GERENTE, AGENTE]}.
+    Un método que no aparece queda para cualquier usuario autenticado."""
 
 # crm/selectors.py
 def listar_agentes() -> QuerySet[Agente]
@@ -289,18 +311,28 @@ def actualizar_agente(*, agente: Agente, datos: dict, autor: Usuario,
 def desactivar_agente(*, agente: Agente, autor: Usuario, ip: str | None) -> None
 
 def crear_cliente(*, datos: dict, autor: Usuario, ip: str | None) -> Cliente
-    """Si el autor es agente, el cliente queda asignado a él (regla 12)."""
+    """Si el autor es agente, el cliente queda asignado a él (regla 12).
+    Normaliza documento y NIT (regla 7) y bloquea la fila del agente."""
 def actualizar_cliente(*, cliente: Cliente, datos: dict, autor: Usuario,
                        ip: str | None) -> Cliente
 def desactivar_cliente(*, cliente: Cliente, autor: Usuario, ip: str | None) -> None
 def reasignar_cliente(*, cliente: Cliente, agente: Agente, autor: Usuario,
                       ip: str | None) -> Cliente
+    """Bloquea la fila del agente destino. Si es el mismo agente, no hace nada
+    (regla 8)."""
 ```
 
 Los servicios reciben al `autor` para llenar `creado_por` y `actualizado_por`
 y para la auditoría. Los permisos de rol se verifican en la vista (`TieneRol`);
 la cartera, en el selector (regla 14: el cliente ajeno simplemente no se
-encuentra).
+encuentra). `actualizar_cliente` también normaliza documento y NIT.
+
+**Datos de demostración.** `crm/management/commands/cargar_demo_crm.py` es una
+cáscara que llama al servicio `cargar_demo_crm()` de `crm/services.py`: crea
+usuarios con rol `AGENTE`, sus perfiles y clientes ficticios, con
+`get_or_create` para no duplicar. `seed_demo` (en `core`) lo invoca con
+`call_command("cargar_demo_crm")`, por nombre y sin importar `crm`, para
+respetar la regla de dependencias (`docs/arquitectura.md` §3).
 
 ## 7. Auditoría
 
@@ -309,12 +341,14 @@ transacción del servicio, con el usuario autor y su IP:
 
 | Operación | Acción | Valores |
 |---|---|---|
-| Crear agente o cliente | `CREAR` | `valores_nuevos`: todos los campos |
+| Crear agente o cliente | `CREAR` | `valores_nuevos`: todos los campos, incluido el código final (se registra después de asignarlo) |
 | Editar agente o cliente | `ACTUALIZAR` | Solo los campos que cambiaron, antes y después |
 | Reasignar cliente | `ACTUALIZAR` | `agente_asignado` antes y después |
 | Desactivar agente o cliente | `ELIMINAR` | `activo`: `true` → `false` |
 
-`seed_demo` no registra auditoría, igual que en la spec 001.
+Reasignar un cliente a su mismo agente no registra nada (regla 8).
+
+`cargar_demo_crm` no registra auditoría, igual que `seed_demo` en la spec 001.
 
 ## 8. Criterios de aceptación
 
@@ -338,8 +372,14 @@ transacción del servicio, con el usuario autor y su IP:
       400 indicando el campo
 - [ ] Un documento o NIT repetido en el mismo país devuelve 409
       `CLIENTE_DUPLICADO`; en otro país se acepta
+- [ ] El mismo documento escrito con espacios, guiones o minúsculas también
+      devuelve 409 `CLIENTE_DUPLICADO`
 - [ ] Una ciudad de otro país devuelve 400 `CIUDAD_FUERA_DEL_PAIS`
 - [ ] Solo administrador y gerente reasignan, y no a un agente desactivado
+- [ ] Reasignar a su mismo agente responde 200 sin cambios y sin registro de
+      auditoría
+- [ ] Un usuario con rol `AGENTE` sin perfil lista cero clientes y recibe 403
+      `SIN_PERFIL_DE_AGENTE` al crear uno
 - [ ] Los filtros y la búsqueda devuelven solo lo que corresponde, paginado de
       25 en 25
 
@@ -348,8 +388,8 @@ transacción del servicio, con el usuario autor y su IP:
       nuevos
 - [ ] Los registros nunca se borran físicamente: desactivar marca `activo` en
       falso
-- [ ] `seed_demo` carga agentes y clientes ficticios, sin duplicar al correrlo
-      dos veces
+- [ ] `cargar_demo_crm` (y `seed_demo`, que lo invoca) carga agentes y clientes
+      ficticios, sin duplicar al correrlo dos veces
 - [ ] `ruff`, `pytest` y `makemigrations --check` pasan
 
 ## 9. Pruebas
@@ -359,13 +399,15 @@ transacción del servicio, con el usuario autor y su IP:
 | Modelo | La base rechaza una persona sin documento y una empresa sin NIT |
 | Modelo | La base rechaza un documento repetido en el mismo país y lo acepta en otro |
 | Modelo | La base rechaza un porcentaje de comisión fuera de 0 a 100 |
-| Servicio | `crear_agente` genera el código y audita; rechaza usuarios sin rol `AGENTE` o con perfil |
+| Permiso | `TieneRol` permite y rechaza según `roles_por_metodo`, y deja pasar a cualquier autenticado en los métodos no listados |
+| Servicio | `crear_agente` genera el código y audita con el código final; rechaza usuarios sin rol `AGENTE` o con perfil |
 | Servicio | `desactivar_agente` rechaza a un agente con clientes activos |
 | Servicio | `crear_cliente` asigna al autor si es agente y genera el código |
 | Servicio | `crear_cliente` rechaza una ciudad de otro país y un agente inactivo |
+| Servicio | `crear_cliente` normaliza documento y NIT, y detecta el duplicado escrito distinto |
 | Servicio | `actualizar_cliente` audita solo los campos que cambiaron |
-| Servicio | `reasignar_cliente` cambia el agente y audita antes y después |
-| Selector | `listar_clientes_visibles` da al agente solo su cartera y a los demás roles todo |
+| Servicio | `reasignar_cliente` cambia el agente y audita antes y después; con el mismo agente no audita |
+| Selector | `listar_clientes_visibles` da al agente solo su cartera, a un agente sin perfil nada y a los demás roles todo |
 | API | Matriz de permisos: cada rol contra cada endpoint de escritura (403 donde corresponde) |
 | API | Detalle de un cliente ajeno para un agente devuelve 404 |
 | API | Filtros `?pais`, `?agente`, `?tipo` y `?buscar` |
@@ -389,9 +431,15 @@ modo interno (rol C).
 existe. Es el mismo criterio que el login de la spec 001, que no revela qué
 correos tienen cuenta.
 
-**Permiso de rol reutilizable en `usuarios/permissions.py`.** Cada vista
-declara `roles_permitidos = [NombreRol.ADMINISTRADOR, ...]` y una sola clase
-`TieneRol` lo verifica. Se descartó una clase por combinación de roles
+**Permiso de rol reutilizable en `usuarios/permissions.py`, por método HTTP.**
+Cada vista declara `roles_por_metodo = {"POST": [...], "PATCH": [...]}` y una
+sola clase `TieneRol` lo verifica; los métodos que no aparecen (las lecturas)
+quedan para cualquier autenticado. La primera versión tenía un solo
+`roles_permitidos` por vista y no podía expresar a la vez "todos leen" y "solo
+algunos escriben" (observación de A en la revisión). Se eligió el método HTTP
+y no la acción porque las vistas son `APIView` y genéricas de DRF, sin
+acciones de `ViewSet`; la reasignación es su propia vista, con su propio
+diccionario. Se descartó una clase por combinación de roles
 (`EsGerenteOAdministrador`, …): se multiplican con cada spec. Se descartaron
 los permisos y grupos de Django porque la spec 001 eligió un rol por usuario
 y no grupos.
@@ -403,7 +451,8 @@ desincronizados.
 
 **Solo usuarios con rol `AGENTE` tienen perfil de agente.** Se descartó
 permitirlo a gerentes: si un gerente atiende clientes, se le crea un usuario
-agente. Mantiene una sola regla de cartera. *A confirmar en la revisión.*
+agente. Mantiene una sola regla de cartera. *Confirmado por A en la
+revisión.*
 
 **Documento único por país (decidido por el equipo).** El mismo número de
 documento puede existir en dos países distintos (DPI de Guatemala y cédula de
@@ -430,6 +479,34 @@ como `ELIMINAR` en la bitácora.
 sumarle uno: dos peticiones simultáneas obtendrían el mismo. El `id` lo
 asigna PostgreSQL de forma segura. Los códigos pueden tener huecos si una
 transacción se revierte; no es un problema para un identificador legible.
+El código es nulo entre la inserción y la asignación porque una cadena vacía
+chocaría con `unique` si dos clientes se crean a la vez (observación de A).
+
+**Bloqueo de la fila del agente (`select_for_update`).** Comprobar "no tiene
+clientes" y luego desactivar son dos pasos: entre ambos, otra petición podría
+asignarle un cliente (observación de A). Bloquear la fila del agente en las
+tres operaciones que dependen de su estado las ordena una detrás de otra. Se
+descartó un constraint de la base porque la regla compara dos tablas.
+
+**Normalizar documento y NIT en el servicio.** Sin normalizar, el mismo
+documento escrito con espacios o guiones pasaría el constraint de unicidad
+(observación de A). Se normaliza en el servicio porque es una regla de negocio
+de `crm`; el constraint de la base sigue siendo la última barrera.
+
+**Búsqueda como filtro de django-filter y no con `SearchFilter`.**
+`SearchFilter` de DRF necesitaría `SEARCH_PARAM = "buscar"` en la
+configuración global (`core`, rol A). Un `CharFilter` en `crm/filters.py` da
+el mismo resultado, deja la búsqueda junto a los demás filtros de la app y no
+toca configuración de otra área.
+
+**Reasignar al mismo agente no es un error.** El resultado que se pidió ("este
+cliente lo atiende este agente") ya se cumple. Responder 200 sin cambios es
+más cómodo para el frontend que un error, y no registrarlo evita entradas en
+la bitácora que no corresponden a ningún cambio.
+
+**Datos de demostración en un comando propio de `crm`.** `seed_demo` vive en
+`core`, y `core` no puede importar `crm`. Cada app tiene su comando de carga y
+`seed_demo` los llama por nombre (propuesta de A, que ajusta `seed_demo`).
 
 **`pais` obligatorio y `ciudad` opcional.** Los reportes agrupan por país, así
 que siempre debe existir. La ciudad es opcional porque el catálogo solo tiene
@@ -451,6 +528,14 @@ esquema de permisos, datos del agente, duplicados y desactivación de agentes.
 Las demás decisiones de §10 son propuestas del agente que se validan en la
 revisión.
 
+**Revisión de A (Douglas), 2026-10-21.** Pidió cambios por cinco puntos:
+dependencia de `seed_demo`, roles por método en `TieneRol`, el código vacío
+contra `unique`, la carrera al desactivar un agente y la normalización de
+documento y NIT; y pidió definir el agente sin perfil y la reasignación al
+mismo agente. Se aceptaron los siete. Para las dos definiciones (lista vacía;
+sin cambios y sin auditoría) y para la búsqueda con django-filter, el agente
+propuso la opción y B la valida en esta misma revisión.
+
 **Plan de implementación (un commit por incremento):**
 
 1. `TieneRol` en `usuarios/permissions.py`, con pruebas
@@ -460,7 +545,7 @@ revisión.
 5. Selectores, incluida la cartera
 6. API de agentes
 7. API de clientes y reasignación
-8. Datos de demostración en `seed_demo`
+8. Comando `cargar_demo_crm` con los datos de demostración
 9. Cierre: verificación de criterios y esta sección
 
 Por completar durante la implementación: qué se generó con el agente, qué se
