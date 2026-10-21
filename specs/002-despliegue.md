@@ -161,7 +161,7 @@ nunca se copian a mano.
 por uso y un bucle infinito en una tarea de Celery puede generar una sorpresa.
 Con el tope puesto, el servicio se detiene en lugar de seguir cobrando.
 
-**Quién paga:** *pendiente, lo decide el equipo antes del incremento 6.* El
+**Quién paga:** *pendiente, lo decide el equipo antes del incremento 7.* El
 roadmap estima entre $15 y $20 al mes.
 
 ### 5.2 Settings de producción
