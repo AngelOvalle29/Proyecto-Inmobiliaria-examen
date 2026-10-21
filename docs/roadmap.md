@@ -144,7 +144,9 @@ mueven piezas a tiempo en lugar de descubrirlo en la última semana.
 
 Objetivo: que los cuatro puedan programar sin pisarse.
 
-- Repositorio en GitHub con ramas protegidas
+- Repositorio en GitHub, con las reglas internas de trabajo de
+  `docs/convenciones.md` §1.1 (las ramas no se pueden proteger en el plan
+  gratuito)
 - Estructura del proyecto Django con las apps vacías
 - `docker-compose.yml` con PostgreSQL (con pgvector) y RabbitMQ. Redis queda
   fuera por ahora (ver `docs/arquitectura.md` §6)
@@ -276,8 +278,9 @@ tengan sentido.
 3. Confirmar con el catedrático que el frontend puede usar TypeScript. La
    restricción del enunciado aplica a la API, pero conviene dejarlo por escrito.
 4. Asignar nombres reales a A, B, C y D.
-5. Crear el repositorio y configurar la protección de ramas, con la
-   integración continua como verificación obligatoria.
+5. Crear el repositorio y acordar las reglas internas de trabajo
+   (`docs/convenciones.md` §1.1), porque la protección de ramas no está
+   disponible en el plan gratuito.
 6. Crear las cuentas de Railway y Vercel, y acordar quién paga y cómo se
    reparte el costo (alrededor de $15 a $20 al mes entre cuatro).
 7. Obtener la llave de la API de Gemini en Google AI Studio y confirmar ahí los
