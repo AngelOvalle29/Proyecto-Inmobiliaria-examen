@@ -290,7 +290,9 @@ Los datos que faltan según el tipo de cliente (regla 6) se responden con
 class TieneRol(BasePermission)
     """Permite cada método HTTP solo a los roles que la vista declara en
     roles_por_metodo, por ejemplo {"POST": [ADMINISTRADOR, GERENTE, AGENTE]}.
-    Un método que no aparece queda para cualquier usuario autenticado."""
+    Un método seguro (GET, HEAD, OPTIONS) que no aparece queda para cualquier
+    usuario autenticado. Un método de escritura (POST, PUT, PATCH, DELETE) que
+    no aparece se rechaza con 403: olvidar declararlo cierra, no abre."""
 
 # crm/selectors.py
 def listar_agentes() -> QuerySet[Agente]
@@ -333,6 +335,16 @@ usuarios con rol `AGENTE`, sus perfiles y clientes ficticios, con
 `get_or_create` para no duplicar. `seed_demo` (en `core`) lo invoca con
 `call_command("cargar_demo_crm")`, por nombre y sin importar `crm`, para
 respetar la regla de dependencias (`docs/arquitectura.md` §3).
+
+**Contraseña de los agentes de demostración.** Ninguna contraseña se escribe en
+el repositorio: en producción `seed_demo` corre en cada arranque (spec 002,
+§5.8), y una contraseña publicada permitiría a cualquiera que lea el código
+entrar como agente al sistema desplegado. Los usuarios se crean con
+`set_unusable_password()`, salvo que exista la variable de entorno
+`DEMO_AGENTES_PASSWORD`; en ese caso se usa esa contraseña, para poder entrar
+como agente en la demostración. Se aplica solo al crear el usuario: correr el
+comando otra vez no cambia contraseñas existentes. La variable se documenta en
+`.env.example` sin valor, igual que `DJANGO_SUPERUSER_PASSWORD`.
 
 ## 7. Auditoría
 
@@ -390,6 +402,8 @@ Reasignar un cliente a su mismo agente no registra nada (regla 8).
       falso
 - [ ] `cargar_demo_crm` (y `seed_demo`, que lo invoca) carga agentes y clientes
       ficticios, sin duplicar al correrlo dos veces
+- [ ] Sin `DEMO_AGENTES_PASSWORD`, los agentes de demostración no pueden
+      iniciar sesión; con ella, sí. No hay ninguna contraseña en el repositorio
 - [ ] `ruff`, `pytest` y `makemigrations --check` pasan
 
 ## 9. Pruebas
@@ -399,7 +413,9 @@ Reasignar un cliente a su mismo agente no registra nada (regla 8).
 | Modelo | La base rechaza una persona sin documento y una empresa sin NIT |
 | Modelo | La base rechaza un documento repetido en el mismo país y lo acepta en otro |
 | Modelo | La base rechaza un porcentaje de comisión fuera de 0 a 100 |
-| Permiso | `TieneRol` permite y rechaza según `roles_por_metodo`, y deja pasar a cualquier autenticado en los métodos no listados |
+| Permiso | `TieneRol` permite y rechaza según `roles_por_metodo` |
+| Permiso | `TieneRol` deja pasar a cualquier autenticado en un `GET` no declarado |
+| Permiso | `TieneRol` rechaza con 403 una escritura no declarada: una vista que solo declara `POST` rechaza un `DELETE` |
 | Servicio | `crear_agente` genera el código y audita con el código final; rechaza usuarios sin rol `AGENTE` o con perfil |
 | Servicio | `desactivar_agente` rechaza a un agente con clientes activos |
 | Servicio | `crear_cliente` asigna al autor si es agente y genera el código |
@@ -412,6 +428,7 @@ Reasignar un cliente a su mismo agente no registra nada (regla 8).
 | API | Detalle de un cliente ajeno para un agente devuelve 404 |
 | API | Filtros `?pais`, `?agente`, `?tipo` y `?buscar` |
 | API | 409 `CLIENTE_DUPLICADO` con formato uniforme |
+| Servicio | `cargar_demo_crm` crea agentes sin contraseña usable si falta `DEMO_AGENTES_PASSWORD`, y con ella si existe |
 
 ## 10. Decisiones y alternativas descartadas
 
@@ -433,8 +450,12 @@ correos tienen cuenta.
 
 **Permiso de rol reutilizable en `usuarios/permissions.py`, por método HTTP.**
 Cada vista declara `roles_por_metodo = {"POST": [...], "PATCH": [...]}` y una
-sola clase `TieneRol` lo verifica; los métodos que no aparecen (las lecturas)
-quedan para cualquier autenticado. La primera versión tenía un solo
+sola clase `TieneRol` lo verifica. Los métodos seguros que no aparecen (las
+lecturas) quedan para cualquier autenticado; **los de escritura que no aparecen
+se rechazan**. Es el mismo criterio del permiso global de la spec 001: olvidar
+un permiso deja el endpoint cerrado, no abierto. Como `TieneRol` es el patrón
+que copiará todo el proyecto, una escritura abierta por olvido se repetiría en
+cada app (observación de A en la segunda revisión). La primera versión tenía un solo
 `roles_permitidos` por vista y no podía expresar a la vez "todos leen" y "solo
 algunos escriben" (observación de A en la revisión). Se eligió el método HTTP
 y no la acción porque las vistas son `APIView` y genéricas de DRF, sin
@@ -504,6 +525,13 @@ cliente lo atiende este agente") ya se cumple. Responder 200 sin cambios es
 más cómodo para el frontend que un error, y no registrarlo evita entradas en
 la bitácora que no corresponden a ningún cambio.
 
+**Agentes de demostración sin contraseña escrita en el código.** Se descartó
+una contraseña fija de demostración en `datos_demo`: el comando corre en
+producción en cada arranque, así que daría acceso real al sistema desplegado
+(observación de A). Una contraseña inutilizable por defecto es lo más seguro;
+la variable de entorno es opcional y sigue el patrón del administrador inicial
+de la spec 002.
+
 **Datos de demostración en un comando propio de `crm`.** `seed_demo` vive en
 `core`, y `core` no puede importar `crm`. Cada app tiene su comando de carga y
 `seed_demo` los llama por nombre (propuesta de A, que ajusta `seed_demo`).
@@ -535,6 +563,11 @@ documento y NIT; y pidió definir el agente sin perfil y la reasignación al
 mismo agente. Se aceptaron los siete. Para las dos definiciones (lista vacía;
 sin cambios y sin auditoría) y para la búsqueda con django-filter, el agente
 propuso la opción y B la valida en esta misma revisión.
+
+**Segunda revisión de A, 2026-10-21.** Aceptó los siete puntos y pidió dos
+cambios nuevos: que `TieneRol` rechace las escrituras no declaradas (cerrado
+por defecto) y que los agentes de demostración no tengan una contraseña escrita
+en el repositorio. Se aplicaron los dos.
 
 **Plan de implementación (un commit por incremento):**
 
