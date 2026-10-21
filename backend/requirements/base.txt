@@ -12,3 +12,4 @@ drf-spectacular==0.30.0     # genera el esquema OpenAPI y la documentación en /
 django-cors-headers==4.9.0  # permite que el frontend en Vercel llame a la API
 djangorestframework-simplejwt==5.5.1  # autenticación con tokens JWT
 django-filter==26.2         # filtros de los listados por parámetros (?pais=, ?fecha_desde=)
+whitenoise==6.12.0          # sirve los archivos estáticos (panel, /api/docs/) desde Django

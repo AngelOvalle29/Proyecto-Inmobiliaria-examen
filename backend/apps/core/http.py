@@ -13,7 +13,7 @@ def obtener_ip_cliente(request: Request) -> str | None:
     """
     IP real del cliente, para la auditoría.
 
-    Detrás de un proxy (Railway), REMOTE_ADDR es la IP del proxy y la del
+    Detrás de un proxy (Render), REMOTE_ADDR es la IP del proxy y la del
     cliente viaja en X-Forwarded-For. Pero esa cabecera la puede escribir
     cualquiera: un atacante puede enviar "X-Forwarded-For: 1.2.3.4" y, si se
     tomara el primer valor, la bitácora registraría una IP inventada. Cada

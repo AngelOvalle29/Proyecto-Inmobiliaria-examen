@@ -13,3 +13,8 @@ DEBUG = False
 # fuerza bruta. En pruebas no hay nada que proteger y cada usuario creado
 # costaría tiempo, así que se usa uno rápido. Nunca en otro entorno.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+# Con DEBUG en False, WhiteNoise escanea la carpeta de collectstatic al arrancar,
+# y en las pruebas esa carpeta no existe: avisaría en cada petición. En este
+# modo busca los archivos al pedirlos, igual que en desarrollo.
+WHITENOISE_AUTOREFRESH = True

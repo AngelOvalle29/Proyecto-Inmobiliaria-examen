@@ -78,6 +78,9 @@ AUTH_USER_MODEL = "usuarios.Usuario"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Justo después de SecurityMiddleware: sirve los archivos estáticos antes de
+    # que el resto de la cadena procese la petición (spec 002, §5.3).
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     # Antes de CommonMiddleware: debe agregar las cabeceras de CORS incluso a
     # las respuestas que CommonMiddleware genera por su cuenta (redirecciones).
@@ -188,7 +191,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {"auth": "10/min"},
     # Cuántos proxies propios hay delante de Django. Define qué IP es la real:
     # 0 (desarrollo) ignora X-Forwarded-For, que cualquier cliente puede
-    # inventar; en Railway hay uno y se configura NUM_PROXIES=1 (spec 002).
+    # inventar; en producción (Render) hay uno y se configura NUM_PROXIES=1
+    # (spec 002).
     "NUM_PROXIES": env.int("NUM_PROXIES", default=0),
 }
 
