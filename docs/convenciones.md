@@ -60,6 +60,10 @@ integrante**, y el historial deja ver si se respetaron.
    ruff format --check . && ruff check . && python manage.py makemigrations --check --dry-run && pytest
    ```
 
+   Aplica a los pull requests que tocan código (`backend/` o `frontend/`). En
+   los de solo documentación no hay nada que verificar: basta con revisar el
+   texto.
+
 6. **Se fusiona con *"Create a merge commit"*.** No se usa *squash* ni
    *rebase*: los commits de cada incremento son la evidencia del proceso y deben
    quedar en el historial.
