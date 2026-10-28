@@ -46,7 +46,9 @@ las specs siguientes lo reutilizan.
   en una spec posterior del rol B.
 - Alta y edición de usuarios vía API: los usuarios se siguen creando desde el
   panel de Django (spec 001, §7).
-- Reactivar un cliente o un agente desactivado vía API: se hace desde el panel.
+- Reactivar un cliente o un agente desactivado: queda para una spec
+  posterior, con su propio servicio auditado. El panel de Django es de solo
+  lectura para `crm` (§10).
 - Comisiones calculadas: el porcentaje se guarda aquí, el cálculo llega con
   ventas.
 
@@ -491,6 +493,14 @@ complicaría todos los reportes por agente).
 Tiene permisos distintos (solo gerente y administrador) y es una operación de
 negocio con nombre propio en la bitácora. Si fuera un campo más del PATCH, la
 vista tendría que revisar campo por campo quién puede cambiar qué.
+
+**El panel de Django es de solo lectura para `crm`.** El panel no pasa por
+los servicios: si permitiera crear o editar, saltaría el código generado,
+la normalización del documento, la cartera y la auditoría (`CLAUDE.md` §8).
+La primera versión de esta spec dejaba la reactivación en el panel; se
+cambió al implementar el incremento 2, porque habría sido una escritura sin
+bitácora. A diferencia de los catálogos de `core` (spec 001, §7), aquí no se
+justifica una excepción: los datos son de clientes, con datos personales.
 
 **`DELETE` es un borrado lógico.** Cumple la regla transversal de borrado
 lógico de `CLAUDE.md` §7 y conserva los verbos estándar de REST. Se registra
