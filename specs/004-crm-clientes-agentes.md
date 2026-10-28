@@ -3,9 +3,9 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 004 |
-| **Estado** | En revisión |
+| **Estado** | Aprobada |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
-| **Revisor** | Por asignar |
+| **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-21 |
 | **Apps afectadas** | `crm` (incluido su comando `cargar_demo_crm`), `usuarios` (permiso por rol) |
 | **Rama** | `feature/004-crm-clientes-agentes` |
@@ -423,12 +423,12 @@ Reasignar un cliente a su mismo agente no registra nada (regla 8).
 | Servicio | `crear_cliente` normaliza documento y NIT, y detecta el duplicado escrito distinto |
 | Servicio | `actualizar_cliente` audita solo los campos que cambiaron |
 | Servicio | `reasignar_cliente` cambia el agente y audita antes y después; con el mismo agente no audita |
+| Servicio | `cargar_demo_crm` crea agentes sin contraseña usable si falta `DEMO_AGENTES_PASSWORD`, y con ella si existe |
 | Selector | `listar_clientes_visibles` da al agente solo su cartera, a un agente sin perfil nada y a los demás roles todo |
 | API | Matriz de permisos: cada rol contra cada endpoint de escritura (403 donde corresponde) |
 | API | Detalle de un cliente ajeno para un agente devuelve 404 |
 | API | Filtros `?pais`, `?agente`, `?tipo` y `?buscar` |
 | API | 409 `CLIENTE_DUPLICADO` con formato uniforme |
-| Servicio | `cargar_demo_crm` crea agentes sin contraseña usable si falta `DEMO_AGENTES_PASSWORD`, y con ella si existe |
 
 ## 10. Decisiones y alternativas descartadas
 
