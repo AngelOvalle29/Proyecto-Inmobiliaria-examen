@@ -35,7 +35,8 @@ def cargar_settings_prod(**variables: str) -> subprocess.CompletedProcess:
     entorno = {
         **os.environ,
         "DJANGO_SETTINGS_MODULE": "config.settings.prod",
-        "SECRET_KEY": "clave-solo-para-pruebas",
+        # Al menos 50 caracteres: prod.py rechaza una clave más corta.
+        "SECRET_KEY": "clave-solo-para-pruebas-de-settings-con-mas-de-50-caracteres",
         "DATABASE_URL": "postgresql://usuario:clave@localhost:5432/prueba",
         # Vacías por defecto: si no, se leerían del .env local de cada
         # integrante y la prueba dependería de su máquina.
@@ -78,3 +79,13 @@ def test_queda_configurado_para_correr_detras_del_proxy():
     assert settings["SECURE_PROXY_SSL_HEADER"] == ["HTTP_X_FORWARDED_PROTO", "https"]
     assert settings["STATICFILES"].startswith("whitenoise.")
     assert settings["CONN_MAX_AGE"] == 60
+
+
+def test_una_clave_secreta_corta_no_arranca():
+    """SECRET_KEY firma los JWT: con menos de 50 caracteres, producción no arranca."""
+    resultado = cargar_settings_prod(
+        SECRET_KEY="clave-corta", RENDER_EXTERNAL_HOSTNAME="api-demo.onrender.com"
+    )
+
+    assert resultado.returncode != 0
+    assert "SECRET_KEY es demasiado corta" in resultado.stderr

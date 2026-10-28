@@ -29,7 +29,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://inmobiliaria:inmobiliaria@localhost:5432/inmobiliaria_test
       DJANGO_SETTINGS_MODULE: config.settings.test
-      SECRET_KEY: clave-solo-para-pruebas
+      # Larga a propósito: SECRET_KEY también firma los JWT, y con menos de 32
+      # bytes la librería avisa que la firma es débil (spec 002, §5.2).
+      SECRET_KEY: clave-solo-para-pruebas-de-integracion-continua-con-mas-de-50-caracteres
       DEBUG: "False"
 
     defaults:

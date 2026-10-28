@@ -13,6 +13,17 @@ from .base import *
 DEBUG = False
 
 
+# ---------- Clave secreta ----------
+
+# SECRET_KEY firma también los tokens JWT. Una clave corta los firmaría de
+# forma débil (el algoritmo HS256 pide al menos 32 bytes), así que producción
+# no arranca con menos de 50 caracteres, el mínimo que recomienda Django.
+if len(SECRET_KEY) < 50:
+    raise ImproperlyConfigured(
+        "SECRET_KEY es demasiado corta: use al menos 50 caracteres aleatorios."
+    )
+
+
 # ---------- Hosts ----------
 
 # Render expone el dominio del servicio (<servicio>.onrender.com) en

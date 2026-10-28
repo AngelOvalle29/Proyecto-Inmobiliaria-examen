@@ -181,6 +181,10 @@ en lugar de cobrar.
 - `ALLOWED_HOSTS` toma la lista de la variable de entorno y le agrega
   `RENDER_EXTERNAL_HOSTNAME` cuando existe (§5.1).
 - `RABBITMQ_URL` obligatoria, sin valor por defecto, como `SECRET_KEY`.
+- `SECRET_KEY` de al menos 50 caracteres, o producción no arranca. *Agregado
+  en el incremento 3:* la clave también firma los tokens JWT, y con menos de 32
+  bytes la firma es débil. Lo descubrió la suite al correr con una clave de
+  prueba corta, la misma que usaba `ci.yml`.
 - Conexiones a la base reutilizables (`CONN_MAX_AGE` con verificación de
   salud): abrir una conexión nueva a Neon en cada petición agrega latencia.
 - Registro de errores en la salida estándar (`LOGGING`). Con `DEBUG = False`,
@@ -215,6 +219,10 @@ y `RABBITMQ_URL`, que no existen durante la construcción. La corrección pasa
 collectstatic`). Esas variables existen únicamente durante ese comando: no
 quedan guardadas en la imagen ni llegan al contenedor en ejecución.
 `collectstatic` no se conecta a la base ni al broker.
+
+**Se agrega `backend/.dockerignore`.** Sin él, `COPY . .` metía en la imagen el
+entorno virtual local (en Windows, binarios que no corren en Linux), los cachés
+y el `.env` con secretos de desarrollo. *Encontrado en el incremento 3.*
 
 **Se quita el `HEALTHCHECK` del `Dockerfile`.** Llamaba a `localhost`, que no
 está en `ALLOWED_HOSTS` con settings de producción, y Render no lo usa: tiene su
@@ -510,8 +518,8 @@ incrementos que dependen del proveedor (4, 7 y 8).
 **Plan de implementación (un commit por incremento):**
 
 1. ✅ Pendientes de la spec 001 (§5.7)
-2. Settings de producción y WhiteNoise (§5.2 y §5.3)
-3. Corrección del `Dockerfile`; construir la imagen localmente y correr la
+2. ✅ Settings de producción y WhiteNoise (§5.2 y §5.3)
+3. ✅ Corrección del `Dockerfile`; construir la imagen localmente y correr la
    suite completa con Python 3.12 (§5.4 y §7)
 4. Configuración mínima de Celery, la tarea de diagnóstico y el script de
    arranque con API y worker juntos (§5.4 y §5.5). Revisa D.
