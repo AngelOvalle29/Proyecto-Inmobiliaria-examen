@@ -138,6 +138,59 @@ mueven piezas a tiempo en lugar de descubrirlo en la última semana.
 
 ---
 
+## Plan de una semana (del 2026-10-28 al 2026-11-03)
+
+Decidido el 2026-10-28. Al ritmo de las primeras semanas no alcanzaba: buena
+parte del tiempo se fue en incrementos muy pequeños, varias rondas de revisión
+por spec y esperas de días entre revisiones. Este plan termina el sistema en 7
+días recortando **alcance y proceso, no puntos de la rúbrica**
+(`docs/requisitos.md`). El reparto por rol de la sección anterior se mantiene.
+
+### Alcance
+
+| Componente (puntos) | Se hace | Solo si sobra tiempo |
+|---|---|---|
+| Sistema base (5) | **17 entidades con CRUD** (el mínimo es de 12 a 15): `TipoPropiedad`, `Propiedad`, `Unidad`, `Avaluo`, `DocumentoOficial`, `Cliente`, `Agente`, `Cotizacion`, `ContratoVenta`, `CuotaPago`, `ContratoArrendamiento`, `PagoRenta`, `Proveedor`, `ContratoCompra`, `Constructora`, `ProyectoConstruccion`, `PagoConstructora` | `Amenidad`, `EventoPropiedad`, `AvanceObra`, `CotizacionDetalle` como entidad aparte. `PlanPago` pasa a ser datos del `ContratoVenta` |
+| Mensajería (2) | **Un flujo real:** la ingesta de documentos, que además alimenta el RAG | Notificaciones por correo con PDF |
+| Agente de IA (2) | Modo público, con RAG y citas de documento y sección | Modo interno con permisos |
+| Logs y auditoría (2) | Bitácora del sistema (ya existe) y del agente | — |
+| Reportería y Power BI (2) | **Los 15 reportes** con Excel y PDF, simples sobre la capa genérica; 3 o 4 vistas del esquema `bi` y un tablero | Tableros adicionales |
+| Despliegue (1) | Render, Neon, CloudAMQP y Vercel (spec 002) | — |
+| Frontend | Lista y formulario **genéricos**, reutilizados en todas las entidades | Ficha de propiedad, mapa, gráficas |
+
+### Proceso
+
+- **Specs de una o dos páginas**, con la plantilla. Se revisan **el mismo día** y
+  en **una sola ronda**: se aprueba con comentarios y los ajustes van en el
+  siguiente PR. Una revisión que tarda más de medio día atrasa a todo el equipo.
+- **Fusión a `develop` todos los días.** El historial debe mostrar trabajo
+  continuo de los cuatro (`docs/convenciones.md`).
+- **Incrementos más grandes:** una spec en pocos commits, cada uno revisable.
+- Las reglas de `docs/convenciones.md` §1.1 siguen vigentes.
+
+### Calendario
+
+| Día | A · Douglas | B · Marco | C · Angel | D · Nathaly |
+|---|---|---|---|---|
+| **Mié 28** | Despliegue en producción (spec 002) · spec 003 de catálogo | Implementar CRM (spec 004 aprobada) | Specs de IA y de compras · llave de Gemini | **Confirmar fechas** con el catedrático · specs de reportes y mensajería |
+| **Jue 29** | `TipoPropiedad`, `Propiedad` y `Unidad` en `develop` · base del frontend | CRM terminado | `Proveedor` y `Constructora` · ingesta del RAG | Capa genérica de reportes · bitácora del agente |
+| **Vie 30** | Avalúos y documentos oficiales | Cotizaciones y ventas | Contratos de compra y proyectos | Flujo de ingesta en Celery · 5 reportes |
+| **Sáb 31** | Pantallas genéricas y las del catálogo | Arrendamientos | Herramientas del agente sobre los selectores | 5 reportes · vistas del esquema `bi` |
+| **Dom 1** | Apoyo y despliegue continuo | Pantallas de su bloque | Pantallas de su bloque | 5 reportes |
+| **Lun 2** | **Todos:** datos de demostración completos, integración y corrección de errores | | | Tablero de Power BI |
+| **Mar 3** | **Todos:** manual técnico, §11 de cada spec y ensayo de la defensa cruzada | | | |
+
+### Riesgos de este plan
+
+- **Las revisiones lentas.** Es el riesgo principal: la spec 004 esperó una
+  semana por una revisión. Con este calendario, una espera así lo hace fallar.
+- **El bloque de C.** La IA vale 2 puntos y empieza el 28. Si se atrasa, A
+  apoya primero ahí.
+- **La fecha real de entrega.** Si el catedrático confirma una fecha anterior
+  al 3 de noviembre, se recorta primero la columna "Solo si sobra tiempo".
+
+---
+
 ## Fases
 
 ### Fase 0 · Fundación
