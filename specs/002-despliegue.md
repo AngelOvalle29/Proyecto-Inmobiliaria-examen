@@ -310,6 +310,10 @@ no se puede correr `createsuperuser` ni `seed_demo` a mano:
   (`asegurar_administrador`) lo crea con las variables `DJANGO_SUPERUSER_*` si
   todavía no existe ningún superusuario, y no hace nada si ya existe. Lo llama el
   script de arranque. Si las variables no están definidas, no crea nada.
+  La lógica vive en el servicio `asegurar_administrador_inicial`: valida la
+  contraseña con los mismos validadores del panel (si no los cumple, el
+  contenedor no arranca y Render conserva la versión anterior) y audita la
+  creación como `CREAR`, con usuario nulo porque la hace el sistema.
 - **Datos de demostración:** el script corre `seed_demo` cuando
   `CARGAR_DATOS_DEMO` es `true`. Como es idempotente (spec 001), correrlo en cada
   arranque no duplica nada.
@@ -536,7 +540,7 @@ incrementos que dependen del proveedor (4, 7 y 8).
    suite completa con Python 3.12 (§5.4 y §7)
 4. ✅ Configuración mínima de Celery, la tarea de diagnóstico y el script de
    arranque con API y worker juntos (§5.4 y §5.5). Revisa D.
-5. Migración de pgvector (§5.6) y comando `asegurar_administrador` (§5.8)
+5. ✅ Migración de pgvector (§5.6) y comando `asegurar_administrador` (§5.8)
 6. Frontend mínimo (§6)
 7. `render.yaml` y la creación de las cuentas y servicios en Render, Neon,
    CloudAMQP y Vercel, guiada paso a paso; la hace A en los paneles (§5.1)

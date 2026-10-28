@@ -22,3 +22,13 @@ def obtener_id_usuario_por_email(*, email: str) -> int | None:
     return (
         Usuario.objects.filter(email__iexact=email).values_list("id", flat=True).first()
     )
+
+
+def existe_superusuario() -> bool:
+    """
+    True si ya hay al menos un superusuario.
+
+    Lo usa el arranque del contenedor para crear el administrador inicial una
+    sola vez (spec 002, §5.8): si ya existe alguno, no se crea otro.
+    """
+    return Usuario.objects.filter(is_superuser=True).exists()

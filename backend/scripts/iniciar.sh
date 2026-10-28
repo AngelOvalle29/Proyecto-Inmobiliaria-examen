@@ -9,6 +9,15 @@ set -e
 
 python manage.py migrate --noinput
 
+# Sin terminal en Render, el administrador inicial y los datos de demostración
+# se cargan aquí. Los dos son idempotentes: arrancar otra vez no duplica nada.
+# Si la contraseña del administrador no cumple los validadores, el comando falla
+# y, por set -e, el contenedor no arranca: Render conserva la versión anterior.
+python manage.py asegurar_administrador
+if [ "$CARGAR_DATOS_DEMO" = "true" ]; then
+    python manage.py seed_demo
+fi
+
 # Worker de Celery en segundo plano, dentro de un ciclo que lo vuelve a
 # levantar si se cae (observación de la revisión de la spec 002): sin el ciclo,
 # un worker caído quedaría así hasta el siguiente despliegue y nadie lo notaría.
