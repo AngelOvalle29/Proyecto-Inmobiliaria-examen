@@ -1,0 +1,5 @@
+# Generado por npm run gen:api: no se formatea ni se edita a mano.
+src/api/tipos.generados.ts
+dist
+node_modules
+package-lock.json

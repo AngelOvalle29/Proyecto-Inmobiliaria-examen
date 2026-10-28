@@ -343,7 +343,7 @@ primer archivo**, porque es la base sobre la que todo el equipo construye:
   cliente de Axios (`api/cliente.ts`); nunca un `fetch` en el componente.
 - Los tipos se generan desde el esquema OpenAPI con `npm run gen:api`
   (openapi-typescript) y no se escriben a mano.
-- ESLint, Prettier y los scripts `lint`, `typecheck`, `build` y `gen:api`, que
+- oxlint, Prettier y los scripts `lint`, `typecheck`, `build` y `gen:api`, que
   usa la integración continua.
 - Mientras la API despierta, la página dice que el servidor está despertando,
   en lugar de parecer rota.
@@ -541,7 +541,7 @@ incrementos que dependen del proveedor (4, 7 y 8).
 4. ✅ Configuración mínima de Celery, la tarea de diagnóstico y el script de
    arranque con API y worker juntos (§5.4 y §5.5). Revisa D.
 5. ✅ Migración de pgvector (§5.6) y comando `asegurar_administrador` (§5.8)
-6. Frontend mínimo (§6)
+6. ✅ Frontend mínimo (§6)
 7. `render.yaml` y la creación de las cuentas y servicios en Render, Neon,
    CloudAMQP y Vercel, guiada paso a paso; la hace A en los paneles (§5.1)
 8. Primera fusión de `develop` en `main`, verificación de los criterios en
