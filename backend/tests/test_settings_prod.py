@@ -38,6 +38,7 @@ def cargar_settings_prod(**variables: str) -> subprocess.CompletedProcess:
         # Al menos 50 caracteres: prod.py rechaza una clave más corta.
         "SECRET_KEY": "clave-solo-para-pruebas-de-settings-con-mas-de-50-caracteres",
         "DATABASE_URL": "postgresql://usuario:clave@localhost:5432/prueba",
+        "RABBITMQ_URL": "amqp://usuario:clave@localhost:5672//",
         # Vacías por defecto: si no, se leerían del .env local de cada
         # integrante y la prueba dependería de su máquina.
         "ALLOWED_HOSTS": "",
@@ -89,3 +90,13 @@ def test_una_clave_secreta_corta_no_arranca():
 
     assert resultado.returncode != 0
     assert "SECRET_KEY es demasiado corta" in resultado.stderr
+
+
+def test_sin_rabbitmq_url_no_arranca():
+    """Sin broker, el worker se conectaría a un RabbitMQ local que no existe."""
+    resultado = cargar_settings_prod(
+        RABBITMQ_URL="", RENDER_EXTERNAL_HOSTNAME="api-demo.onrender.com"
+    )
+
+    assert resultado.returncode != 0
+    assert "RABBITMQ_URL es obligatoria" in resultado.stderr

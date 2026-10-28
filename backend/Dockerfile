@@ -1,6 +1,6 @@
 # Imagen de producción del backend, para el servicio web de Render
-# (spec 002, §5.4). En el incremento 4 el comando de arranque pasa a ser un
-# script que levanta la API y el worker de Celery en este mismo contenedor.
+# (spec 002, §5.4). Arranca con scripts/iniciar.sh, que levanta la API y
+# el worker de Celery en este mismo contenedor.
 
 FROM python:3.12-slim
 
@@ -38,6 +38,7 @@ COPY . .
 RUN SECRET_KEY=valor-ficticio-solo-para-collectstatic-con-al-menos-50-caracteres \
     DATABASE_URL=postgresql://construccion:construccion@localhost:5432/construccion \
     ALLOWED_HOSTS=construccion \
+    RABBITMQ_URL=amqp://construccion@localhost// \
     python manage.py collectstatic --noinput --settings=config.settings.prod
 
 # Usuario sin privilegios: nada corre como root en producción.
@@ -50,6 +51,7 @@ EXPOSE 8000
 # Sin HEALTHCHECK de Docker: Render usa su propia ruta de salud,
 # /api/v1/health/ (spec 002, §5.1 y §5.4).
 
-# Render define PORT. Un solo proceso de gunicorn: el plan gratuito tiene
-# 512 MB y en el incremento 4 el worker de Celery comparte el contenedor.
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 1 --timeout 120"]
+# Migraciones, worker de Celery con reinicio, diagnóstico y gunicorn. Se llama
+# con sh para no depender del permiso de ejecución del archivo, que se pierde
+# al editarlo en Windows.
+CMD ["sh", "scripts/iniciar.sh"]

@@ -62,6 +62,17 @@ CSRF_COOKIE_SECURE = True
 SILENCED_SYSTEM_CHECKS = ["security.W004", "security.W008"]
 
 
+# ---------- Celery ----------
+
+# Obligatoria, como SECRET_KEY: sin ella el worker intentaría conectarse a un
+# RabbitMQ local que en Render no existe, y las tareas se perderían sin que
+# nadie lo note. Se rechaza también vacía, que es como queda si en el panel de
+# Render se crea la variable y se olvida su valor.
+CELERY_BROKER_URL = env("RABBITMQ_URL", default="")
+if not CELERY_BROKER_URL:
+    raise ImproperlyConfigured("RABBITMQ_URL es obligatoria en producción.")
+
+
 # ---------- Base de datos ----------
 
 # Reutiliza cada conexión hasta 60 segundos en lugar de abrir una nueva por

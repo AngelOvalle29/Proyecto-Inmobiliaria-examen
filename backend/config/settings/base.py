@@ -241,3 +241,26 @@ SPECTACULAR_SETTINGS = {
 # Solo el frontend puede llamar a la API desde un navegador
 # (arquitectura.md §9). Vacío por defecto: ningún otro origen.
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+
+
+# ---------- Celery (spec 002, §5.5) ----------
+
+# RabbitMQ como broker. En desarrollo la URL viene del .env (el RabbitMQ de
+# docker compose); en producción prod.py la exige sin valor por defecto.
+CELERY_BROKER_URL = env("RABBITMQ_URL", default="amqp://localhost:5672//")
+
+# Sin backend de resultados (docs/arquitectura.md §6): nadie consulta lo que
+# devuelve una tarea, así que no se guarda.
+CELERY_TASK_IGNORE_RESULT = True
+
+CELERY_TIMEZONE = TIME_ZONE
+
+# Ajustes para la cuota gratuita de CloudAMQP (20 conexiones, 1 millón de
+# mensajes al mes): una sola conexión reutilizada para publicar, y el worker sin
+# eventos de monitoreo, que serían mensajes extra que nadie lee.
+CELERY_BROKER_POOL_LIMIT = 1
+CELERY_WORKER_SEND_TASK_EVENTS = False
+
+# Si RabbitMQ no está listo cuando arranca el worker, reintenta en lugar de
+# terminar: en Render, el contenedor puede despertar antes que la conexión.
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True

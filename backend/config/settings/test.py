@@ -18,3 +18,9 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 # y en las pruebas esa carpeta no existe: avisaría en cada petición. En este
 # modo busca los archivos al pedirlos, igual que en desarrollo.
 WHITENOISE_AUTOREFRESH = True
+
+# Las tareas de Celery se ejecutan en el mismo proceso, al momento de
+# encolarlas: las pruebas no necesitan RabbitMQ ni un worker. EAGER_PROPAGATES
+# hace que un error dentro de la tarea falle la prueba en vez de perderse.
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True

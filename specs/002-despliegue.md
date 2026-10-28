@@ -234,8 +234,17 @@ propia ruta de salud (§5.1).
 2. Crea el administrador inicial si no existe (§5.8).
 3. Si `CARGAR_DATOS_DEMO` es `true`, corre `seed_demo`, que es idempotente.
 4. Arranca el worker de Celery en segundo plano, con el pool `solo`: un solo
-   proceso que ejecuta una tarea a la vez.
-5. Arranca gunicorn con **1 proceso**, en primer plano.
+   proceso que ejecuta una tarea a la vez. **Corre dentro de un ciclo que lo
+   vuelve a levantar a los 5 segundos si se cae**, y deja un aviso en el
+   registro cada vez (observación de la revisión del rol B; agregado en el
+   incremento 4).
+5. Encola la tarea de diagnóstico (`encolar_diagnostico`). Si RabbitMQ no
+   responde, avisa y sigue: la API no debe quedar caída por el diagnóstico.
+6. Arranca gunicorn con **1 proceso**, en primer plano, con `exec` para que
+   reciba las señales de apagado de Render.
+
+Los pasos 2 y 3 llegan en el incremento 5, junto con el comando
+`asegurar_administrador`.
 
 **La API y el worker comparten el contenedor** porque Render no tiene workers
 gratuitos. El plan gratuito tiene 512 MB de memoria: un proceso de gunicorn y un
@@ -246,8 +255,8 @@ worker sin procesos hijos caben con holgura; más procesos no.
   RabbitMQ y se ejecutan cuando el contenedor despierta. Como los flujos de la
   fase 4 se disparan por peticiones a la API, el contenedor ya está despierto
   cuando se encolan.
-- Si el worker se cae, la API sigue respondiendo y nadie lo nota de inmediato.
-  El criterio de §8 lo verifica con la tarea de diagnóstico.
+- Si el worker se cae, el ciclo del script lo vuelve a levantar y la API sigue
+  respondiendo mientras tanto. El aviso queda en los registros de Render.
 - Al apagar el contenedor, una tarea que se estaba ejecutando puede
   interrumpirse. Para una demostración es aceptable; con un plan de pago se
   separa el worker en su propio servicio.
@@ -269,7 +278,11 @@ Se agrega la dependencia `celery` y la configuración mínima:
   (`CELERY_TASK_ALWAYS_EAGER`), para que las pruebas no necesiten RabbitMQ.
 - Una tarea de diagnóstico en `apps/core/tasks.py`, que solo escribe en el
   registro que el worker la recibió. Sirve para comprobar el despliegue (§8) y
-  no contiene lógica de negocio.
+  no contiene lógica de negocio. El script de arranque la encola en cada
+  despliegue con el comando `encolar_diagnostico`, porque en Render no hay
+  terminal para encolarla a mano.
+- `prod.py` rechaza una `RABBITMQ_URL` vacía, no solo ausente: es como queda
+  si en el panel de Render se crea la variable y se olvida su valor.
 
 Las colas (`documentos`, `notificaciones`, `reportes`), los reintentos y los
 flujos reales los define la spec de mensajería del rol D. **El incremento de
@@ -521,7 +534,7 @@ incrementos que dependen del proveedor (4, 7 y 8).
 2. ✅ Settings de producción y WhiteNoise (§5.2 y §5.3)
 3. ✅ Corrección del `Dockerfile`; construir la imagen localmente y correr la
    suite completa con Python 3.12 (§5.4 y §7)
-4. Configuración mínima de Celery, la tarea de diagnóstico y el script de
+4. ✅ Configuración mínima de Celery, la tarea de diagnóstico y el script de
    arranque con API y worker juntos (§5.4 y §5.5). Revisa D.
 5. Migración de pgvector (§5.6) y comando `asegurar_administrador` (§5.8)
 6. Frontend mínimo (§6)
