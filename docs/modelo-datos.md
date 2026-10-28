@@ -91,12 +91,19 @@ ARRENDAMIENTO, FIN_ARRENDAMIENTO, REMODELACION, BAJA) · `fecha` ·
 ### Cliente ★
 `id` · `codigo` · `tipo` (PERSONA, EMPRESA) · `nombre` · `apellidos` ·
 `razon_social` · `documento_identidad` · `nit` · `email` · `telefono` ·
-`pais` (FK) · `ciudad` (FK) · `direccion` · `fecha_registro` ·
+`pais` (FK) · `ciudad` (FK, opcional) · `direccion` ·
 `agente_asignado` (FK Agente) · `notas` · `activo`
 
+*Reglas:* documento de identidad único por país para personas y NIT único por
+país para empresas. La fecha de registro es `creado_en` (detalle en
+`specs/004-crm-clientes-agentes.md`).
+
 ### Agente ★
-`id` · `usuario` (OneToOne Usuario) · `codigo` · `nombre_completo` ·
-`telefono` · `pais` (FK) · `porcentaje_comision` · `fecha_ingreso` · `activo`
+`id` · `usuario` (OneToOne Usuario) · `codigo` · `porcentaje_comision` ·
+`fecha_ingreso` · `activo`
+
+*Regla:* nombre, teléfono, correo y país se leen del usuario; no se duplican
+en el agente. Solo los usuarios con rol `AGENTE` tienen perfil de agente.
 
 ### Cotizacion ★
 `id` · `codigo` · `cliente` (FK) · `agente` (FK) · `fecha_emision` ·
