@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 003 |
-| **Estado** | En revisión |
+| **Estado** | Aprobada, en implementación |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `catalogo` (incluido su comando `cargar_demo_catalogo`) |
 | **Rama** | `feature/003-catalogo-propiedades` |
-| **Pull request** | — |
+| **Pull request** | — (spec aprobada en DouGMV/Proyecto-Inmobiliaria#33) |
 
 ---
 
