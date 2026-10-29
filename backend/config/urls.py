@@ -14,6 +14,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("apps.core.urls")),
     path("api/v1/", include("apps.usuarios.urls")),
+    path("api/v1/", include("apps.catalogo.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="esquema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="esquema"), name="docs"),
 ]
