@@ -15,12 +15,15 @@ from django.utils import timezone
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
 from apps.catalogo.enums import EstadoPropiedad
+from apps.catalogo.selectors import listar_propiedades, listar_unidades
 from apps.catalogo.services import cambiar_estado_propiedad, cambiar_estado_unidad
-from apps.core.exceptions import TipoCambioNoDisponible
+from apps.core.exceptions import ErrorDominio, TipoCambioNoDisponible
 from apps.core.fechas import sumar_meses
 from apps.core.selectors import obtener_tipo_cambio
+from apps.crm.selectors import obtener_cliente_por_email
 from apps.usuarios.models import Usuario
 
+from . import datos_demo
 from .enums import EstadoArrendamiento, EstadoPagoRenta
 from .exceptions import (
     ArrendamientoNoVigente,
@@ -476,3 +479,86 @@ def _cambiar_estado_bien(*, propiedad, unidad, estado, requerido, motivo, autor,
             motivo=motivo,
             estado_requerido=requerido,
         )
+
+
+# ---------- Datos de demostración ----------
+
+
+@transaction.atomic
+def cargar_demo_arrendamientos() -> dict[str, int]:
+    """
+    Carga los contratos ficticios de datos_demo.py con sus pagos, y devuelve
+    cuántos creó.
+
+    Como la demo de ventas, usa los mismos servicios que la API para que cada
+    contrato quede coherente (pagos generados, bien ARRENDADO, recargo y tasa),
+    así que sus escrituras quedan en la bitácora con usuario nulo. Es
+    idempotente: salta un bien que ya tiene un contrato, y si el bien ya no
+    está disponible, se salta sin detener la carga (punto de guardado propio).
+    """
+    creados = {"contratos": 0}
+    hoy = timezone.localdate()
+
+    for datos in datos_demo.CONTRATOS:
+        cliente = obtener_cliente_por_email(email=datos["cliente"])
+        nombre, codigo_unidad = datos["bien"]
+        if codigo_unidad is None:
+            propiedad = listar_propiedades().filter(nombre=nombre).first()
+            unidad = None
+        else:
+            propiedad = None
+            unidad = (
+                listar_unidades()
+                .filter(propiedad__nombre=nombre, codigo=codigo_unidad)
+                .first()
+            )
+        if cliente is None or (propiedad or unidad) is None:
+            continue
+        if ContratoArrendamiento.objects.filter(
+            propiedad=propiedad, unidad=unidad
+        ).exists():
+            continue
+        try:
+            with transaction.atomic():
+                bien = propiedad or unidad
+                contrato = firmar_arrendamiento(
+                    datos={
+                        "cliente": cliente,
+                        "propiedad": propiedad,
+                        "unidad": unidad,
+                        "fecha_inicio": hoy
+                        - timedelta(days=datos["dias_desde_inicio"]),
+                        "duracion_meses": datos["duracion_meses"],
+                        "renta_mensual": datos["renta_mensual"],
+                        "moneda": bien.moneda,
+                        "deposito": datos["deposito"],
+                        "dia_cobro": datos["dia_cobro"],
+                        "dias_gracia": datos["dias_gracia"],
+                        "porcentaje_mora": datos["porcentaje_mora"],
+                    },
+                    autor=None,
+                    ip=None,
+                )
+                pagos = list(contrato.pagos.order_by("fecha_vencimiento"))
+                for numero, dias_tarde in datos["pagos"]:
+                    pago = pagos[numero - 1]
+                    fecha = pago.fecha_vencimiento + timedelta(days=dias_tarde)
+                    recargo = calcular_recargo(
+                        renta=pago.monto,
+                        porcentaje=contrato.porcentaje_mora,
+                        vencimiento=pago.fecha_vencimiento,
+                        dias_gracia=contrato.dias_gracia,
+                        fecha_pago=fecha,
+                    )
+                    registrar_pago_renta(
+                        pago=pago,
+                        fecha=fecha,
+                        monto=pago.monto + recargo,
+                        referencia=f"DEMO-{contrato.codigo}-{numero}",
+                        autor=None,
+                        ip=None,
+                    )
+                creados["contratos"] += 1
+        except ErrorDominio:
+            continue
+    return creados

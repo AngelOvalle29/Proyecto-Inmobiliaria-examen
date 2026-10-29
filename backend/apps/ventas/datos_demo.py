@@ -33,8 +33,8 @@ CONTRATOS = [
     },
 ]
 
-# (cliente, bien, hasta qué estado se lleva)
+# (cliente, bien, hasta qué estado se lleva). El Restaurante Plaza Central
+# se dejó para la demo de arrendamientos (spec 008): era el único bien libre.
 COTIZACIONES = [
     ("cliente2@demo.test", ("Torre Mirador del Valle", "A-101"), "APROBADA"),
-    ("compras@inversiones-demo.test", ("Restaurante Plaza Central", None), "ENVIADA"),
 ]
