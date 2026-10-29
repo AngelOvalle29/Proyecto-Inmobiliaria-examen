@@ -456,12 +456,15 @@ fusiona.
 - [x] `/api/docs/` y el panel de Django son accesibles y se ven con estilos
 - [x] El administrador inicial puede entrar al panel y hacer login en la API
 - [x] El worker ejecuta la tarea de diagnóstico encolada desde producción
-- [ ] La extensión `vector` está habilitada en la base de Neon
+- [x] La extensión `vector` está habilitada en la base de Neon (0.8.0)
 - [x] La IP que registra la bitácora en un login de producción es la IP pública
       real de quien inició sesión (confirmado con `NUM_PROXIES=3`)
 - [x] Las migraciones corren automáticamente en cada despliegue
 - [ ] `DEBUG` es `False` y un error 500 no muestra trazas al cliente, pero sí
-      queda en los registros de Render
+      queda en los registros de Render. *Comprobado a medias el 2026-10-29:*
+      una ruta inexistente responde la página 404 genérica, sin la lista de
+      rutas, así que `DEBUG` es `False`. El error 500 queda por probar: hoy
+      ningún endpoint falla a propósito
 - [ ] Una fusión de `develop` en `main` despliega automáticamente en Render y
       en Vercel
 - [x] Todos los servicios están en su plan gratuito
