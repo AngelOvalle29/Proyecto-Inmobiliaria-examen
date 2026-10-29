@@ -60,7 +60,7 @@ Detalle en `docs/modelo-datos.md` y `docs/requisitos.md`.
 | Autenticación | JWT (SimpleJWT) |
 | Frontend | React 19 · Vite · TypeScript · TanStack Query y Table · shadcn/ui |
 | Infraestructura | Docker · Docker Compose |
-| Despliegue | Planes gratuitos: API y worker en Render · PostgreSQL en Neon · RabbitMQ en CloudAMQP · Frontend en Vercel (por ahora, sitio estático en Render) |
+| Despliegue | Planes gratuitos: API y worker en Render · PostgreSQL en Neon · RabbitMQ en CloudAMQP · Frontend en Vercel |
 | IA y RAG | Gemini Flash (capa gratuita) · pgvector |
 | Correo | Gmail SMTP |
 | BI | Power BI sobre vistas del esquema `bi` |
@@ -86,7 +86,7 @@ pip install -r requirements/dev.txt
 
 python manage.py migrate        # también crea los 5 roles y la tabla de caché
 python manage.py createsuperuser   # pide correo y nombre completo
-python manage.py seed_demo      # países, ciudades, monedas y tipos de cambio
+python manage.py seed_demo      # catálogos de core y datos de demo de cada app
 python manage.py runserver
 ```
 
@@ -111,8 +111,16 @@ Calidad, antes de cada commit (desde `backend/`):
 ruff format . && ruff check . && pytest
 ```
 
-El worker de Celery se configura en la spec 002; hasta entonces el contenedor
-de RabbitMQ corre, pero ningún flujo lo usa todavía.
+El worker de Celery, en otra terminal y también desde `backend/`:
+
+```bash
+celery -A config worker --pool=solo -l info
+```
+
+`--pool=solo` es el mismo modo que en producción, y en Windows es obligatorio:
+el modo por defecto de Celery no funciona ahí. Para comprobar que el worker
+recibe tareas, `python manage.py encolar_diagnostico` y en su terminal debe
+aparecer `Worker de Celery operativo`.
 
 El frontend, a partir de la fase 2:
 
@@ -131,6 +139,106 @@ npm run dev
 | Documentación de la API | http://localhost:8000/api/docs/ |
 | Panel de administración | http://localhost:8000/admin/ |
 | Panel de RabbitMQ | http://localhost:15672/ |
+
+---
+
+## Despliegue
+
+Todo corre en planes gratuitos, sin tarjeta. Las razones de cada proveedor y el
+detalle técnico están en `specs/002-despliegue.md`.
+
+| Pieza | Dónde | Nota |
+|---|---|---|
+| API y worker de Celery | Render, servicio web `inmobiliaria-api` (Docker) | Un solo contenedor: Render no tiene workers gratuitos |
+| Frontend | Vercel, proyecto `proyecto-inmobiliaria` (plan Hobby) | Publica la rama `main`; cada pull request tiene su vista previa |
+| PostgreSQL 16 con pgvector | Neon | Conexión directa, `sslmode=require` |
+| RabbitMQ | CloudAMQP, plan Little Lemur | URL `amqps://` |
+
+| En producción | URL |
+|---|---|
+| Frontend | https://proyecto-inmobiliaria-chi.vercel.app |
+| API | https://inmobiliaria-api-x8gr.onrender.com/api/v1/ |
+| Estado del servicio | https://inmobiliaria-api-x8gr.onrender.com/api/v1/health/ |
+| Documentación de la API | https://inmobiliaria-api-x8gr.onrender.com/api/docs/ |
+| Panel de administración | https://inmobiliaria-api-x8gr.onrender.com/admin/ |
+
+### Cómo se publica un cambio
+
+1. El cambio llega a `develop` por pull request, como siempre.
+2. El integrante A abre un pull request de `develop` a `main`; otro integrante
+   lo aprueba y A lo fusiona (`docs/convenciones.md` §1.1, regla 9).
+3. Render despliega la API desde `main`, y Vercel el frontend desde `main`. La
+   configuración de Render está versionada en `render.yaml` (un *Blueprint*);
+   si se agrega un servicio nuevo a ese archivo y no aparece, en Render:
+   **Blueprints → el proyecto → Sync**.
+4. **Guardar una variable en el panel de Render vuelve a desplegar desde
+   `main`**, no desde `develop`.
+5. Si el contenedor nuevo no arranca, Render conserva la versión anterior en
+   línea. Para volver atrás a propósito: **el servicio → Events → Rollback** en
+   un despliegue anterior, y luego revertir el cambio en `main` con un pull
+   request.
+
+### Qué hace el contenedor al arrancar
+
+`backend/scripts/iniciar.sh`, en este orden:
+
+1. Aplica las migraciones.
+2. Crea el administrador inicial con las variables `DJANGO_SUPERUSER_*`, solo si
+   todavía no hay ningún superusuario.
+3. Si `CARGAR_DATOS_DEMO` es `true`, corre `seed_demo`, que no duplica nada.
+4. Levanta el worker de Celery en segundo plano; si se cae, se vuelve a levantar
+   a los 5 segundos.
+5. Encola la tarea de diagnóstico del worker.
+6. Arranca gunicorn, que atiende la API.
+
+### Variables de entorno
+
+Se cargan en el panel de Render, **nunca en el repositorio**. La lista completa
+con su explicación está al final de `.env.example`. Las secretas son
+`SECRET_KEY` (al menos 50 caracteres, o el contenedor no arranca),
+`DATABASE_URL`, `RABBITMQ_URL` y `DJANGO_SUPERUSER_PASSWORD`.
+`CORS_ALLOWED_ORIGINS` es la URL del frontend, sin barra final.
+
+El frontend en Vercel solo necesita `VITE_API_URL` (la URL de la API terminada
+en `/api/v1`) y `VITE_ENTORNO=produccion`, de tipo **Config**. No son secretas:
+quedan visibles en el código que descarga el navegador, y por eso Vercel no
+acepta guardarlas como *Secret*. Vite las incrusta al compilar: si cambian, hay
+que volver a desplegar (**Deployments → Redeploy**).
+
+`NUM_PROXIES` vale **3** en producción: delante de Django están Cloudflare, el
+borde de Render y un proxy interno. Si no es exacto, la bitácora registra la IP
+de un proxy en vez de la del usuario (spec 002, §8).
+
+### Lo que hay que saber del plan gratuito
+
+- **La API se duerme** tras 15 minutos sin tráfico, y la primera petición
+  después tarda alrededor de un minuto. El frontend lo avisa mientras espera.
+  **Antes de una revisión o de la defensa, abrir el sistema un par de minutos
+  antes.** No se mantiene despierta con un monitor externo: Neon agotaría sus
+  horas de cómputo del mes (spec 002, §5.8).
+- **No hay terminal.** Por eso el administrador y los datos de demostración los
+  crea el script de arranque.
+- **No hay disco persistente.** Lo que se escriba en el contenedor se pierde al
+  reiniciar.
+
+### Cómo revisar que todo funciona
+
+| Qué | Cómo |
+|---|---|
+| API y base de datos | `<API>/api/v1/health/` responde `{"estado": "ok", "base_datos": "ok"}` (503 si la base no responde) |
+| Worker y RabbitMQ | En Render, **Logs** del servicio de la API: tras cada arranque aparece `Worker de Celery operativo: tarea de diagnóstico recibida.` |
+| Frontend y CORS | La página del frontend muestra el estado de la API sin errores en la consola del navegador |
+
+### Problemas conocidos
+
+| Síntoma | Causa y solución |
+|---|---|
+| `lstat ... backend/backend: no such file or directory` al construir | Con `rootDir`, Render resuelve `dockerfilePath` y `dockerContext` desde `backend/`, no desde la raíz. Deben ser `./Dockerfile` y `.` (spec 002, §5.1) |
+| El contenedor sale con código 1 al arrancar | Falta una variable obligatoria, `SECRET_KEY` es corta o `DJANGO_SUPERUSER_PASSWORD` no pasa los validadores. El motivo está en los Logs |
+| El frontend muestra un error de red al llamar a la API | `CORS_ALLOWED_ORIGINS` no tiene la URL exacta del frontend (con `https://` y sin barra final), o `VITE_API_URL` no termina en `/api/v1` |
+| Una vista previa de Vercel no llega a la API | Es esperado: cada vista previa tiene su propia URL y no está en `CORS_ALLOWED_ORIGINS` |
+| La bitácora registra IP `10.x` o de Cloudflare | `NUM_PROXIES` no es 3 |
+| La primera carga tarda un minuto | Es la siesta del plan gratuito, no un error |
 
 ---
 

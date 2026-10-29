@@ -29,8 +29,11 @@ services:
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.prod
+      # Proxies delante de Django: Cloudflare, el borde de Render y un proxy
+      # interno de Render. Se midió en producción: con 1 la bitácora guardaba
+      # una IP interna (10.x) y con 2 una de Cloudflare (spec 002, §8).
       - key: NUM_PROXIES
-        value: "1"
+        value: "3"
       - key: CARGAR_DATOS_DEMO
         value: "true"
       # Se genera a mano con al menos 50 caracteres: el valor que genera
@@ -48,33 +51,4 @@ services:
       - key: DJANGO_SUPERUSER_NOMBRE_COMPLETO
         sync: false
       - key: DJANGO_SUPERUSER_PASSWORD
-        sync: false
-
-  # Frontend como sitio estático gratuito (spec 002, §6.1). Es TEMPORAL: Vercel
-  # pidió una verificación manual de la cuenta, y mientras se resuelve el
-  # frontend se publica aquí. Los sitios estáticos de Render no se duermen.
-  - type: web
-    name: inmobiliaria-web
-    runtime: static
-    branch: main
-    # Sin rootDir a propósito. Con rootDir, Render resolvió las rutas de la API
-    # relativas a backend/ aunque su documentación dice que son relativas a la
-    # raíz. Aquí se entra a la carpeta en el comando y la ruta de publicación
-    # se escribe completa: es correcta con cualquiera de las dos reglas.
-    buildCommand: cd frontend && npm ci && npm run build
-    staticPublishPath: ./frontend/dist
-    autoDeployTrigger: commit
-    # Pendiente para la base del frontend (#15): una regla de reescritura de
-    # /* a /index.html, para que recargar una ruta de React no dé 404. Hoy hay
-    # una sola página y no hace falta.
-    envVars:
-      # Vite 8 necesita Node 20.19 o superior; se fija la misma versión que
-      # usa ci.yml.
-      - key: NODE_VERSION
-        value: "24"
-      - key: VITE_ENTORNO
-        value: produccion
-      # No es secreta (queda visible en el código compilado), pero depende del
-      # nombre que Render le dio a la API: se carga en el panel.
-      - key: VITE_API_URL
         sync: false
