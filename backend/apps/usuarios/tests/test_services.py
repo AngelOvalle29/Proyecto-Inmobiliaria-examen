@@ -49,6 +49,20 @@ def test_login_fallido_registra_el_correo_y_nunca_la_contrasena():
     assert registro.valores_nuevos == {"email": "agente@demo.test"}
 
 
+def test_login_fallido_se_asocia_a_la_cuenta_aunque_cambien_las_mayusculas():
+    """
+    Una cuenta guardada con mayúsculas (antes de normalizar los correos) se
+    autentica sin distinguirlas; sus intentos fallidos deben quedar asociados
+    a ella de la misma forma.
+    """
+    # La fábrica guarda el correo tal cual, sin pasar por normalize_email.
+    usuario = UsuarioFactory(email="Agente@Demo.test")
+
+    registrar_login_fallido(email="agente@demo.test", ip=IP, user_agent=NAVEGADOR)
+
+    assert LogAuditoria.objects.get().entidad_id == usuario.pk
+
+
 def test_login_fallido_con_un_correo_inexistente_no_apunta_a_ningun_registro():
     registrar_login_fallido(email="nadie@demo.test", ip=IP, user_agent=NAVEGADOR)
 

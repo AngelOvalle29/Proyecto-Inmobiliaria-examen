@@ -60,7 +60,7 @@ Detalle en `docs/modelo-datos.md` y `docs/requisitos.md`.
 | Autenticación | JWT (SimpleJWT) |
 | Frontend | React 19 · Vite · TypeScript · TanStack Query y Table · shadcn/ui |
 | Infraestructura | Docker · Docker Compose |
-| Despliegue | Backend en Railway · Frontend en Vercel |
+| Despliegue | Planes gratuitos: API y worker en Render · PostgreSQL en Neon · RabbitMQ en CloudAMQP · Frontend en Vercel |
 | IA y RAG | Gemini Flash (capa gratuita) · pgvector |
 | Correo | Gmail SMTP |
 | BI | Power BI sobre vistas del esquema `bi` |

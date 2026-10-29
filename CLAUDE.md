@@ -58,7 +58,7 @@ El enunciado prohíbe explícitamente el vibecoding. Esto significa, en la prác
 | Correo | Gmail SMTP con contraseña de aplicación | ~500 envíos diarios |
 | Frontend | React 19 + Vite + TypeScript | Ver `docs/frontend.md` |
 | Contenedores | Docker + Docker Compose | |
-| Despliegue backend | Railway | Ver `specs/002-despliegue.md` |
+| Despliegue backend | Render (API y worker), Neon (PostgreSQL con pgvector), CloudAMQP (RabbitMQ) | Planes gratuitos. Ver `specs/002-despliegue.md` |
 | Despliegue frontend | Vercel | Plan Hobby, gratuito |
 
 No cambies ninguna de estas piezas sin consultarlo con el equipo.
@@ -85,7 +85,7 @@ Proyecto-Inmobiliaria/
 ├── specs/
 │   ├── PLANTILLA.md          # formato obligatorio de cada especificación
 │   ├── 001-fundacion.md      # esqueleto del proyecto
-│   └── 002-despliegue.md     # Railway, Vercel e integración continua
+│   └── 002-despliegue.md     # Render, Neon, CloudAMQP, Vercel e integración continua
 ├── .github/workflows/
 │   └── ci.yml                # pruebas y calidad en cada pull request
 ├── backend/                  # proyecto Django (se crea en la fase 0)
@@ -194,7 +194,9 @@ lo pida:
 
 - Backend en Django REST Framework con PostgreSQL.
 - Frontend en React 19 + Vite + TypeScript. Detalle en `docs/frontend.md`.
-- Despliegue del backend en **Railway**, del frontend en **Vercel**.
+- Despliegue **sin costo**: backend en **Render** (API y worker en un mismo
+  contenedor), base de datos en **Neon**, RabbitMQ en **CloudAMQP** y frontend
+  en **Vercel**, todos en su plan gratuito. Reemplazó a Railway el 2026-10-21.
   Justificación en `specs/002-despliegue.md`.
 - **Gemini Flash** para el agente y para los embeddings del RAG, en su capa
   gratuita. Nunca se llama al SDK de Gemini directamente desde un servicio:
@@ -207,9 +209,10 @@ lo pida:
 **Abiertas.** No las resuelvas por tu cuenta; si una tarea depende de alguna,
 pregunta:
 
-- **Almacenamiento de documentos oficiales** en producción (volumen de Railway
-  o almacenamiento de objetos externo).
-- **Dominio propio.** Por ahora se usan los subdominios de Railway y Vercel.
+- **Almacenamiento de documentos oficiales** en producción. El plan gratuito de
+  Render no tiene disco persistente, así que será un almacenamiento de objetos
+  externo; falta decidir cuál.
+- **Dominio propio.** Por ahora se usan los subdominios de Render y Vercel.
 
 ---
 

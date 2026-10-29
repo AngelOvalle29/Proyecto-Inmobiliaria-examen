@@ -1,5 +1,5 @@
 # Infraestructura para DESARROLLO LOCAL.
-# En producción, Railway provee PostgreSQL y RabbitMQ como servicios propios.
+# En producción, PostgreSQL lo provee Neon y RabbitMQ, CloudAMQP (spec 002).
 #
 #   docker compose up -d
 #

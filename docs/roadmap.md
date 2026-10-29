@@ -71,7 +71,7 @@ que se empieza de inmediato.
 1. Destrabar la integración continua (GitHub Actions no se ha ejecutado nunca)
    y activar la protección de `main` y `develop` (requiere GitHub Pro, gratuito
    con el Student Developer Pack).
-2. **Spec 002:** despliegue en Railway y Vercel. Incluye cerrar los pendientes de
+2. **Spec 002:** despliegue gratuito en Render, Neon, CloudAMQP y Vercel. Incluye cerrar los pendientes de
    la spec 001 (estado en la cabecera y búsqueda sin mayúsculas en
    `obtener_id_usuario_por_email`).
 3. **Spec 003, catálogo**, empezando por `TipoPropiedad`, `Propiedad` y `Unidad`
@@ -125,7 +125,7 @@ monedas que no son el dólar necesita su propio registro de tipo de cambio.
    empieza con los datos que ya existen (tipos de cambio, catálogos).
 5. **Spec de mensajería:** configuración de Celery y los flujos de
    notificaciones e ingesta de documentos. La ingesta alimenta el RAG de C y se
-   acuerda con C; el worker en Railway lo configura A en la spec 002.
+   acuerda con C; el worker desplegado lo configura A en la spec 002.
 6. Los 15 reportes, conforme cada bloque tenga datos.
 7. Power BI y el esquema `bi`, cuando haya tablas con datos.
 
@@ -162,10 +162,11 @@ Spec: `specs/001-fundacion.md`
 
 Objetivo: tener producción funcionando cuando todavía no duele arreglarla.
 
-- Backend desplegado en Railway: API, worker, PostgreSQL y RabbitMQ
+- Backend desplegado sin costo: API y worker en Render, PostgreSQL en Neon y
+  RabbitMQ en CloudAMQP
 - Frontend desplegado en Vercel (al inicio, una página en blanco basta)
 - Variables de entorno y secretos configurados en ambos proveedores
-- Límite de gasto configurado en Railway
+- Todos los servicios en su plan gratuito
 - Integración continua con GitHub Actions, obligatoria para fusionar
 - Despliegue automático al fusionar a `main`
 - Endpoint de salud (`/api/v1/health/`) respondiendo públicamente
@@ -261,7 +262,7 @@ tengan sentido.
 | Riesgo | Mitigación |
 |---|---|
 | El despliegue falla cerca de la entrega | Desplegar en la fase 1, mantenerlo vivo |
-| La factura de Railway se dispara | Límite de gasto configurado desde el primer día |
+| Se agota una cuota gratuita (horas de Render, cómputo de Neon, mensajes de CloudAMQP) | No mantener la API despierta todo el mes; ver `specs/002-despliegue.md` §5.8 |
 | Historial de Git concentrado al final | Commits distribuidos, reunión semanal |
 | El RAG consume más tiempo del previsto | Empezar con pocos documentos y ampliar |
 | Límites de la capa gratuita de Gemini | Cache de respuestas, límite de peticiones por usuario, revisar los límites en AI Studio antes de la defensa |
@@ -281,8 +282,8 @@ tengan sentido.
 5. Crear el repositorio y acordar las reglas internas de trabajo
    (`docs/convenciones.md` §1.1), porque la protección de ramas no está
    disponible en el plan gratuito.
-6. Crear las cuentas de Railway y Vercel, y acordar quién paga y cómo se
-   reparte el costo (alrededor de $15 a $20 al mes entre cuatro).
+6. Crear las cuentas gratuitas de Render, Neon, CloudAMQP y Vercel. Se
+   descartó Railway (alrededor de $15 a $20 al mes) para no pagar.
 7. Obtener la llave de la API de Gemini en Google AI Studio y confirmar ahí los
    identificadores exactos de los modelos y la dimensión de los embeddings.
 8. Crear una cuenta de Gmail para el proyecto, activar la verificación en dos

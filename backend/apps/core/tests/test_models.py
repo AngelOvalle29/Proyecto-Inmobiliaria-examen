@@ -10,7 +10,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
-from django.db import IntegrityError
+from django.db import IntegrityError, connection
 
 from apps.core.models import Ciudad, Moneda, Pais, TipoCambio
 
@@ -73,3 +73,10 @@ def test_una_ciudad_no_se_repite_en_el_mismo_pais(gtq):
 
     with pytest.raises(IntegrityError):
         Ciudad.objects.create(nombre="Quetzaltenango", pais=guatemala)
+
+
+def test_la_extension_vector_queda_habilitada():
+    """Spec 002, §5.6: la migración core.0003 habilita pgvector para el RAG."""
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT 1 FROM pg_extension WHERE extname = 'vector'")
+        assert cursor.fetchone() is not None

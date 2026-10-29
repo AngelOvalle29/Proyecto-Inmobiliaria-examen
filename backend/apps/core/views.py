@@ -33,9 +33,9 @@ class EstadoServicioView(APIView):
     """
     GET /api/v1/health/
 
-    Público: lo consultan Railway y el Dockerfile para saber si el contenedor
-    está sano, sin credenciales. Responde 503 si la base de datos no responde,
-    para que la plataforma sepa que el servicio no puede atender.
+    Público: Render lo consulta para saber si el servicio está sano, sin
+    credenciales. Responde 503 si la base de datos no responde, para que la
+    plataforma sepa que el servicio no puede atender.
     """
 
     authentication_classes = []
