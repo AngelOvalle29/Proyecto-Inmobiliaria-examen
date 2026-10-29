@@ -9,7 +9,7 @@
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `catalogo` (incluido su comando `cargar_demo_catalogo`) |
 | **Rama** | `feature/003-catalogo-propiedades` |
-| **Pull request** | — (spec aprobada en DouGMV/Proyecto-Inmobiliaria#33) |
+| **Pull request** | [DouGMV/Proyecto-Inmobiliaria#34](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/34) (spec aprobada en #33) |
 
 ---
 
