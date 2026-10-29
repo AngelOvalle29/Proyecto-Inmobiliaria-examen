@@ -148,3 +148,16 @@ def cotizacion_tiene_contrato(*, cotizacion: Cotizacion) -> bool:
     RelatedObjectDoesNotExist, que es un AttributeError, y hasattr da False.
     """
     return hasattr(cotizacion, "contrato_venta")
+
+
+def obtener_cliente_por_email(*, email: str) -> Cliente | None:
+    """Cliente activo con ese correo. Lo usa la demo de ventas para ubicar a
+    los clientes ficticios de cargar_demo_crm."""
+    return Cliente.objects.filter(activo=True, email__iexact=email).first()
+
+
+def existe_cotizacion(*, cliente: Cliente, propiedad=None, unidad=None) -> bool:
+    """True si el cliente ya tiene una cotización sobre ese bien (demo)."""
+    return Cotizacion.objects.filter(
+        cliente=cliente, propiedad=propiedad, unidad=unidad
+    ).exists()

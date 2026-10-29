@@ -33,6 +33,7 @@ from apps.core.services import cargar_catalogos_demo
 COMANDOS_DE_DEMO = [
     "cargar_demo_catalogo",
     "cargar_demo_crm",
+    "cargar_demo_ventas",
 ]
 
 

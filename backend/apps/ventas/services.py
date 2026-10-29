@@ -4,24 +4,36 @@ auditoría.
 No conocen request ni hablan HTTP.
 """
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
 from django.forms.models import model_to_dict
+from django.utils import timezone
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
 from apps.catalogo.enums import EstadoPropiedad
+from apps.catalogo.selectors import listar_propiedades, listar_unidades
 from apps.catalogo.services import cambiar_estado_propiedad, cambiar_estado_unidad
-from apps.core.exceptions import TipoCambioNoDisponible
+from apps.core.exceptions import ErrorDominio, TipoCambioNoDisponible
 from apps.core.fechas import sumar_meses
 from apps.core.selectors import obtener_tipo_cambio
 from apps.crm.enums import EstadoCotizacion
 from apps.crm.exceptions import CotizacionYaContratada, SeVendePorUnidades
-from apps.crm.selectors import cotizacion_tiene_contrato
+from apps.crm.selectors import (
+    cotizacion_tiene_contrato,
+    existe_cotizacion,
+    obtener_cliente_por_email,
+)
+from apps.crm.services import (
+    aprobar_cotizacion,
+    crear_cotizacion,
+    enviar_cotizacion,
+)
 from apps.usuarios.models import Usuario
 
+from . import datos_demo
 from .enums import EstadoContrato, EstadoCuota, ModalidadVenta
 from .exceptions import (
     ContratoConPagos,
@@ -390,4 +402,117 @@ def _cambiar_estado_bien(*, propiedad, unidad, estado, requerido, motivo, autor,
             ip=ip,
             motivo=motivo,
             estado_requerido=requerido,
+        )
+
+
+# ---------- Datos de demostración ----------
+
+
+@transaction.atomic
+def cargar_demo_ventas() -> dict[str, int]:
+    """
+    Carga contratos y cotizaciones ficticios (datos_demo.py) y devuelve
+    cuántos creó de cada uno.
+
+    A diferencia de las demos de core, catálogo y CRM, usa los mismos
+    servicios que la API: así cada contrato queda coherente (cuotas
+    calculadas, bien VENDIDO o RESERVADO, tasa al dólar y comisión). Por eso
+    sus escrituras sí quedan en la bitácora, con usuario nulo: las hizo el
+    sistema.
+
+    Es idempotente: salta lo que ya existe (un contrato sobre el mismo bien, o
+    una cotización del mismo cliente sobre el mismo bien). Si un bien ya no
+    está como la demo lo espera (por ejemplo, en producción alguien lo vendió
+    desde la API), ese registro se salta sin detener la carga: cada uno corre
+    en su propio punto de guardado (savepoint).
+    """
+    creados = {"contratos": 0, "cotizaciones": 0}
+    hoy = timezone.localdate()
+
+    for datos in datos_demo.CONTRATOS:
+        cliente = obtener_cliente_por_email(email=datos["cliente"])
+        propiedad, unidad = _bien_demo(datos["bien"])
+        if cliente is None or (propiedad or unidad) is None:
+            continue
+        if ContratoVenta.objects.filter(propiedad=propiedad, unidad=unidad).exists():
+            continue
+        try:
+            with transaction.atomic():
+                _firmar_demo(datos, cliente, propiedad, unidad, hoy)
+                creados["contratos"] += 1
+        except ErrorDominio:
+            continue
+
+    for email, bien, hasta in datos_demo.COTIZACIONES:
+        cliente = obtener_cliente_por_email(email=email)
+        propiedad, unidad = _bien_demo(bien)
+        if cliente is None or (propiedad or unidad) is None:
+            continue
+        if existe_cotizacion(cliente=cliente, propiedad=propiedad, unidad=unidad):
+            continue
+        try:
+            with transaction.atomic():
+                cotizacion = crear_cotizacion(
+                    datos={
+                        "cliente": cliente,
+                        "propiedad": propiedad,
+                        "unidad": unidad,
+                        "fecha_vencimiento": hoy + timedelta(days=15),
+                    },
+                    autor=None,
+                    ip=None,
+                )
+                enviar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+                if hasta == "APROBADA":
+                    aprobar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+                creados["cotizaciones"] += 1
+        except ErrorDominio:
+            continue
+
+    return creados
+
+
+def _bien_demo(bien: tuple) -> tuple:
+    """(propiedad, unidad) de la demo del catálogo; la que no aplica es None."""
+    nombre, codigo_unidad = bien
+    if codigo_unidad is None:
+        return listar_propiedades().filter(nombre=nombre).first(), None
+    unidad = (
+        listar_unidades().filter(propiedad__nombre=nombre, codigo=codigo_unidad).first()
+    )
+    return None, unidad
+
+
+def _firmar_demo(datos: dict, cliente, propiedad, unidad, hoy: date) -> None:
+    bien = propiedad or unidad
+    fecha_firma = hoy - timedelta(days=datos["dias_desde_firma"])
+    entrada = {
+        "cliente": cliente,
+        "propiedad": propiedad,
+        "unidad": unidad,
+        "monto_total": bien.precio_lista,
+        "moneda": bien.moneda,
+        "fecha_firma": fecha_firma,
+        "modalidad": datos["modalidad"],
+    }
+    if datos["modalidad"] == ModalidadVenta.FINANCIADO:
+        entrada.update(
+            enganche=_a_centavos(
+                bien.precio_lista * datos["porcentaje_enganche"] / 100
+            ),
+            numero_cuotas=datos["numero_cuotas"],
+            tasa_interes_anual=datos["tasa_interes_anual"],
+            fecha_primera_cuota=fecha_firma + timedelta(days=30),
+        )
+    contrato = firmar_contrato(datos=entrada, autor=None, ip=None)
+
+    for numero, fraccion in datos.get("pagos", []):
+        cuota = contrato.cuotas.get(numero=numero)
+        registrar_pago_cuota(
+            cuota=cuota,
+            monto=_a_centavos(cuota.monto_total * fraccion),
+            fecha=cuota.fecha_vencimiento,
+            referencia=f"DEMO-{contrato.codigo}-{numero}",
+            autor=None,
+            ip=None,
         )

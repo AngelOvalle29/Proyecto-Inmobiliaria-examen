@@ -5,7 +5,7 @@ Sin reglas de negocio.
 
 from django.contrib import admin
 
-from .models import Agente, Cliente
+from .models import Agente, Cliente, Cotizacion
 
 
 class AdminSoloLectura(admin.ModelAdmin):
@@ -49,3 +49,11 @@ class ClienteAdmin(AdminSoloLectura):
         "nit",
     ]
     list_select_related = ["pais", "agente_asignado__usuario"]
+
+
+@admin.register(Cotizacion)
+class CotizacionAdmin(AdminSoloLectura):
+    list_display = ["codigo", "cliente", "fecha_emision", "total", "moneda", "estado"]
+    list_filter = ["estado"]
+    search_fields = ["codigo", "cliente__codigo"]
+    list_select_related = ["cliente", "moneda"]
