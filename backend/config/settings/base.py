@@ -186,9 +186,12 @@ REST_FRAMEWORK = {
     # Toda respuesta de error sale en el formato uniforme.
     "EXCEPTION_HANDLER": "apps.core.manejador_errores.manejar_excepcion",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # Límite de peticiones por IP. Solo lo usan las vistas que declaran
-    # throttle_scope = "auth": login y renovación de token (arquitectura.md §9).
-    "DEFAULT_THROTTLE_RATES": {"auth": "10/min"},
+    # Límite de peticiones por IP (arquitectura.md §9). Solo lo usan las vistas
+    # que declaran su throttle_scope. Login y renovación tienen límites
+    # separados: detrás de una misma IP pública (la red de la universidad en la
+    # defensa) entran varias personas a la vez, y renovar el token no debe
+    # gastar los intentos de login de nadie (spec 001, §5).
+    "DEFAULT_THROTTLE_RATES": {"login": "30/min", "renovacion": "60/min"},
     # Cuántos proxies propios hay delante de Django. Define qué IP es la real:
     # 0 (desarrollo) ignora X-Forwarded-For, que cualquier cliente puede
     # inventar; en producción (Render) hay tres y se configura NUM_PROXIES=3

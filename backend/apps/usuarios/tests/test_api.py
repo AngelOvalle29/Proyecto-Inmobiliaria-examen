@@ -62,14 +62,26 @@ def test_login_sin_contrasena_devuelve_error_de_validacion(cliente):
     assert "password" in error["detalles"]
 
 
-def test_el_undecimo_intento_en_un_minuto_devuelve_429(cliente, usuario):
-    for _ in range(10):
+def test_el_intento_31_en_un_minuto_devuelve_429(cliente, usuario):
+    for _ in range(30):
         iniciar_sesion(cliente, password="contrasena-equivocada")
 
     respuesta = iniciar_sesion(cliente)
 
     assert respuesta.status_code == 429
     assert respuesta.json()["error"]["codigo"] == "DEMASIADAS_PETICIONES"
+
+
+def test_agotar_los_intentos_de_login_no_bloquea_la_renovacion(cliente, usuario):
+    """Login y renovación tienen límites separados: quien ya entró sigue
+    renovando su token aunque otros agoten los intentos desde la misma IP."""
+    tokens = iniciar_sesion(cliente).json()
+    for _ in range(30):
+        iniciar_sesion(cliente, password="contrasena-equivocada")
+
+    respuesta = cliente.post(REFRESH, {"refresh": tokens["refresh"]}, format="json")
+
+    assert respuesta.status_code == 200
 
 
 def test_el_login_audita_la_ip_del_cliente(cliente, usuario):

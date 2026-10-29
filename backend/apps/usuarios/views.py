@@ -23,9 +23,10 @@ class LoginView(APIView):
 
     authentication_classes = []
     permission_classes = [AllowAny]
-    # 10 intentos por minuto por IP: frena a quien prueba contraseñas en masa.
+    # 30 intentos por minuto por IP: frena a quien prueba contraseñas en masa
+    # sin bloquear a varias personas que entran desde la misma red.
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "auth"
+    throttle_scope = "login"
 
     @extend_schema(
         request=LoginSerializer,
@@ -49,11 +50,14 @@ class RenovarTokenView(TokenRefreshView):
     """
     POST /api/v1/auth/refresh/ — nuevo token de acceso a cambio del de refresco.
 
-    Es la vista de SimpleJWT sin cambios, salvo el límite de peticiones.
+    Es la vista de SimpleJWT sin cambios, salvo el límite de peticiones. Tiene
+    uno propio y más alto que el login: el token de refresco es una firma que
+    no se puede adivinar, así que el límite solo frena abusos, no ataques a
+    contraseñas.
     """
 
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "auth"
+    throttle_scope = "renovacion"
 
 
 class UsuarioActualView(APIView):
