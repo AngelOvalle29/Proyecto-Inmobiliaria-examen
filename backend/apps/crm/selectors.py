@@ -98,3 +98,15 @@ def existe_cliente_con_documento(
     if excluir_id is not None:
         clientes = clientes.exclude(pk=excluir_id)
     return clientes.exists()
+
+
+def consultar_agentes_asignables() -> QuerySet[Agente]:
+    """
+    Todos los agentes, activos o no, para validar el id que llega en la API al
+    asignar o reasignar un cliente.
+
+    Incluye a los desactivados a propósito: así el servicio responde
+    AGENTE_INACTIVO (regla 5), que explica el problema, en lugar de un "no
+    existe" que confundiría.
+    """
+    return Agente.objects.select_related("usuario")
