@@ -72,3 +72,25 @@ class EngancheFueraDeRango(ErrorDominio):
             "Los datos enviados no son válidos.",
             detalles={"enganche": ["Debe ser 0 o más y menor que el monto total."]},
         )
+
+
+class FechaPagoInvalida(ErrorDominio):
+    """
+    Regla 16: la fecha de un pago va de la firma del contrato a hoy. Una fecha
+    futura aplicaría como vigente una tasa al dólar que todavía no lo es
+    (regla 14), y una anterior a la firma no tiene sentido.
+    """
+
+    codigo = "FECHA_PAGO_INVALIDA"
+    estado_http = 400
+
+    def __init__(self, *, fecha, fecha_firma, hoy) -> None:
+        super().__init__(
+            f"La fecha del pago ({fecha:%d/%m/%Y}) debe estar entre la firma "
+            f"({fecha_firma:%d/%m/%Y}) y hoy ({hoy:%d/%m/%Y}).",
+            detalles={
+                "fecha": fecha.isoformat(),
+                "fecha_firma": fecha_firma.isoformat(),
+                "hoy": hoy.isoformat(),
+            },
+        )

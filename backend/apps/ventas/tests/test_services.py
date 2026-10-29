@@ -18,6 +18,7 @@ from apps.crm.services import (
     aprobar_cotizacion,
     crear_cotizacion,
     enviar_cotizacion,
+    reasignar_cliente,
     rechazar_cotizacion,
 )
 from apps.crm.tests.factories import AgenteFactory, ClienteFactory
@@ -30,6 +31,7 @@ from apps.ventas.exceptions import (
     ContratoNoVigente,
     CotizacionNoAprobada,
     EngancheFueraDeRango,
+    FechaPagoInvalida,
     PagoExcedeSaldo,
 )
 from apps.ventas.services import anular_contrato, firmar_contrato, registrar_pago_cuota
@@ -386,6 +388,48 @@ def test_no_se_paga_en_un_contrato_anulado(gerente):
             cuota=contrato.cuotas.first(),
             monto=Decimal("1.00"),
             fecha=date(2026, 12, 1),
+            referencia="X",
+            autor=gerente,
+            ip=IP,
+        )
+
+
+# ---------- Revisión de #44 ----------
+
+
+def test_la_comision_es_del_agente_que_cotizo_aunque_se_reasigne(gerente):
+    """Regla 13, decidida por B: el que trabajó la venta cobra la comisión."""
+    cotizacion = cotizacion_aprobada(gerente, disponible())
+    quien_cotizo = cotizacion.agente
+    reasignar_cliente(
+        cliente=cotizacion.cliente,
+        agente=AgenteFactory(porcentaje_comision=Decimal("9.00")),
+        autor=gerente,
+        ip=IP,
+    )
+
+    contrato = firmar_contrato(
+        datos={"cotizacion": cotizacion, "fecha_firma": HOY, "modalidad": "CONTADO"},
+        autor=gerente,
+        ip=IP,
+    )
+
+    assert contrato.agente == quien_cotizo
+    assert contrato.comision_agente == (
+        cotizacion.total * quien_cotizo.porcentaje_comision / 100
+    ).quantize(Decimal("0.01"))
+
+
+@pytest.mark.parametrize("dias", [1, -400])
+def test_la_fecha_de_un_pago_va_de_la_firma_a_hoy(gerente, dias):
+    """Regla 16: ni futura (tasa aún no vigente) ni anterior a la firma."""
+    contrato = firmar_contrato(datos=datos_financiado(), autor=gerente, ip=IP)
+
+    with pytest.raises(FechaPagoInvalida):
+        registrar_pago_cuota(
+            cuota=contrato.cuotas.first(),
+            monto=Decimal("1.00"),
+            fecha=HOY + timedelta(days=dias),
             referencia="X",
             autor=gerente,
             ip=IP,
