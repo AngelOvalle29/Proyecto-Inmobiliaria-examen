@@ -146,6 +146,11 @@ resultados.
   (*Blueprint*): servicio, plan, región, ruta de salud y nombres de las
   variables. Los valores secretos no van ahí: se marcan para cargarlos en el
   panel. Así la configuración se revisa en un pull request como el código.
+- *Corregido en el primer despliegue:* con `rootDir: backend`, Render resuelve
+  `dockerfilePath` y `dockerContext` **relativas a `backend/`**, aunque su
+  documentación dice que son relativas a la raíz. Con `./backend` buscaba
+  `backend/backend` y la construcción fallaba; las rutas correctas son
+  `./Dockerfile` y `.`.
 
 **Neon:** un proyecto con su base. `DATABASE_URL` usa la cadena de **conexión
 directa** (no la del *pooler*) con `sslmode=require`.

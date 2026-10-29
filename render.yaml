@@ -15,9 +15,11 @@ services:
     branch: main
     # Solo cambios dentro de backend/ disparan un despliegue.
     rootDir: backend
-    # Estas dos rutas son relativas a la raíz del repositorio, no a rootDir.
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    # Con rootDir definido, Render resuelve estas rutas relativas a backend/,
+    # no a la raíz del repositorio. Lo comprobó el primer despliegue: con
+    # "./backend" buscaba backend/backend y fallaba.
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     # Render llama aquí con el host <servicio>.onrender.com; prod.py lo agrega
     # a ALLOWED_HOSTS desde RENDER_EXTERNAL_HOSTNAME.
     healthCheckPath: /api/v1/health/
