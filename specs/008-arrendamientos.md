@@ -1,14 +1,14 @@
-# 006 · Arrendamientos
+# 008 · Arrendamientos
 
 | Campo | Valor |
 |---|---|
-| **Número** | 006 |
+| **Número** | 008 |
 | **Estado** | En revisión |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
 | **Revisor** | Por asignar |
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `arrendamientos`; usa `catalogo`, `crm` y `core` |
-| **Rama** | `feature/006-arrendamientos` |
+| **Rama** | `feature/008-arrendamientos` |
 | **Pull request** | — |
 | **Issue** | #19 |
 
@@ -33,7 +33,7 @@ datos de demostración.
 registra); pagos parciales de renta; renovación automática con una tarea
 programada; notificaciones (rol D); pantallas (spec aparte, sobre #15).
 
-Sigue el patrón de la spec 005 (ventas): mismo esquema de permisos, tasa al
+Sigue el patrón de la spec 007 (ventas): mismo esquema de permisos, tasa al
 dólar aplicada, mora calculada y cambios de estado por `catalogo`.
 
 ## 3. Reglas de negocio
@@ -43,7 +43,7 @@ dólar aplicada, mora calculada y cambios de estado por `catalogo`.
 1. Un contrato es sobre exactamente una propiedad o unidad, que debe estar
    `DISPONIBLE`. Al firmarlo pasa a `ARRENDADA`. Una propiedad de un tipo con
    unidades no se arrienda completa: se arriendan sus unidades (como en la
-   regla 9 de la spec 005).
+   regla 9 de la spec 007).
 2. El agente es el agente asignado al cliente.
 3. Se firma con fecha de inicio, **duración en meses** (1 a 120), renta
    mensual, moneda, depósito (0 o más, en la misma moneda), día de cobro (1 a
@@ -143,7 +143,7 @@ del contrato. El estado `VENCIDO` se quita (regla 8) y se agrega `CANCELADO`
 | POST | `/api/v1/pagos-renta/{id}/pagar/` · `{ "fecha", "monto", "referencia" }` | Regla 15 |
 
 **Errores nuevos** (además de `PROPIEDAD_NO_DISPONIBLE`,
-`PROPIEDAD_CON_UNIDADES` y `TIPO_CAMBIO_NO_DISPONIBLE` de las specs 001 y 005):
+`PROPIEDAD_CON_UNIDADES` y `TIPO_CAMBIO_NO_DISPONIBLE` de las specs 001 y 007):
 
 | Código | Situación | HTTP |
 |---|---|---|
@@ -172,7 +172,7 @@ def listar_arrendamientos_visibles(*, usuario) -> QuerySet[ContratoArrendamiento
 ```
 
 Los estados de la propiedad o unidad cambian con `cambiar_estado_propiedad` y
-`cambiar_estado_unidad` (pedido a A en la spec 005). El cálculo de fechas
+`cambiar_estado_unidad` (pedido en la spec 007 e implementado por A en #34). El cálculo de fechas
 mensuales (un 31 que el mes no tiene pasa al último día) es el mismo que el de
 las cuotas de ventas; se escribe una sola vez, en `core`, si A está de
 acuerdo.
@@ -247,11 +247,15 @@ contable).
 ## 11. Trabajo con agentes de IA
 
 **Sesión 2026-10-28 (Claude Code, rol B).** El agente leyó
-`docs/modelo-datos.md` §5, `docs/reportes.md` (R11, R12, R14), las specs 003 a
-005 y la issue #19, y propuso el borrador siguiendo el patrón de la spec 005.
+`docs/modelo-datos.md` §5, `docs/reportes.md` (R11, R12, R14), las specs 003, 004 y 007
+y la issue #19, y propuso el borrador siguiendo el patrón de la spec 007.
 Las cuatro decisiones de negocio de §10 las tomó B entre opciones planteadas
 por el agente.
 
 **Plan de implementación:** (1) modelos y funciones puras de calendario y
 recargo; (2) firma y pagos; (3) renovar, rescindir y finalizar; (4) API y
 datos de demostración.
+
+**Renumeración, 2026-10-29.** Se propuso como 006, número que también usó la
+spec de proveedores y constructoras (#39). Pasa a 008, después de la de ventas
+(007, antes 005), que es el patrón que copia.
