@@ -15,9 +15,12 @@ from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
 from apps.core.exceptions import CiudadFueraDelPais
 from apps.core.normalizacion import normalizar_documento
+from apps.core.selectors import listar_ciudades, listar_paises
 from apps.usuarios.enums import NombreRol
 from apps.usuarios.models import Usuario
+from apps.usuarios.services import asegurar_usuario_demo
 
+from . import datos_demo
 from .enums import TipoCliente
 from .exceptions import (
     AgenteConClientes,
@@ -356,3 +359,75 @@ def _desactivar(*, instancia, autor, ip) -> None:
         valores_nuevos={"activo": False},
         ip=ip,
     )
+
+
+# ---------- Datos de demostración ----------
+
+
+@transaction.atomic
+def cargar_demo_crm(*, password_agentes: str | None) -> dict[str, int]:
+    """
+    Carga los agentes y clientes ficticios de datos_demo.py y devuelve cuántos
+    creó de cada uno (spec 004, incremento 8).
+
+    Es idempotente: busca cada agente por el correo de su usuario y cada
+    cliente por su país y su documento o NIT, y solo crea lo que falta. Nunca
+    modifica lo que ya existe, así que correrlo en cada arranque (spec 002,
+    §5.8) no duplica nada ni deshace cambios hechos desde la API.
+
+    password_agentes viene de DEMO_AGENTES_PASSWORD. Sin ella, los usuarios de
+    los agentes quedan sin contraseña utilizable: ninguna contraseña escrita en
+    el repositorio da acceso al sistema desplegado (spec 004, §6).
+
+    Necesita los países y ciudades de demostración de core; seed_demo los carga
+    antes. No registra auditoría: es la foto inicial de la demostración, no una
+    operación del negocio (spec 004, §7).
+    """
+    creados = {"agentes": 0, "clientes": 0}
+    paises = {pais.codigo_iso: pais for pais in listar_paises()}
+
+    agentes = {}
+    for email, nombre, codigo_pais, comision, ingreso in datos_demo.AGENTES:
+        usuario, _ = asegurar_usuario_demo(
+            email=email,
+            nombre_completo=nombre,
+            rol=NombreRol.AGENTE,
+            password=password_agentes,
+        )
+        if usuario.pais_id is None:
+            usuario.pais = paises[codigo_pais]
+            usuario.save(update_fields=["pais"])
+        agente = obtener_agente_de_usuario(usuario=usuario)
+        if agente is None:
+            agente = Agente.objects.create(
+                usuario=usuario,
+                porcentaje_comision=comision,
+                fecha_ingreso=ingreso,
+            )
+            # Mismo formato que crear_agente (regla 10).
+            agente.codigo = f"AGT-{agente.pk:03d}"
+            agente.save(update_fields=["codigo"])
+            creados["agentes"] += 1
+        agentes[email] = agente
+
+    ciudades = {(c.pais.codigo_iso, c.nombre): c for c in listar_ciudades()}
+    for datos in datos_demo.CLIENTES:
+        datos = dict(datos)
+        codigo_pais, nombre_ciudad = datos.pop("ciudad")
+        agente = agentes[datos.pop("agente")]
+        datos["pais"] = paises[codigo_pais]
+        datos["ciudad"] = ciudades[(codigo_pais, nombre_ciudad)]
+        _normalizar_documentos(datos)
+
+        campo = "nit" if datos["tipo"] == TipoCliente.EMPRESA else "documento_identidad"
+        if existe_cliente_con_documento(
+            pais_id=datos["pais"].pk, tipo=datos["tipo"], documento=datos[campo]
+        ):
+            continue
+
+        cliente = Cliente.objects.create(**datos, agente_asignado=agente)
+        cliente.codigo = f"CLI-{cliente.pk:05d}"
+        cliente.save(update_fields=["codigo"])
+        creados["clientes"] += 1
+
+    return creados

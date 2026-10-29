@@ -7,7 +7,7 @@
 | **Autor** | Marco André Bolaños Rojas (rol B) |
 | **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-21 |
-| **Apps afectadas** | `crm` (incluido su comando `cargar_demo_crm`), `usuarios` (permiso por rol) |
+| **Apps afectadas** | `crm` (incluido su comando `cargar_demo_crm`), `usuarios` (permiso por rol, `listar_usuarios_activos`, `asegurar_usuario_demo`), `core` (`normalizar_documento`, `CiudadFueraDelPais`) |
 | **Rama** | `feature/004-crm-clientes-agentes` |
 | **Pull request** | DouGMV/Proyecto-Inmobiliaria#35 |
 
@@ -367,8 +367,8 @@ Reasignar un cliente a su mismo agente no registra nada (regla 8).
 ## 8. Criterios de aceptación
 
 *Verificados el 2026-10-29 con las pruebas de `apps/crm/tests/` y una prueba
-de punta a punta con login JWT real (§11). Los dos de datos de demostración
-esperan el incremento 8.*
+de punta a punta con login JWT real (§11); los dos de datos de demostración, el
+mismo día con el incremento 8.*
 
 **Agentes**
 - [x] Un administrador o gerente crea el perfil de agente de un usuario con rol
@@ -406,9 +406,9 @@ esperan el incremento 8.*
       nuevos
 - [x] Los registros nunca se borran físicamente: desactivar marca `activo` en
       falso
-- [ ] `cargar_demo_crm` (y `seed_demo`, que lo invoca) carga agentes y clientes
+- [x] `cargar_demo_crm` (y `seed_demo`, que lo invoca) carga agentes y clientes
       ficticios, sin duplicar al correrlo dos veces
-- [ ] Sin `DEMO_AGENTES_PASSWORD`, los agentes de demostración no pueden
+- [x] Sin `DEMO_AGENTES_PASSWORD`, los agentes de demostración no pueden
       iniciar sesión; con ella, sí. No hay ninguna contraseña en el repositorio
 - [x] `ruff`, `pytest` y `makemigrations --check` pasan
 
@@ -631,6 +631,20 @@ cartera da 409 `AGENTE_CON_CLIENTES` con `clientes_activos: 2`; el gerente
 reasigna (200) y desactiva (204), y el cliente deja de verse (404). La
 bitácora registró cada escritura con su usuario e IP.
 
-**Pendiente:** el incremento 8 (`cargar_demo_crm`), que se engancha a
-`seed_demo` cuando #34 llegue a `develop`; y lo que B revisó y corrigió a mano,
-que escribe B.
+**Revisión de A del PR (#35) y cierre, 2026-10-29.**
+- A encontró que un documento o NIT formado solo por guiones (`"-"`) pasaba el
+  serializador, quedaba vacío al normalizarse y la API respondía **500**. El
+  serializador ahora revisa el valor ya normalizado y responde 400 con el
+  campo. Es un error que las pruebas no cubrían: se agregaron tres casos.
+- Con su visto bueno, `normalizar_documento` pasó a `core/normalizacion.py` y
+  `CiudadFueraDelPais` a `core/exceptions.py`, para que `compras` y
+  `construccion` (spec 006, rol C) las usen sin depender de `crm`. `core` sigue
+  sin importar ninguna app.
+- **Incremento 8:** `cargar_demo_crm` carga 3 agentes y 10 clientes ficticios,
+  sin duplicar, y `seed_demo` lo llama por nombre desde #34. Los usuarios de los
+  agentes los crea `asegurar_usuario_demo` en `usuarios/services.py` (área de
+  A), para que `crm` no use el modelo de otra app; con `password=None`, Django
+  deja la contraseña inutilizable.
+- Resultado final: 302 pruebas del proyecto, esquema OpenAPI sin advertencias.
+
+**Pendiente:** lo que B revisó y corrigió a mano, que escribe B.
