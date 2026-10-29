@@ -40,14 +40,14 @@ CAMPOS_PROPIEDAD = [
     "es_publica",
     "descripcion",
 ]
-# La propiedad de una unidad no se cambia: se desactiva y se crea otra.
+# La propiedad de una unidad no se cambia: se desactiva y se crea otra. Su
+# estado, como el de la propiedad, solo cambia con cambiar_estado_unidad.
 CAMPOS_UNIDAD = [
     "codigo",
     "nivel",
     "area_m2",
     "habitaciones",
     "banos",
-    "estado",
     "precio_lista",
     "moneda",
 ]
@@ -263,6 +263,44 @@ def desactivar_propiedad(
     _desactivar(propiedad, autor=autor, ip=ip)
 
 
+def _cambiar_estado(
+    modelo: type[models.Model],
+    *,
+    instancia_id: int,
+    estado: EstadoPropiedad,
+    autor: AbstractBaseUser | None,
+    ip: str | None,
+    motivo: str,
+) -> models.Model:
+    """
+    Pasos comunes de cambiar_estado_propiedad y cambiar_estado_unidad.
+
+    select_for_update bloquea la fila hasta el fin de la transacción: si una
+    venta y un arrendamiento cambian la misma propiedad a la vez, el segundo
+    espera y lee el estado que dejó el primero, en vez de pisarlo.
+
+    Audita ACTUALIZAR con el estado anterior, el nuevo y el motivo. Si el
+    estado no cambia, no escribe ni audita.
+    """
+    instancia = modelo.objects.select_for_update().get(pk=instancia_id)
+    anterior = instancia.estado
+    if anterior == estado:
+        return instancia
+
+    instancia.estado = estado
+    instancia.actualizado_por = autor
+    instancia.save(update_fields=["estado", "actualizado_por", "actualizado_en"])
+    _auditar(
+        instancia=instancia,
+        accion=AccionAuditoria.ACTUALIZAR,
+        autor=autor,
+        ip=ip,
+        anteriores={"estado": anterior},
+        nuevos={"estado": estado, "motivo": motivo},
+    )
+    return instancia
+
+
 @transaction.atomic
 def cambiar_estado_propiedad(
     *,
@@ -273,34 +311,18 @@ def cambiar_estado_propiedad(
     motivo: str,
 ) -> Propiedad:
     """
-    Punto único de cambio de estado (regla 7). Lo usan la vista
-    /cambiar-estado/ y los servicios de ventas, arrendamientos, compras y
+    Punto único de cambio de estado de una propiedad (regla 7). Lo usan la
+    vista /cambiar-estado/ y los servicios de ventas, arrendamientos, compras y
     construcción. autor es None cuando lo hace el sistema.
-
-    Audita ACTUALIZAR con el estado anterior, el nuevo y el motivo. Si el
-    estado no cambia, no escribe ni audita.
-
-    select_for_update bloquea la fila hasta el fin de la transacción: si una
-    venta y un arrendamiento cambian la misma propiedad a la vez, el segundo
-    espera y lee el estado que dejó el primero, en vez de pisarlo.
     """
-    propiedad = Propiedad.objects.select_for_update().get(pk=propiedad.pk)
-    anterior = propiedad.estado
-    if anterior == estado:
-        return propiedad
-
-    propiedad.estado = estado
-    propiedad.actualizado_por = autor
-    propiedad.save(update_fields=["estado", "actualizado_por", "actualizado_en"])
-    _auditar(
-        instancia=propiedad,
-        accion=AccionAuditoria.ACTUALIZAR,
+    return _cambiar_estado(
+        Propiedad,
+        instancia_id=propiedad.pk,
+        estado=estado,
         autor=autor,
         ip=ip,
-        anteriores={"estado": anterior},
-        nuevos={"estado": estado, "motivo": motivo},
+        motivo=motivo,
     )
-    return propiedad
 
 
 # --- Unidades ---------------------------------------------------------------
@@ -341,6 +363,34 @@ def actualizar_unidad(
     ):
         raise UnidadDuplicada(propiedad=unidad.propiedad.codigo, unidad=codigo)
     return _actualizar(unidad, datos=datos, campos=CAMPOS_UNIDAD, autor=autor, ip=ip)
+
+
+@transaction.atomic
+def cambiar_estado_unidad(
+    *,
+    unidad: Unidad,
+    estado: EstadoPropiedad,
+    autor: AbstractBaseUser | None,
+    ip: str | None,
+    motivo: str,
+) -> Unidad:
+    """
+    Punto único de cambio de estado de una unidad (regla 7), con el mismo
+    bloqueo y la misma auditoría que cambiar_estado_propiedad. Lo pidió la spec
+    de ventas: en un edificio se vende o arrienda cada apartamento por
+    separado, no el edificio.
+
+    No toca el estado de la propiedad: si vender el último apartamento debe
+    cambiar el del edificio, lo decide el servicio de ventas que lo llama.
+    """
+    return _cambiar_estado(
+        Unidad,
+        instancia_id=unidad.pk,
+        estado=estado,
+        autor=autor,
+        ip=ip,
+        motivo=motivo,
+    )
 
 
 @transaction.atomic

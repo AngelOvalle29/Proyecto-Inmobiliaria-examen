@@ -4,6 +4,7 @@ from django.urls import path
 
 from .views import (
     CambiarEstadoPropiedadView,
+    CambiarEstadoUnidadView,
     PropiedadDetalleView,
     PropiedadesView,
     TipoPropiedadDetalleView,
@@ -32,4 +33,9 @@ urlpatterns = [
         name="propiedad-unidades",
     ),
     path("unidades/<int:pk>/", UnidadDetalleView.as_view(), name="unidad"),
+    path(
+        "unidades/<int:pk>/cambiar-estado/",
+        CambiarEstadoUnidadView.as_view(),
+        name="unidad-cambiar-estado",
+    ),
 ]

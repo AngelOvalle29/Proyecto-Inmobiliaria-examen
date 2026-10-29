@@ -1,35 +1,45 @@
 """
-Permisos de acceso por rol (spec 004, §6).
+Permisos de acceso por rol, reutilizables por las vistas de todas las apps
+(spec 004, §6 y §10).
 
-Viven en usuarios porque el rol es parte del usuario, y son de la capa HTTP:
-los usan las vistas de todas las apps, nunca los servicios.
+Es capa HTTP: decide si una petición puede entrar a una vista según el rol de
+quien la hace. Qué registros ve cada usuario (la cartera de un agente) no se
+decide aquí, sino en el selector de cada app.
 """
 
 from rest_framework.permissions import SAFE_METHODS, BasePermission
-from rest_framework.request import Request
-from rest_framework.views import APIView
 
 
 class TieneRol(BasePermission):
     """
     Permite cada método HTTP solo a los roles que la vista declara en
-    roles_por_metodo, por ejemplo:
+    roles_por_metodo:
 
-        roles_por_metodo = {"POST": [NombreRol.ADMINISTRADOR, NombreRol.GERENTE]}
+        permission_classes = [TieneRol]
+        roles_por_metodo = {
+            "POST": [NombreRol.ADMINISTRADOR, NombreRol.GERENTE],
+        }
 
-    Un método seguro (GET, HEAD, OPTIONS) que no aparece queda para cualquier
-    usuario autenticado. Un método de escritura (POST, PUT, PATCH, DELETE) que
-    no aparece se rechaza con 403: olvidar declararlo cierra, no abre.
+    Lo que la vista no declara se resuelve así:
+    - Un método seguro (GET, HEAD, OPTIONS) queda para cualquier usuario
+      autenticado: leer no cambia nada.
+    - Un método de escritura (POST, PUT, PATCH, DELETE) se rechaza con 403.
+      Olvidar declararlo deja la escritura cerrada, no abierta: es el mismo
+      criterio del permiso global de la spec 001.
+
+    Un usuario sin autenticar nunca pasa. DRF responde 401 en ese caso, y 403
+    cuando el usuario sí se autenticó pero su rol no alcanza.
     """
 
-    message = "Su rol no tiene permiso para esta operación."
+    message = "Su rol no permite realizar esta operación."
 
-    def has_permission(self, request: Request, view: APIView) -> bool:
-        # Sin sesión, DRF responde 401 (no autenticado) y no 403.
-        if not request.user or not request.user.is_authenticated:
+    def has_permission(self, request, view) -> bool:
+        usuario = request.user
+        if not (usuario and usuario.is_authenticated):
             return False
 
-        roles = getattr(view, "roles_por_metodo", {}).get(request.method)
+        roles_por_metodo = getattr(view, "roles_por_metodo", {})
+        roles = roles_por_metodo.get(request.method)
         if roles is None:
             return request.method in SAFE_METHODS
-        return request.user.rol.nombre in roles
+        return usuario.rol.nombre in roles

@@ -38,6 +38,7 @@ from .services import (
     actualizar_tipo_propiedad,
     actualizar_unidad,
     cambiar_estado_propiedad,
+    cambiar_estado_unidad,
     crear_propiedad,
     crear_tipo_propiedad,
     crear_unidad,
@@ -241,3 +242,33 @@ class UnidadDetalleView(RetrieveUpdateDestroyAPIView):
             autor=self.request.user,
             ip=obtener_ip_cliente(self.request),
         )
+
+
+class CambiarEstadoUnidadView(GenericAPIView):
+    """POST /api/v1/unidades/{id}/cambiar-estado/"""
+
+    serializer_class = CambiarEstadoSerializer
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"POST": ADMINISTRACION_Y_GERENCIA}
+
+    def get_queryset(self):
+        return listar_unidades()
+
+    @extend_schema(
+        request=CambiarEstadoSerializer,
+        responses={200: UnidadSerializer},
+        summary="Cambiar el estado de una unidad",
+    )
+    def post(self, request: Request, pk: int) -> Response:
+        unidad = self.get_object()
+        entrada = CambiarEstadoSerializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+
+        unidad = cambiar_estado_unidad(
+            unidad=unidad,
+            estado=entrada.validated_data["estado"],
+            motivo=entrada.validated_data["motivo"],
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(UnidadSerializer(unidad).data)

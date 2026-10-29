@@ -107,6 +107,10 @@ def test_solo_el_administrador_crea_tipos(rol, esperado):
         lambda c, p, u: c.post(f"{PROPIEDADES}{p.pk}/unidades/", datos_unidad()),
         lambda c, p, u: c.patch(f"/api/v1/unidades/{u.pk}/", {"nivel": 3}),
         lambda c, p, u: c.delete(f"/api/v1/unidades/{u.pk}/"),
+        lambda c, p, u: c.post(
+            f"/api/v1/unidades/{u.pk}/cambiar-estado/",
+            {"estado": "VENDIDA", "motivo": "X"},
+        ),
     ],
 )
 def test_un_agente_no_escribe_en_ningun_endpoint(peticion):
@@ -311,3 +315,27 @@ def test_estado_inicial_de_una_propiedad_es_en_negociacion(gerente):
     respuesta = gerente.post(PROPIEDADES, datos_propiedad(), format="json")
 
     assert respuesta.json()["estado"] == EstadoPropiedad.EN_NEGOCIACION
+
+
+def test_cambiar_estado_de_unidad_por_la_api(gerente):
+    unidad = UnidadFactory()
+
+    respuesta = gerente.post(
+        f"/api/v1/unidades/{unidad.pk}/cambiar-estado/",
+        {"estado": "RESERVADA", "motivo": "Cotización aprobada"},
+        format="json",
+    )
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["estado"] == "RESERVADA"
+
+
+def test_patch_de_unidad_no_cambia_el_estado(gerente):
+    unidad = UnidadFactory()
+
+    respuesta = gerente.patch(
+        f"/api/v1/unidades/{unidad.pk}/", {"estado": "VENDIDA"}, format="json"
+    )
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["estado"] == "EN_NEGOCIACION"

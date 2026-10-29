@@ -141,13 +141,15 @@ Configuración común de la spec 001. Permisos con `TieneRol` de la spec 004
 | GET | `/api/v1/propiedades/{id}/unidades/` | Autenticado |
 | POST | `/api/v1/propiedades/{id}/unidades/` | `ADMINISTRADOR`, `GERENTE` |
 | GET · PATCH · DELETE | `/api/v1/unidades/{id}/` | Lectura autenticado; escritura `ADMINISTRADOR`, `GERENTE` |
+| POST | `/api/v1/unidades/{id}/cambiar-estado/` | `ADMINISTRADOR`, `GERENTE` |
 
 **Filtros de `/propiedades/`:** `?tipo=`, `?ciudad=`, `?pais=`, `?estado=`,
 `?moneda=`, `?precio_min=`, `?precio_max=`, `?es_publica=` y `?buscar=` (código,
 nombre o dirección), en `catalogo/filters.py`, como en la spec 004.
 
 **`PATCH /propiedades/{id}/` no cambia el estado**: para eso está
-`/cambiar-estado/`, que audita la transición con su propia acción.
+`/cambiar-estado/`, que audita la transición con su propia acción. Lo mismo
+vale para `PATCH /unidades/{id}/`.
 
 **Errores nuevos:**
 
@@ -169,6 +171,10 @@ def cambiar_estado_propiedad(*, propiedad: Propiedad, estado: EstadoPropiedad,
     """Punto único de cambio de estado: lo usan las vistas y los servicios de
     ventas, arrendamientos, compras y construcción. Audita estado anterior,
     nuevo y motivo. Si el estado no cambia, no hace nada."""
+def cambiar_estado_unidad(*, unidad: Unidad, estado: EstadoPropiedad,
+                          autor: Usuario | None, ip: str | None, motivo: str) -> Unidad
+    """Igual que cambiar_estado_propiedad, para una unidad. No cambia el
+    estado de su propiedad: eso lo decide el servicio que la llama."""
 def crear_unidad(*, propiedad: Propiedad, datos: dict, autor: Usuario, ip: str | None) -> Unidad
 def actualizar_unidad(...) -> Unidad
 def desactivar_unidad(...) -> None
@@ -184,12 +190,13 @@ def listar_tipos_propiedad() -> QuerySet[TipoPropiedad]
 
 **Para B y C:** las demás apps **solo** usan estos servicios y selectores, nunca
 los modelos de `catalogo` directamente (`docs/arquitectura.md` §3). En
-particular, cambian el estado con `cambiar_estado_propiedad`.
+particular, cambian el estado con `cambiar_estado_propiedad` y
+`cambiar_estado_unidad`.
 
 ## 7. Auditoría
 
 Crear, editar y desactivar los tres modelos: `CREAR`, `ACTUALIZAR` y `ELIMINAR`,
-como en la spec 004. **Cambiar de estado:** `ACTUALIZAR` con
+como en la spec 004. **Cambiar de estado** (propiedad o unidad): `ACTUALIZAR` con
 `{"estado": anterior}` → `{"estado": nuevo, "motivo": ...}`.
 `cargar_demo_catalogo` no audita.
 
@@ -203,6 +210,7 @@ como en la spec 004. **Cambiar de estado:** `ACTUALIZAR` con
 - [x] Dos unidades con el mismo código en la misma propiedad: 409 `UNIDAD_DUPLICADA`
 - [x] Desactivar una propiedad con unidades activas: 409 `PROPIEDAD_CON_UNIDADES`
 - [x] `PATCH` no cambia el estado; `/cambiar-estado/` sí, y lo audita con su motivo
+- [x] Lo mismo para las unidades, con `/unidades/{id}/cambiar-estado/`
 - [x] Los filtros y la búsqueda devuelven solo lo que corresponde, paginado
 - [x] El listado de propiedades no hace una consulta por propiedad (N+1)
 - [x] Toda escritura queda en la bitácora
@@ -272,3 +280,17 @@ o se decidió al implementar:
   define la spec 004, para que CRM lo reutilice.
 - `seed_demo` llama a los comandos de demostración de cada app por nombre y
   omite los que aún no existen (DouGMV/Proyecto-Inmobiliaria#13).
+
+**Sesión 2026-10-29, revisión cruzada con la spec 004 y la de ventas (Claude
+Code, rol A).**
+
+- `TieneRol` se copió tal cual del PR de CRM (DouGMV/Proyecto-Inmobiliaria#35):
+  hacían lo mismo, y con archivos idénticos los dos PR se fusionan sin conflicto.
+- `CiudadResumenSerializer` del catálogo pasó a llamarse
+  `CiudadConPaisSerializer`: CRM tiene uno con el mismo nombre y otros campos, y
+  la documentación de la API no admite dos componentes con el mismo nombre.
+- **Agregado a pedido de la spec de ventas** (DouGMV/Proyecto-Inmobiliaria#37):
+  `cambiar_estado_unidad` y `POST /unidades/{id}/cambiar-estado/`. En un
+  edificio se vende o se arrienda cada apartamento, no el edificio. Por la
+  regla 7, el `PATCH` de una unidad ya no cambia su estado. Los dos servicios
+  comparten los mismos pasos (bloqueo, auditoría, sin cambio no audita).

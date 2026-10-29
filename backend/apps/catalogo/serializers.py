@@ -36,7 +36,7 @@ class TipoPropiedadResumenSerializer(serializers.Serializer):
     nombre = serializers.CharField()
 
 
-class CiudadResumenSerializer(serializers.Serializer):
+class CiudadConPaisSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     nombre = serializers.CharField()
     pais = PaisResumenSerializer()
@@ -47,7 +47,7 @@ class PropiedadSerializer(serializers.ModelSerializer):
     tipo_id = serializers.PrimaryKeyRelatedField(
         source="tipo", queryset=listar_tipos_propiedad(), write_only=True
     )
-    ciudad = CiudadResumenSerializer(read_only=True)
+    ciudad = CiudadConPaisSerializer(read_only=True)
     ciudad_id = serializers.PrimaryKeyRelatedField(
         source="ciudad", queryset=listar_ciudades(), write_only=True
     )
@@ -90,7 +90,7 @@ class PropiedadSerializer(serializers.ModelSerializer):
 
 
 class CambiarEstadoSerializer(serializers.Serializer):
-    """Entrada de /propiedades/{id}/cambiar-estado/."""
+    """Entrada de /propiedades/{id}/cambiar-estado/ y /unidades/{id}/cambiar-estado/."""
 
     estado = serializers.ChoiceField(choices=EstadoPropiedad.choices)
     # Obligatorio: queda en la bitácora y explica por qué cambió a mano.
@@ -125,6 +125,8 @@ class UnidadSerializer(serializers.ModelSerializer):
             "moneda",
             "moneda_id",
         ]
+        # Como en la propiedad, el estado solo cambia por /cambiar-estado/.
+        read_only_fields = ["estado"]
         extra_kwargs = {
             "area_m2": MAYOR_QUE_CERO,
             "precio_lista": MAYOR_QUE_CERO,

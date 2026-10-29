@@ -1,8 +1,13 @@
-"""Pruebas de TieneRol (spec 004, §9)."""
+"""
+Pruebas de TieneRol (spec 004, §9).
+
+Usan una vista de prueba que solo existe aquí, para probar el permiso sin
+depender de los endpoints de ninguna app.
+"""
 
 import pytest
-from django.contrib.auth.models import AnonymousUser
-from rest_framework.test import APIRequestFactory
+from rest_framework.response import Response
+from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.views import APIView
 
 from apps.usuarios.enums import NombreRol
@@ -17,41 +22,90 @@ fabrica = APIRequestFactory()
 
 
 class VistaDePrueba(APIView):
-    """Solo declara POST, como una vista que crea pero no borra."""
+    """Todos leen; solo administrador y gerente crean. DELETE no se declara."""
 
+    permission_classes = [TieneRol]
     roles_por_metodo = {"POST": [NombreRol.ADMINISTRADOR, NombreRol.GERENTE]}
 
+    def get(self, request):
+        return Response({"ok": True})
 
-def _permite(metodo: str, rol: str | None) -> bool:
-    peticion = getattr(fabrica, metodo.lower())("/")
-    if rol is None:
-        peticion.user = AnonymousUser()
-    else:
-        peticion.user = UsuarioFactory(rol=Rol.objects.get(nombre=rol))
-    return TieneRol().has_permission(peticion, VistaDePrueba())
+    def post(self, request):
+        return Response({"ok": True})
+
+    def delete(self, request):
+        return Response({"ok": True})
+
+
+class VistaSinDeclarar(APIView):
+    """No declara roles_por_metodo: solo se puede leer."""
+
+    permission_classes = [TieneRol]
+
+    def get(self, request):
+        return Response({"ok": True})
+
+    def post(self, request):
+        return Response({"ok": True})
+
+
+def usuario_con_rol(nombre: NombreRol):
+    return UsuarioFactory(rol=Rol.objects.get(nombre=nombre))
+
+
+def llamar(vista, metodo: str, usuario=None):
+    peticion = getattr(fabrica, metodo)("/prueba/")
+    if usuario is not None:
+        force_authenticate(peticion, user=usuario)
+    return vista.as_view()(peticion)
+
+
+@pytest.mark.parametrize("rol", [NombreRol.ADMINISTRADOR, NombreRol.GERENTE])
+def test_permite_la_escritura_a_los_roles_declarados(rol):
+    respuesta = llamar(VistaDePrueba, "post", usuario_con_rol(rol))
+
+    assert respuesta.status_code == 200
 
 
 @pytest.mark.parametrize(
-    ("rol", "esperado"),
-    [
-        (NombreRol.ADMINISTRADOR, True),
-        (NombreRol.GERENTE, True),
-        (NombreRol.AGENTE, False),
-        (NombreRol.CONTABILIDAD, False),
-        (NombreRol.CONSULTA, False),
-    ],
+    "rol", [NombreRol.AGENTE, NombreRol.CONTABILIDAD, NombreRol.CONSULTA]
 )
-def test_metodo_declarado_solo_para_sus_roles(rol, esperado):
-    assert _permite("POST", rol) is esperado
+def test_rechaza_la_escritura_a_los_roles_no_declarados(rol):
+    respuesta = llamar(VistaDePrueba, "post", usuario_con_rol(rol))
+
+    assert respuesta.status_code == 403
+    assert respuesta.data["error"]["codigo"] == "SIN_PERMISO"
 
 
-def test_get_no_declarado_queda_para_cualquier_autenticado():
-    assert _permite("GET", NombreRol.CONSULTA)
+def test_un_get_no_declarado_queda_para_cualquier_autenticado():
+    """CONSULTA es el rol con menos privilegios: si él puede leer, todos pueden."""
+    respuesta = llamar(VistaDePrueba, "get", usuario_con_rol(NombreRol.CONSULTA))
+
+    assert respuesta.status_code == 200
 
 
-def test_escritura_no_declarada_se_rechaza_aunque_sea_administrador():
-    assert not _permite("DELETE", NombreRol.ADMINISTRADOR)
+def test_una_escritura_no_declarada_se_rechaza_aunque_sea_administrador():
+    """
+    La vista solo declara POST. Olvidar DELETE lo deja cerrado para todos,
+    incluido el administrador: cerrado por defecto, no abierto.
+    """
+    respuesta = llamar(
+        VistaDePrueba, "delete", usuario_con_rol(NombreRol.ADMINISTRADOR)
+    )
+
+    assert respuesta.status_code == 403
 
 
-def test_sin_sesion_se_rechaza():
-    assert not _permite("GET", None)
+def test_una_vista_sin_roles_declarados_solo_permite_leer():
+    administrador = usuario_con_rol(NombreRol.ADMINISTRADOR)
+
+    assert llamar(VistaSinDeclarar, "get", administrador).status_code == 200
+    assert llamar(VistaSinDeclarar, "post", administrador).status_code == 403
+
+
+def test_sin_autenticar_responde_401_y_no_403():
+    """401 dice "identifíquese"; 403 diría "ya sé quién es y no puede"."""
+    respuesta = llamar(VistaDePrueba, "get")
+
+    assert respuesta.status_code == 401
+    assert respuesta.data["error"]["codigo"] == "NO_AUTENTICADO"

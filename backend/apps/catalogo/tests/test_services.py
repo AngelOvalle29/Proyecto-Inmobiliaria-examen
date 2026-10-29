@@ -17,6 +17,7 @@ from apps.catalogo.services import (
     actualizar_propiedad,
     actualizar_unidad,
     cambiar_estado_propiedad,
+    cambiar_estado_unidad,
     crear_propiedad,
     crear_unidad,
     desactivar_propiedad,
@@ -249,3 +250,53 @@ def test_actualizar_unidad_con_su_mismo_codigo_no_se_rechaza():
 
     unidad.refresh_from_db()
     assert unidad.nivel == 2
+
+
+def test_cambiar_estado_de_unidad_audita_y_no_toca_la_propiedad():
+    unidad = UnidadFactory()
+
+    cambiar_estado_unidad(
+        unidad=unidad,
+        estado=EstadoPropiedad.VENDIDA,
+        autor=UsuarioFactory(),
+        ip=IP,
+        motivo="Contrato firmado",
+    )
+
+    unidad.refresh_from_db()
+    unidad.propiedad.refresh_from_db()
+    assert unidad.estado == EstadoPropiedad.VENDIDA
+    assert unidad.propiedad.estado == EstadoPropiedad.EN_NEGOCIACION
+    registro = _ultimo_registro()
+    assert registro.entidad == "catalogo_unidad"
+    assert registro.valores_anteriores == {"estado": "EN_NEGOCIACION"}
+    assert registro.valores_nuevos == {
+        "estado": "VENDIDA",
+        "motivo": "Contrato firmado",
+    }
+
+
+def test_cambiar_estado_de_unidad_al_mismo_estado_no_audita():
+    cambiar_estado_unidad(
+        unidad=UnidadFactory(),
+        estado=EstadoPropiedad.EN_NEGOCIACION,
+        autor=None,
+        ip=None,
+        motivo="Sin cambio",
+    )
+
+    assert not LogAuditoria.objects.exists()
+
+
+def test_actualizar_unidad_no_cambia_el_estado():
+    unidad = UnidadFactory()
+
+    actualizar_unidad(
+        unidad=unidad,
+        datos={"estado": EstadoPropiedad.VENDIDA},
+        autor=UsuarioFactory(),
+        ip=IP,
+    )
+
+    unidad.refresh_from_db()
+    assert unidad.estado == EstadoPropiedad.EN_NEGOCIACION
