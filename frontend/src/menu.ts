@@ -23,13 +23,17 @@ export interface EntradaMenu {
   roles?: Rol[]
 }
 
+// Quiénes escriben en el catálogo (regla 8 de la spec 003). Lo usan el menú y
+// las rutas de App.tsx, para no repetir la lista.
+export const ESCRIBEN_CATALOGO: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
+
 export const MENU: EntradaMenu[] = [
   { ruta: '/', etiqueta: 'Inicio' },
   { ruta: '/catalogo/propiedades', etiqueta: 'Propiedades' },
   {
     ruta: '/catalogo/propiedades/nueva',
     etiqueta: 'Nueva propiedad',
-    roles: [ROLES.ADMINISTRADOR, ROLES.GERENTE],
+    roles: ESCRIBEN_CATALOGO,
   },
 ]
 
