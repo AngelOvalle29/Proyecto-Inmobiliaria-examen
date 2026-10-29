@@ -16,25 +16,38 @@ from apps.core.http import obtener_ip_cliente
 from apps.usuarios.enums import NombreRol
 from apps.usuarios.permissions import TieneRol
 
-from .filters import AgenteFilter, ClienteFilter
-from .models import Cliente
-from .selectors import listar_agentes, listar_clientes_visibles, obtener_agente
+from .filters import AgenteFilter, ClienteFilter, CotizacionFilter
+from .models import Cliente, Cotizacion
+from .selectors import (
+    listar_agentes,
+    listar_clientes_visibles,
+    listar_cotizaciones_visibles,
+    obtener_agente,
+)
 from .serializers import (
     AgenteCrearSerializer,
     AgenteEditarSerializer,
     AgenteSerializer,
     ClienteEntradaSerializer,
     ClienteSerializer,
+    CotizacionCrearSerializer,
+    CotizacionEditarSerializer,
+    CotizacionSerializer,
     ReasignarClienteSerializer,
 )
 from .services import (
     actualizar_agente,
     actualizar_cliente,
+    actualizar_cotizacion,
+    aprobar_cotizacion,
     crear_agente,
     crear_cliente,
+    crear_cotizacion,
     desactivar_agente,
     desactivar_cliente,
+    enviar_cotizacion,
     reasignar_cliente,
+    rechazar_cotizacion,
 )
 
 # Regla 11: solo ellos administran agentes y reasignan clientes.
@@ -230,3 +243,122 @@ class ReasignarClienteView(GenericAPIView):
             ip=obtener_ip_cliente(request),
         )
         return Response(ClienteSerializer(cliente).data)
+
+
+# ---------- Cotizaciones (spec 007) ----------
+
+
+def _cotizaciones_visibles(vista):
+    """Igual que _clientes_visibles: cartera, y consulta vacía para el esquema."""
+    if getattr(vista, "swagger_fake_view", False):
+        return Cotizacion.objects.none()
+    return listar_cotizaciones_visibles(usuario=vista.request.user)
+
+
+class CotizacionesView(ListAPIView):
+    """GET y POST /api/v1/cotizaciones/"""
+
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"POST": ESCRIBEN_CLIENTES}
+    serializer_class = CotizacionSerializer
+    filterset_class = CotizacionFilter
+
+    def get_queryset(self):
+        return _cotizaciones_visibles(self)
+
+    @extend_schema(
+        request=CotizacionCrearSerializer,
+        responses={201: CotizacionSerializer},
+        summary="Emitir una cotización en borrador",
+    )
+    def post(self, request: Request) -> Response:
+        entrada = CotizacionCrearSerializer(
+            data=request.data, context={"usuario": request.user}
+        )
+        entrada.is_valid(raise_exception=True)
+        cotizacion = crear_cotizacion(
+            datos=entrada.validated_data,
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(
+            CotizacionSerializer(cotizacion).data, status=status.HTTP_201_CREATED
+        )
+
+
+class CotizacionDetalleView(RetrieveAPIView):
+    """GET y PATCH /api/v1/cotizaciones/{id}/ (PATCH solo en borrador)."""
+
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"PATCH": ESCRIBEN_CLIENTES}
+    serializer_class = CotizacionSerializer
+
+    def get_queryset(self):
+        return _cotizaciones_visibles(self)
+
+    @extend_schema(
+        request=CotizacionEditarSerializer,
+        responses={200: CotizacionSerializer},
+        summary="Editar una cotización en borrador",
+    )
+    def patch(self, request: Request, pk: int) -> Response:
+        cotizacion = self.get_object()
+        entrada = CotizacionEditarSerializer(
+            data=request.data, partial=True, context={"cotizacion": cotizacion}
+        )
+        entrada.is_valid(raise_exception=True)
+        cotizacion = actualizar_cotizacion(
+            cotizacion=cotizacion,
+            datos=entrada.validated_data,
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(CotizacionSerializer(cotizacion).data)
+
+
+class AccionCotizacionView(GenericAPIView):
+    """
+    Base de /enviar/, /aprobar/ y /rechazar/: las tres reciben solo el id,
+    buscan la cotización dentro de la cartera y llaman a su servicio. Cada
+    subclase dice cuál con el método ejecutar.
+    """
+
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"POST": ESCRIBEN_CLIENTES}
+    serializer_class = CotizacionSerializer
+
+    def get_queryset(self):
+        return _cotizaciones_visibles(self)
+
+    def ejecutar(self, **kwargs) -> Cotizacion:
+        raise NotImplementedError
+
+    @extend_schema(request=None, responses={200: CotizacionSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        cotizacion = self.ejecutar(
+            cotizacion=self.get_object(),
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(CotizacionSerializer(cotizacion).data)
+
+
+class EnviarCotizacionView(AccionCotizacionView):
+    """POST /api/v1/cotizaciones/{id}/enviar/"""
+
+    def ejecutar(self, **kwargs) -> Cotizacion:
+        return enviar_cotizacion(**kwargs)
+
+
+class AprobarCotizacionView(AccionCotizacionView):
+    """POST /api/v1/cotizaciones/{id}/aprobar/ (reserva el bien, regla 6)."""
+
+    def ejecutar(self, **kwargs) -> Cotizacion:
+        return aprobar_cotizacion(**kwargs)
+
+
+class RechazarCotizacionView(AccionCotizacionView):
+    """POST /api/v1/cotizaciones/{id}/rechazar/ (libera el bien si estaba aprobada)."""
+
+    def ejecutar(self, **kwargs) -> Cotizacion:
+        return rechazar_cotizacion(**kwargs)

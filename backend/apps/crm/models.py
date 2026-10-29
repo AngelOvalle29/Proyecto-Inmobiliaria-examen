@@ -5,11 +5,12 @@ No llaman a servicios ni envían correos.
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
+from django.utils import timezone
 
 from apps.core.models import ModeloBase
 
-from .enums import TipoCliente
+from .enums import EstadoCotizacion, TipoCliente
 
 
 class Agente(ModeloBase):
@@ -136,3 +137,98 @@ class Cliente(ModeloBase):
         if self.tipo == TipoCliente.EMPRESA:
             return self.razon_social
         return f"{self.nombre} {self.apellidos}"
+
+
+class Cotizacion(ModeloBase):
+    """
+    Propuesta de precio a un cliente por una propiedad o una unidad (spec 007,
+    reglas 1 a 6). El detalle va en la propia cotización: no hay
+    CotizacionDetalle (plan de una semana, #28).
+    """
+
+    codigo = models.CharField(max_length=10, unique=True, null=True, blank=True)
+    cliente = models.ForeignKey(
+        Cliente, on_delete=models.PROTECT, related_name="cotizaciones"
+    )
+    # Regla 3: es el agente asignado al cliente al crear la cotización. Se
+    # guarda para que una reasignación posterior no cambie quién la emitió.
+    agente = models.ForeignKey(
+        Agente, on_delete=models.PROTECT, related_name="cotizaciones"
+    )
+    # Regla 1: exactamente una de las dos (constraint abajo).
+    propiedad = models.ForeignKey(
+        "catalogo.Propiedad",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="cotizaciones",
+    )
+    unidad = models.ForeignKey(
+        "catalogo.Unidad",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="cotizaciones",
+    )
+    fecha_emision = models.DateField()
+    fecha_vencimiento = models.DateField()
+    estado = models.CharField(
+        max_length=10,
+        choices=EstadoCotizacion.choices,
+        default=EstadoCotizacion.BORRADOR,
+    )
+    # Regla 2: el total lo calcula el servicio; los constraints garantizan que
+    # cuadre aunque el dato entre por otro lado.
+    precio = models.DecimalField(max_digits=18, decimal_places=2)
+    descuento = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=18, decimal_places=2)
+    moneda = models.ForeignKey(
+        "core.Moneda", on_delete=models.PROTECT, related_name="cotizaciones"
+    )
+    observaciones = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-fecha_emision", "-id"]
+        verbose_name = "cotización"
+        verbose_name_plural = "cotizaciones"
+        indexes = [models.Index(fields=["estado"], name="crm_cotizacion_estado_idx")]
+        constraints = [
+            models.CheckConstraint(
+                condition=(Q(propiedad__isnull=False) & Q(unidad__isnull=True))
+                | (Q(propiedad__isnull=True) & Q(unidad__isnull=False)),
+                name="crm_cotizacion_propiedad_o_unidad",
+            ),
+            models.CheckConstraint(
+                condition=Q(precio__gt=0), name="crm_cotizacion_precio_positivo"
+            ),
+            models.CheckConstraint(
+                condition=Q(descuento__gte=0) & Q(descuento__lte=F("precio")),
+                name="crm_cotizacion_descuento_en_rango",
+            ),
+            models.CheckConstraint(
+                condition=Q(total=F("precio") - F("descuento")),
+                name="crm_cotizacion_total_cuadra",
+            ),
+            models.CheckConstraint(
+                condition=Q(fecha_vencimiento__gte=F("fecha_emision")),
+                name="crm_cotizacion_vence_despues_de_emitirse",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.codigo} {self.cliente.nombre_mostrado}"
+
+    @property
+    def bien(self):
+        """La propiedad o la unidad cotizada, la que no sea nula."""
+        return self.propiedad or self.unidad
+
+    def esta_vencida(self, hoy=None) -> bool:
+        """
+        Regla 4: una cotización todavía sin decidir (borrador o enviada) está
+        vencida si su fecha de vencimiento ya pasó. No se guarda: se calcula,
+        como la mora (regla 17), así nunca queda desactualizada.
+        """
+        hoy = hoy or timezone.localdate()
+        abierta = self.estado in (EstadoCotizacion.BORRADOR, EstadoCotizacion.ENVIADA)
+        return abierta and self.fecha_vencimiento < hoy

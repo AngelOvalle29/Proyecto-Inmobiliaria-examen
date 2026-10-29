@@ -10,9 +10,13 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.forms.models import model_to_dict
+from django.utils import timezone
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
+from apps.catalogo.enums import EstadoPropiedad
+from apps.catalogo.exceptions import PropiedadNoDisponible
+from apps.catalogo.services import cambiar_estado_propiedad, cambiar_estado_unidad
 from apps.core.exceptions import CiudadFueraDelPais
 from apps.core.normalizacion import normalizar_documento
 from apps.core.selectors import listar_ciudades, listar_paises
@@ -21,18 +25,25 @@ from apps.usuarios.models import Usuario
 from apps.usuarios.services import asegurar_usuario_demo
 
 from . import datos_demo
-from .enums import TipoCliente
+from .enums import EstadoCotizacion, TipoCliente
 from .exceptions import (
     AgenteConClientes,
     AgenteInactivo,
     ClienteDuplicado,
+    CotizacionNoEditable,
+    CotizacionVencida,
+    CotizacionYaContratada,
+    DescuentoFueraDeRango,
+    SeVendePorUnidades,
     SinPerfilDeAgente,
+    TransicionInvalida,
     UsuarioNoEsAgente,
     UsuarioYaEsAgente,
 )
-from .models import Agente, Cliente
+from .models import Agente, Cliente, Cotizacion
 from .selectors import (
     contar_clientes_activos,
+    cotizacion_tiene_contrato,
     existe_cliente_con_documento,
     obtener_agente_de_usuario,
 )
@@ -431,3 +442,259 @@ def cargar_demo_crm(*, password_agentes: str | None) -> dict[str, int]:
         creados["clientes"] += 1
 
     return creados
+
+
+# ---------- Cotizaciones (spec 007) ----------
+
+CAMPOS_COTIZACION_EDITABLES = [
+    "precio",
+    "descuento",
+    "fecha_vencimiento",
+    "observaciones",
+]
+CAMPOS_COTIZACION_AUDITADOS = [
+    "codigo",
+    "cliente",
+    "agente",
+    "propiedad",
+    "unidad",
+    "fecha_emision",
+    "estado",
+    "total",
+    "moneda",
+    *CAMPOS_COTIZACION_EDITABLES,
+]
+
+
+@transaction.atomic
+def crear_cotizacion(*, datos: dict, autor: Usuario, ip: str | None) -> Cotizacion:
+    """
+    Emite una cotización en borrador (spec 007, reglas 1 a 5).
+
+    - Es por una propiedad o una unidad, y un edificio no se cotiza completo
+      (regla 1): se cotizan sus unidades.
+    - El precio inicial y la moneda son los de lista del bien (regla 2).
+    - El agente es el asignado al cliente (regla 3).
+    - Solo se cotiza un bien DISPONIBLE (regla 5). No se reserva todavía:
+      eso pasa al aprobar.
+
+    datos ya viene validado: el cliente es visible para el autor (cartera) y
+    trae exactamente uno de propiedad o unidad.
+    """
+    bien = datos.get("propiedad") or datos.get("unidad")
+    _validar_bien_cotizable(bien, es_propiedad=datos.get("propiedad") is not None)
+
+    precio = bien.precio_lista
+    descuento = datos.get("descuento", Decimal("0"))
+    _validar_descuento(precio=precio, descuento=descuento)
+
+    cotizacion = Cotizacion.objects.create(
+        cliente=datos["cliente"],
+        agente=datos["cliente"].agente_asignado,
+        propiedad=datos.get("propiedad"),
+        unidad=datos.get("unidad"),
+        fecha_emision=timezone.localdate(),
+        fecha_vencimiento=datos["fecha_vencimiento"],
+        precio=precio,
+        descuento=descuento,
+        total=precio - descuento,
+        moneda=bien.moneda,
+        observaciones=datos.get("observaciones", ""),
+        creado_por=autor,
+        actualizado_por=autor,
+    )
+    cotizacion.codigo = f"COT-{cotizacion.pk:05d}"
+    cotizacion.save(update_fields=["codigo"])
+
+    registrar_auditoria(
+        usuario=autor,
+        entidad=Cotizacion._meta.db_table,
+        entidad_id=cotizacion.pk,
+        accion=AccionAuditoria.CREAR,
+        valores_nuevos=_foto(cotizacion, CAMPOS_COTIZACION_AUDITADOS),
+        ip=ip,
+    )
+    return cotizacion
+
+
+@transaction.atomic
+def actualizar_cotizacion(
+    *, cotizacion: Cotizacion, datos: dict, autor: Usuario, ip: str | None
+) -> Cotizacion:
+    """
+    Edita precio, descuento, vencimiento u observaciones de un borrador
+    (regla 4). El total se recalcula siempre: nunca se edita directamente
+    (regla 2).
+    """
+    if cotizacion.estado != EstadoCotizacion.BORRADOR:
+        raise CotizacionNoEditable(
+            cotizacion=cotizacion.codigo, estado=cotizacion.estado
+        )
+
+    precio = datos.get("precio", cotizacion.precio)
+    descuento = datos.get("descuento", cotizacion.descuento)
+    _validar_descuento(precio=precio, descuento=descuento)
+
+    datos = {c: v for c, v in datos.items() if c in CAMPOS_COTIZACION_EDITABLES}
+    datos["total"] = precio - descuento
+    return _actualizar(
+        instancia=cotizacion,
+        datos=datos,
+        editables=[*CAMPOS_COTIZACION_EDITABLES, "total"],
+        autor=autor,
+        ip=ip,
+    )
+
+
+@transaction.atomic
+def enviar_cotizacion(
+    *, cotizacion: Cotizacion, autor: Usuario, ip: str | None
+) -> Cotizacion:
+    """Regla 4: un borrador vigente pasa a ENVIADA."""
+    _exigir_estado(cotizacion, EstadoCotizacion.BORRADOR, accion="enviar")
+    _exigir_no_vencida(cotizacion)
+    return _cambiar_estado_cotizacion(
+        cotizacion,
+        EstadoCotizacion.ENVIADA,
+        accion=AccionAuditoria.ACTUALIZAR,
+        autor=autor,
+        ip=ip,
+    )
+
+
+@transaction.atomic
+def aprobar_cotizacion(
+    *, cotizacion: Cotizacion, autor: Usuario, ip: str | None
+) -> Cotizacion:
+    """
+    Regla 6: el cliente aceptó. La cotización enviada y vigente pasa a
+    APROBADA y su propiedad o unidad, de DISPONIBLE a RESERVADA.
+
+    El catálogo comprueba que el bien siga DISPONIBLE bajo el bloqueo de su
+    fila (estado_requerido), así dos aprobaciones simultáneas sobre el mismo
+    bien no pasan las dos: la segunda recibe PROPIEDAD_NO_DISPONIBLE (regla 5).
+    """
+    _exigir_estado(cotizacion, EstadoCotizacion.ENVIADA, accion="aprobar")
+    _exigir_no_vencida(cotizacion)
+    _cambiar_estado_bien(
+        cotizacion,
+        estado=EstadoPropiedad.RESERVADA,
+        requerido=EstadoPropiedad.DISPONIBLE,
+        motivo=f"Cotización {cotizacion.codigo} aprobada",
+        autor=autor,
+        ip=ip,
+    )
+    return _cambiar_estado_cotizacion(
+        cotizacion,
+        EstadoCotizacion.APROBADA,
+        accion=AccionAuditoria.APROBAR,
+        autor=autor,
+        ip=ip,
+    )
+
+
+@transaction.atomic
+def rechazar_cotizacion(
+    *, cotizacion: Cotizacion, autor: Usuario, ip: str | None
+) -> Cotizacion:
+    """
+    El cliente no aceptó, o desistió después de aprobar (regla 6).
+
+    - Desde ENVIADA: solo cambia la cotización.
+    - Desde APROBADA: además libera el bien, de RESERVADA a DISPONIBLE. Pero si
+      ya tiene contrato, no se rechaza: su bien está VENDIDO y rechazarla lo
+      volvería a ofrecer.
+    """
+    if cotizacion.estado == EstadoCotizacion.APROBADA:
+        if cotizacion_tiene_contrato(cotizacion=cotizacion):
+            raise CotizacionYaContratada(cotizacion=cotizacion.codigo)
+        _cambiar_estado_bien(
+            cotizacion,
+            estado=EstadoPropiedad.DISPONIBLE,
+            requerido=EstadoPropiedad.RESERVADA,
+            motivo=f"Cotización {cotizacion.codigo} rechazada",
+            autor=autor,
+            ip=ip,
+        )
+    else:
+        _exigir_estado(cotizacion, EstadoCotizacion.ENVIADA, accion="rechazar")
+    return _cambiar_estado_cotizacion(
+        cotizacion,
+        EstadoCotizacion.RECHAZADA,
+        accion=AccionAuditoria.ACTUALIZAR,
+        autor=autor,
+        ip=ip,
+    )
+
+
+def _validar_bien_cotizable(bien, *, es_propiedad: bool) -> None:
+    """Reglas 1 y 5: ni un edificio completo ni un bien que no esté disponible."""
+    if es_propiedad and bien.tipo.requiere_unidades:
+        raise SeVendePorUnidades(propiedad=bien.codigo)
+    if bien.estado != EstadoPropiedad.DISPONIBLE:
+        raise PropiedadNoDisponible(
+            codigo=str(bien.codigo),
+            estado_actual=bien.estado,
+            estado_requerido=EstadoPropiedad.DISPONIBLE,
+        )
+
+
+def _validar_descuento(*, precio: Decimal, descuento: Decimal) -> None:
+    """Regla 2: el descuento va de 0 al precio."""
+    if not (0 <= descuento <= precio):
+        raise DescuentoFueraDeRango()
+
+
+def _exigir_estado(cotizacion: Cotizacion, estado: str, *, accion: str) -> None:
+    if cotizacion.estado != estado:
+        raise TransicionInvalida(
+            cotizacion=cotizacion.codigo, estado=cotizacion.estado, accion=accion
+        )
+
+
+def _exigir_no_vencida(cotizacion: Cotizacion) -> None:
+    if cotizacion.esta_vencida():
+        raise CotizacionVencida(
+            cotizacion=cotizacion.codigo,
+            fecha_vencimiento=cotizacion.fecha_vencimiento,
+        )
+
+
+def _cambiar_estado_bien(cotizacion, *, estado, requerido, motivo, autor, ip) -> None:
+    """Cambia el estado de la propiedad o la unidad con el servicio del catálogo."""
+    if cotizacion.propiedad_id:
+        cambiar_estado_propiedad(
+            propiedad=cotizacion.propiedad,
+            estado=estado,
+            autor=autor,
+            ip=ip,
+            motivo=motivo,
+            estado_requerido=requerido,
+        )
+    else:
+        cambiar_estado_unidad(
+            unidad=cotizacion.unidad,
+            estado=estado,
+            autor=autor,
+            ip=ip,
+            motivo=motivo,
+            estado_requerido=requerido,
+        )
+
+
+def _cambiar_estado_cotizacion(cotizacion, estado, *, accion, autor, ip):
+    """Cambia el estado de la cotización y audita el anterior y el nuevo."""
+    anterior = cotizacion.estado
+    cotizacion.estado = estado
+    cotizacion.actualizado_por = autor
+    cotizacion.save(update_fields=["estado", "actualizado_por", "actualizado_en"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=Cotizacion._meta.db_table,
+        entidad_id=cotizacion.pk,
+        accion=accion,
+        valores_anteriores={"estado": anterior},
+        valores_nuevos={"estado": estado},
+        ip=ip,
+    )
+    return cotizacion

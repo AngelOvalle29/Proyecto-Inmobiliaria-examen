@@ -5,16 +5,21 @@ validan que ese id exista con una consulta que viene de un selector, nunca
 escrita aquí.
 """
 
+from decimal import Decimal
+
+from django.utils import timezone
 from rest_framework import serializers
 
+from apps.catalogo.selectors import listar_propiedades, listar_unidades
+from apps.catalogo.serializers import PropiedadResumenSerializer
 from apps.core.normalizacion import normalizar_documento
 from apps.core.selectors import listar_ciudades, listar_paises
-from apps.core.serializers import PaisResumenSerializer
+from apps.core.serializers import MonedaResumenSerializer, PaisResumenSerializer
 from apps.usuarios.selectors import listar_usuarios_activos
 
 from .enums import TipoCliente
-from .models import Agente, Cliente
-from .selectors import consultar_agentes_asignables
+from .models import Agente, Cliente, Cotizacion
+from .selectors import consultar_agentes_asignables, listar_clientes_visibles
 
 # Regla 6: qué datos exige cada tipo de cliente.
 OBLIGATORIOS_POR_TIPO = {
@@ -193,3 +198,108 @@ class ClienteEntradaSerializer(serializers.Serializer):
 
 class ReasignarClienteSerializer(serializers.Serializer):
     agente = serializers.PrimaryKeyRelatedField(queryset=consultar_agentes_asignables())
+
+
+# ---------- Cotizaciones (spec 007) ----------
+
+
+class ClienteResumenSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    codigo = serializers.CharField()
+    nombre = serializers.CharField(source="nombre_mostrado")
+
+
+class UnidadResumenSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    codigo = serializers.CharField()
+    propiedad = PropiedadResumenSerializer()
+
+
+class CotizacionSerializer(serializers.ModelSerializer):
+    """Salida de una cotización. vencida se calcula (regla 4)."""
+
+    cliente = ClienteResumenSerializer()
+    agente = AgenteResumenSerializer()
+    propiedad = PropiedadResumenSerializer(allow_null=True)
+    unidad = UnidadResumenSerializer(allow_null=True)
+    moneda = MonedaResumenSerializer()
+    # DRF llama a Cotizacion.esta_vencida() sin argumentos: usa la fecha de hoy.
+    vencida = serializers.BooleanField(source="esta_vencida", read_only=True)
+
+    class Meta:
+        model = Cotizacion
+        fields = [
+            "id",
+            "codigo",
+            "cliente",
+            "agente",
+            "propiedad",
+            "unidad",
+            "fecha_emision",
+            "fecha_vencimiento",
+            "estado",
+            "precio",
+            "descuento",
+            "total",
+            "moneda",
+            "observaciones",
+            "vencida",
+        ]
+
+
+class CotizacionCrearSerializer(serializers.Serializer):
+    """
+    Entrada para emitir una cotización. El cliente solo se puede elegir entre
+    los visibles para quien cotiza: un agente no cotiza a clientes de otro
+    (regla 19), y un cliente ajeno responde "no existe", como en la spec 004.
+    """
+
+    cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.none())
+    propiedad = serializers.PrimaryKeyRelatedField(
+        queryset=listar_propiedades(), required=False
+    )
+    unidad = serializers.PrimaryKeyRelatedField(
+        queryset=listar_unidades(), required=False
+    )
+    fecha_vencimiento = serializers.DateField()
+    descuento = serializers.DecimalField(
+        max_digits=18, decimal_places=2, min_value=0, required=False
+    )
+    observaciones = serializers.CharField(required=False, allow_blank=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        usuario = self.context.get("usuario")
+        if usuario is not None:
+            self.fields["cliente"].queryset = listar_clientes_visibles(usuario=usuario)
+
+    def validate(self, datos: dict) -> dict:
+        errores = {}
+        if ("propiedad" in datos) == ("unidad" in datos):
+            errores["propiedad"] = ["Indique una propiedad o una unidad, no ambas."]
+        if datos["fecha_vencimiento"] < timezone.localdate():
+            errores["fecha_vencimiento"] = ["No puede ser anterior a hoy."]
+        if errores:
+            raise serializers.ValidationError(errores)
+        return datos
+
+
+class CotizacionEditarSerializer(serializers.Serializer):
+    """Entrada para editar un borrador (regla 4). Nunca el total (regla 2)."""
+
+    precio = serializers.DecimalField(
+        max_digits=18, decimal_places=2, min_value=Decimal("0.01"), required=False
+    )
+    descuento = serializers.DecimalField(
+        max_digits=18, decimal_places=2, min_value=0, required=False
+    )
+    fecha_vencimiento = serializers.DateField(required=False)
+    observaciones = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_fecha_vencimiento(self, valor):
+        emision = self.context["cotizacion"].fecha_emision
+        if valor < emision:
+            raise serializers.ValidationError(
+                "No puede ser anterior a la fecha de emisión."
+            )
+        return valor
