@@ -44,3 +44,26 @@ class PropiedadConUnidades(ErrorDominio):
             "desactívelas primero.",
             detalles={"propiedad": propiedad, "unidades_activas": unidades_activas},
         )
+
+
+class PropiedadNoDisponible(ErrorDominio):
+    """
+    La propiedad o unidad no está en el estado que la operación exige, por
+    ejemplo aprobar una cotización sobre una propiedad ya reservada (spec 007,
+    regla 5). Lo lanza cambiar_estado_* cuando recibe estado_requerido.
+    """
+
+    codigo = "PROPIEDAD_NO_DISPONIBLE"
+    estado_http = 409
+
+    def __init__(
+        self, *, codigo: str, estado_actual: str, estado_requerido: str
+    ) -> None:
+        super().__init__(
+            f"{codigo} está {estado_actual} y la operación exige {estado_requerido}.",
+            detalles={
+                "propiedad": codigo,
+                "estado_actual": estado_actual,
+                "estado_requerido": estado_requerido,
+            },
+        )

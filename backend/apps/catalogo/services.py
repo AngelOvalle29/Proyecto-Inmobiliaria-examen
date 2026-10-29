@@ -14,7 +14,12 @@ from apps.core.selectors import listar_ciudades, listar_monedas
 
 from . import datos_demo
 from .enums import EstadoPropiedad
-from .exceptions import PropiedadConUnidades, TipoSinUnidades, UnidadDuplicada
+from .exceptions import (
+    PropiedadConUnidades,
+    PropiedadNoDisponible,
+    TipoSinUnidades,
+    UnidadDuplicada,
+)
 from .models import Propiedad, TipoPropiedad, Unidad
 from .selectors import (
     contar_unidades_activas,
@@ -271,6 +276,7 @@ def _cambiar_estado(
     autor: AbstractBaseUser | None,
     ip: str | None,
     motivo: str,
+    estado_requerido: EstadoPropiedad | None = None,
 ) -> models.Model:
     """
     Pasos comunes de cambiar_estado_propiedad y cambiar_estado_unidad.
@@ -281,9 +287,20 @@ def _cambiar_estado(
 
     Audita ACTUALIZAR con el estado anterior, el nuevo y el motivo. Si el
     estado no cambia, no escribe ni audita.
+
+    Con estado_requerido, el estado actual se comprueba después de bloquear la
+    fila: comprobar y cambiar quedan en el mismo paso. Si se comprobara antes
+    del bloqueo, dos aprobaciones simultáneas de cotizaciones sobre la misma
+    propiedad podrían pasar las dos (spec 007, regla 5).
     """
     instancia = modelo.objects.select_for_update().get(pk=instancia_id)
     anterior = instancia.estado
+    if estado_requerido is not None and anterior != estado_requerido:
+        raise PropiedadNoDisponible(
+            codigo=str(instancia.codigo),
+            estado_actual=anterior,
+            estado_requerido=estado_requerido,
+        )
     if anterior == estado:
         return instancia
 
@@ -309,6 +326,7 @@ def cambiar_estado_propiedad(
     autor: AbstractBaseUser | None,
     ip: str | None,
     motivo: str,
+    estado_requerido: EstadoPropiedad | None = None,
 ) -> Propiedad:
     """
     Punto único de cambio de estado de una propiedad (regla 7). Lo usan la
@@ -322,6 +340,7 @@ def cambiar_estado_propiedad(
         autor=autor,
         ip=ip,
         motivo=motivo,
+        estado_requerido=estado_requerido,
     )
 
 
@@ -373,6 +392,7 @@ def cambiar_estado_unidad(
     autor: AbstractBaseUser | None,
     ip: str | None,
     motivo: str,
+    estado_requerido: EstadoPropiedad | None = None,
 ) -> Unidad:
     """
     Punto único de cambio de estado de una unidad (regla 7), con el mismo
@@ -390,6 +410,7 @@ def cambiar_estado_unidad(
         autor=autor,
         ip=ip,
         motivo=motivo,
+        estado_requerido=estado_requerido,
     )
 
 

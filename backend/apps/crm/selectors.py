@@ -9,7 +9,7 @@ from apps.usuarios.enums import NombreRol
 from apps.usuarios.models import Usuario
 
 from .enums import TipoCliente
-from .models import Agente, Cliente
+from .models import Agente, Cliente, Cotizacion
 
 # ---------- Agentes ----------
 
@@ -110,3 +110,54 @@ def consultar_agentes_asignables() -> QuerySet[Agente]:
     existe" que confundiría.
     """
     return Agente.objects.select_related("usuario")
+
+
+# ---------- Cotizaciones (spec 007) ----------
+
+
+def listar_cotizaciones_visibles(*, usuario: Usuario) -> QuerySet[Cotizacion]:
+    """
+    Cotizaciones activas que el usuario puede ver (regla 22 de la spec 007).
+
+    Reutiliza la cartera de la spec 004: un agente ve las cotizaciones de los
+    clientes que ve, así la regla de cartera sigue en un solo lugar. La
+    cotización ajena no se encuentra, y la API responde 404.
+    """
+    return (
+        Cotizacion.objects.filter(
+            activo=True, cliente__in=listar_clientes_visibles(usuario=usuario)
+        )
+        .select_related(
+            "cliente",
+            "agente__usuario",
+            "propiedad",
+            "unidad__propiedad",
+            "moneda",
+        )
+        .order_by("-fecha_emision", "-id")
+    )
+
+
+def cotizacion_tiene_contrato(*, cotizacion: Cotizacion) -> bool:
+    """
+    True si la cotización ya dio lugar a un contrato de venta (reglas 6 y 7).
+
+    El contrato vive en ventas, que depende de crm y no al revés, así que no
+    se importa: se usa la relación inversa del OneToOne de ContratoVenta
+    (related_name "contrato_venta"). Si no hay contrato, Django lanza
+    RelatedObjectDoesNotExist, que es un AttributeError, y hasattr da False.
+    """
+    return hasattr(cotizacion, "contrato_venta")
+
+
+def obtener_cliente_por_email(*, email: str) -> Cliente | None:
+    """Cliente activo con ese correo. Lo usa la demo de ventas para ubicar a
+    los clientes ficticios de cargar_demo_crm."""
+    return Cliente.objects.filter(activo=True, email__iexact=email).first()
+
+
+def existe_cotizacion(*, cliente: Cliente, propiedad=None, unidad=None) -> bool:
+    """True si el cliente ya tiene una cotización sobre ese bien (demo)."""
+    return Cotizacion.objects.filter(
+        cliente=cliente, propiedad=propiedad, unidad=unidad
+    ).exists()

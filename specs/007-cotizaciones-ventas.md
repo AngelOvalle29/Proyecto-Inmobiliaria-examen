@@ -9,7 +9,7 @@
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `crm` (cotizaciones), `ventas`; pide a `catalogo` un servicio para el estado de las unidades (§6) |
 | **Rama** | `feature/007-cotizaciones-ventas` |
-| **Pull request** | — |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#44 |
 | **Issues** | #17, #18 |
 
 ---
@@ -198,7 +198,8 @@ historia completa de pagos queda en la bitácora de auditoría.
 | `COTIZACION_VENCIDA` | Se envía o aprueba una cotización vencida (regla 4) | 409 |
 | `COTIZACION_YA_CONTRATADA` | La cotización ya tiene contrato: no da otro (regla 7) ni se rechaza (regla 6) | 409 |
 | `PROPIEDAD_CON_UNIDADES` | Se cotiza o vende completa una propiedad de un tipo con unidades (reglas 1 y 9) | 409 |
-| `CONTRATO_NO_VIGENTE` | Se registra un pago en un contrato anulado o liquidado (regla 16) | 409 |
+| `CONTRATO_NO_VIGENTE` | Se paga o se anula un contrato que no está `VIGENTE` (reglas 15 y 16) | 409 |
+| `COTIZACION_NO_APROBADA` | Se firma desde una cotización que no está `APROBADA` (regla 8). *Agregado al implementar* | 409 |
 | `CONTRATO_CON_PAGOS` | Se anula un contrato que ya tiene pagos (regla 15) | 409 |
 | `PAGO_EXCEDE_SALDO` | El pago supera lo que falta de la cuota (regla 16) | 400 |
 | `TIPO_CAMBIO_NO_DISPONIBLE` | Ya existe (spec 001): no hay tasa al dólar en la fecha (regla 14) | 422 |
@@ -248,30 +249,32 @@ del contrato dice cuántas se generaron, y se pueden recalcular.
 
 ## 8. Criterios de aceptación
 
-- [ ] Una cotización aprobada deja la propiedad `RESERVADA`; rechazarla la
+*Verificados el 2026-10-30 con las pruebas de `apps/crm/tests/test_cotizaciones.py` y `apps/ventas/tests/`, y con la demostración de `seed_demo` (§11).*
+
+- [x] Una cotización aprobada deja la propiedad `RESERVADA`; rechazarla la
       devuelve a `DISPONIBLE`
-- [ ] No se cotiza ni se aprueba sobre una propiedad no disponible (409)
-- [ ] Una cotización vencida aparece con `vencida: true` y no se envía ni se
+- [x] No se cotiza ni se aprueba sobre una propiedad no disponible (409)
+- [x] Una cotización vencida aparece con `vencida: true` y no se envía ni se
       aprueba (409)
-- [ ] Una cotización con contrato no se rechaza (409), y su propiedad sigue
+- [x] Una cotización con contrato no se rechaza (409), y su propiedad sigue
       `VENDIDA`
-- [ ] Un edificio con unidades no se cotiza ni se vende completo (409)
-- [ ] No se registran pagos en un contrato anulado (409)
-- [ ] Un contrato firmado desde una cotización toma sus datos y deja la
+- [x] Un edificio con unidades no se cotiza ni se vende completo (409)
+- [x] No se registran pagos en un contrato anulado (409)
+- [x] Un contrato firmado desde una cotización toma sus datos y deja la
       propiedad `VENDIDA`; la misma cotización no da un segundo contrato
-- [ ] Un contrato de contado nace `LIQUIDADO` sin cuotas
-- [ ] Un contrato financiado genera sus cuotas fijas, y su capital suma
+- [x] Un contrato de contado nace `LIQUIDADO` sin cuotas
+- [x] Un contrato financiado genera sus cuotas fijas, y su capital suma
       exactamente el saldo
-- [ ] El contrato guarda comisión, tasa al dólar y monto en dólares; sin tasa,
+- [x] El contrato guarda comisión, tasa al dólar y monto en dólares; sin tasa,
       422
-- [ ] Un pago parcial deja la cuota `PARCIAL`; completarla la deja `PAGADA`;
+- [x] Un pago parcial deja la cuota `PARCIAL`; completarla la deja `PAGADA`;
       pagar de más es 400
-- [ ] Al pagar la última cuota el contrato queda `LIQUIDADO`
-- [ ] Una cuota pendiente vencida aparece con `en_mora: true`
-- [ ] Anular sin pagos libera la propiedad; con pagos, 409
-- [ ] Matriz de permisos de las reglas 19 a 22, con 404 para lo ajeno
-- [ ] Toda escritura queda en la bitácora
-- [ ] `ruff`, `pytest`, `makemigrations --check` y el esquema OpenAPI pasan
+- [x] Al pagar la última cuota el contrato queda `LIQUIDADO`
+- [x] Una cuota pendiente vencida aparece con `en_mora: true`
+- [x] Anular sin pagos libera la propiedad; con pagos, 409
+- [x] Matriz de permisos de las reglas 19 a 22, con 404 para lo ajeno
+- [x] Toda escritura queda en la bitácora
+- [x] `ruff`, `pytest`, `makemigrations --check` y el esquema OpenAPI pasan
 
 ## 9. Pruebas
 
@@ -347,3 +350,41 @@ dos; para el segundo, B eligió calcular la vencida. También se aplicaron sus
 sugerencias: la regla 9 vale para las cotizaciones, no se paga en un contrato
 anulado, la regla 8 redactada sin "reservada por", `cambiar_estado_unidad` ya
 existe, la tasa USD→USD es 1, y las fechas mensuales van en `core/fechas.py`.
+
+**Implementación, 2026-10-29 y 30 (Claude Code, rol B).** El agente escribió el
+código de cada paso con sus pruebas, en cinco commits en #44.
+
+- **Paso 0, en `catalogo` (área de A).** Aprobar una cotización comprueba que el
+  bien esté `DISPONIBLE` y lo pasa a `RESERVADA`. Comprobarlo antes del bloqueo
+  de la fila dejaba una carrera: dos aprobaciones simultáneas pasaban las dos.
+  `cambiar_estado_propiedad` y `cambiar_estado_unidad` aceptan ahora
+  `estado_requerido`, que se comprueba bajo el mismo bloqueo, y la regla 5 se
+  cumple aunque lleguen dos peticiones a la vez. Lo usan también la firma y la
+  anulación.
+- **Paso 2, constraints.** Las pruebas encontraron que "un financiado tiene
+  entre 1 y 360 cuotas" aceptaba un número de cuotas nulo: en SQL, `NULL >= 1`
+  no es falso sino desconocido, y un `CHECK` deja pasar lo desconocido. Se
+  exige además `isnull=False`.
+- **Paso 2, cuota fija.** `calcular_cuotas` se comprobó con un caso de libro
+  (10 000 al 12 % en 12 cuotas: 888.49, calculado aparte) y con el capital
+  sumando exactamente el saldo.
+- **Paso 3, decisiones al implementar** (a validar en la revisión del PR):
+  - Firmar desde una cotización que no está `APROBADA` responde 409
+    `COTIZACION_NO_APROBADA`, un código que la spec no tenía.
+  - Un contrato de contado nace `LIQUIDADO` (ya está pagado), así que no se
+    anula: la regla 15 pide un contrato `VIGENTE`.
+  - Los pagos bloquean primero el contrato y después la cuota, para que dos
+    pagos simultáneos del mismo contrato se ordenen.
+- **Paso 5, esquema.** Cuatro campos `estado` con valores distintos (propiedad,
+  cotización, contrato y cuota) chocaban en el esquema OpenAPI. Se les dio
+  nombre en `SPECTACULAR_SETTINGS` (área de A).
+- **Paso 5, demostración.** A diferencia de las demos de core, catálogo y CRM,
+  la de ventas usa los mismos servicios que la API, para que cada contrato
+  quede coherente (cuotas, estado del bien, tasa y comisión). Por eso sus
+  escrituras sí quedan en la bitácora, con usuario nulo.
+- **Pendiente:** el campo `documento` de `ContratoVenta`, acordado en la
+  revisión de la spec 011 (#42), se agrega cuando `DocumentoOficial` exista en
+  `develop`.
+
+Resultado: 387 pruebas del proyecto, cobertura de `ventas/services.py` del 96 %
+y de `crm/services.py` del 99 %, esquema OpenAPI sin advertencias.

@@ -233,6 +233,9 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "EstadoSaludEnum": "apps.core.serializers.ESTADOS_SALUD",
         "EstadoPropiedadEnum": "apps.catalogo.enums.EstadoPropiedad",
+        "EstadoCotizacionEnum": "apps.crm.enums.EstadoCotizacion",
+        "EstadoContratoEnum": "apps.ventas.enums.EstadoContrato",
+        "EstadoCuotaEnum": "apps.ventas.enums.EstadoCuota",
     },
 }
 

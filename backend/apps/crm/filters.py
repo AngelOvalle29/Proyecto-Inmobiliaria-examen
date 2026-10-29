@@ -12,8 +12,8 @@ configuración global de core (spec 004, §10).
 import django_filters
 from django.db.models import Q
 
-from .enums import TipoCliente
-from .models import Agente, Cliente
+from .enums import EstadoCotizacion, TipoCliente
+from .models import Agente, Cliente, Cotizacion
 
 
 class AgenteFilter(django_filters.FilterSet):
@@ -58,3 +58,13 @@ class ClienteFilter(django_filters.FilterSet):
             | Q(email__icontains=valor)
             | Q(codigo__icontains=valor)
         )
+
+
+class CotizacionFilter(django_filters.FilterSet):
+    estado = django_filters.ChoiceFilter(choices=EstadoCotizacion.choices)
+    cliente = django_filters.NumberFilter(field_name="cliente_id")
+    agente = django_filters.NumberFilter(field_name="agente_id")
+
+    class Meta:
+        model = Cotizacion
+        fields = ["estado", "cliente", "agente"]
