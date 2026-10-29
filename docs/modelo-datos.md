@@ -91,12 +91,19 @@ ARRENDAMIENTO, FIN_ARRENDAMIENTO, REMODELACION, BAJA) · `fecha` ·
 ### Cliente ★
 `id` · `codigo` · `tipo` (PERSONA, EMPRESA) · `nombre` · `apellidos` ·
 `razon_social` · `documento_identidad` · `nit` · `email` · `telefono` ·
-`pais` (FK) · `ciudad` (FK) · `direccion` · `fecha_registro` ·
+`pais` (FK) · `ciudad` (FK, opcional) · `direccion` ·
 `agente_asignado` (FK Agente) · `notas` · `activo`
 
+*Reglas:* documento de identidad único por país para personas y NIT único por
+país para empresas. La fecha de registro es `creado_en` (detalle en
+`specs/004-crm-clientes-agentes.md`).
+
 ### Agente ★
-`id` · `usuario` (OneToOne Usuario) · `codigo` · `nombre_completo` ·
-`telefono` · `pais` (FK) · `porcentaje_comision` · `fecha_ingreso` · `activo`
+`id` · `usuario` (OneToOne Usuario) · `codigo` · `porcentaje_comision` ·
+`fecha_ingreso` · `activo`
+
+*Regla:* nombre, teléfono, correo y país se leen del usuario; no se duplican
+en el agente. Solo los usuarios con rol `AGENTE` tienen perfil de agente.
 
 ### Cotizacion ★
 `id` · `codigo` · `cliente` (FK) · `agente` (FK) · `fecha_emision` ·
@@ -207,9 +214,12 @@ autorización explícita registrada.
 ## 8. Seguridad — app `usuarios`
 
 ### Usuario
-Extiende `AbstractUser` de Django.
-`id` · `email` (login) · `nombre_completo` · `rol` (FK) · `pais` (FK) ·
-`telefono` · `ultimo_acceso` · `activo`
+Extiende `AbstractUser` de Django, sin `username`, `first_name` ni `last_name`.
+`id` · `email` (login) · `nombre_completo` · `rol` (FK) · `pais` (FK, opcional) ·
+`telefono` · `last_login` (último acceso) · `is_active` (borrado lógico)
+
+Se reutilizan los campos de Django en lugar de duplicarlos. Detalle en
+`specs/001-fundacion.md` §4.
 
 ### Rol
 `id` · `nombre` (ADMINISTRADOR, GERENTE, AGENTE, CONTABILIDAD, CONSULTA) ·

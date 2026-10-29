@@ -125,7 +125,8 @@ Documento entregable al final del proyecto.
 - El dominio elegido debe ser un proyecto completo **no realizado en clase**.
 - **Despliegue en producción en la nube.** Los sistemas no desplegados no serán
   revisados. Este es el riesgo más alto del proyecto: desplegar temprano, no al
-  final. *Nuestra elección:* backend en Railway, frontend en Vercel. Comparación
+  final. *Nuestra elección:* planes gratuitos; API y worker en Render,
+  PostgreSQL en Neon, RabbitMQ en CloudAMQP y frontend en Vercel. Comparación
   de alternativas y justificación en `specs/002-despliegue.md`.
 - Los commits apoyados con inteligencia artificial deben ser realizados
   únicamente por los estudiantes. **No se permite el vibecoding.**

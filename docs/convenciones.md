@@ -12,8 +12,8 @@ Estas convenciones son de cumplimiento obligatorio desde el primer commit.
 
 | Rama | Propósito |
 |---|---|
-| `main` | Solo código desplegado en producción. Protegida. |
-| `develop` | Rama de integración. Protegida. |
+| `main` | Solo código desplegado en producción. Nadie hace commit directo. |
+| `develop` | Rama de integración y rama por defecto del repositorio. Nadie hace commit directo. |
 | `feature/*` | Funcionalidad nueva |
 | `fix/*` | Corrección de errores |
 | `docs/*` | Solo documentación |
@@ -32,8 +32,48 @@ docs/001-manual-tecnico
 Las ramas salen de `develop` y regresan a `develop`. A `main` solo llegan
 fusiones desde `develop` cuando se va a desplegar.
 
-**Nadie hace commit directo a `main` ni a `develop`.** Configurar protección de
-ramas en GitHub desde el primer día.
+**Nadie hace commit directo a `main` ni a `develop`.** GitHub no lo impide en
+este repositorio, así que se cumple con las reglas internas de la sección 1.1.
+
+### 1.1 Reglas internas de trabajo
+
+El repositorio es privado y en el plan gratuito de GitHub las ramas privadas
+no se pueden proteger. El equipo decidió (2026-10-21) no cambiar de plan y
+trabajar con estas reglas. **Nada técnico las hace cumplir: dependen de cada
+integrante**, y el historial deja ver si se respetaron.
+
+1. **Nunca se sube nada directo a `main` ni a `develop`**: ni con `git push`, ni
+   desde la web de GitHub. Al editar un archivo en la web, elegir
+   *"Create a new branch for this commit and start a pull request"*, nunca
+   *"Commit directly to the develop branch"*.
+2. **Todo entra por pull request**, con la plantilla de la sección 3.
+3. **Lo aprueba otro integrante** con el botón *Approve* de GitHub, no con un
+   comentario. Si el cambio toca apps de otro integrante, aprueba el dueño
+   (sección 4).
+4. **Fusiona el autor, solo después de la aprobación.** Nadie fusiona un pull
+   request sin aprobar, ni el suyo ni el de otro.
+5. **Mientras GitHub Actions no se ejecute**, las verificaciones se corren a
+   mano. El autor las corre desde `backend/` y pega el resultado en el pull
+   request, y quien revisa las vuelve a correr en su máquina antes de aprobar:
+
+   ```bash
+   ruff format --check . && ruff check . && python manage.py makemigrations --check --dry-run && pytest
+   ```
+
+   Aplica a los pull requests que tocan código (`backend/` o `frontend/`). En
+   los de solo documentación no hay nada que verificar: basta con revisar el
+   texto.
+
+6. **Se fusiona con *"Create a merge commit"*.** No se usa *squash* ni
+   *rebase*: los commits de cada incremento son la evidencia del proceso y deben
+   quedar en el historial.
+7. **Después de fusionar se borra la rama**, con el botón que ofrece GitHub.
+8. **Nunca `git push --force`** sobre `main` ni `develop`. Si alguien sube algo
+   directo por error, no se reescribe el historial: se avisa al equipo y se
+   sigue con la regla desde el siguiente cambio.
+9. **A `main` solo llega un pull request de `develop` a `main`**, cuando se va a
+   desplegar. Lo abre el responsable del despliegue (rol A) y lo aprueba otro
+   integrante.
 
 ---
 
@@ -105,9 +145,11 @@ Nada, o lo que quede fuera del alcance de esta spec.
 - [ ] Enlaza una spec aprobada
 - [ ] `ruff check` y `ruff format --check` pasan
 - [ ] `pytest` pasa
+- [ ] El resultado de las verificaciones está pegado en el PR (sección 1.1,
+      regla 5, mientras GitHub Actions no se ejecute)
 - [ ] Hay pruebas de la lógica nueva
 - [ ] Los endpoints de escritura registran auditoría
-- [ ] Aprobado por **otro integrante** del equipo
+- [ ] Aprobado por **otro integrante** del equipo con el botón *Approve*
 - [ ] Sin secretos ni credenciales en el diff
 - [ ] `CLAUDE.md` y `AGENTS.md` siguen sincronizados si alguno cambió
 

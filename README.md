@@ -15,14 +15,15 @@ inteligencia artificial y conexión a Power BI.
 
 ## Equipo
 
-| Integrante | Rol principal |
-|---|---|
-| Douglas Gerardo Morales Velásquez | *por definir* |
-| *pendiente* | *por definir* |
-| *pendiente* | *por definir* |
-| *pendiente* | *por definir* |
+| Integrante | GitHub | Rol | Responsable de |
+|---|---|---|---|
+| Douglas Gerardo Morales Velásquez | DouGMV | A | Base, arquitectura y autenticación (`core`, `usuarios`, `catalogo`); despliegue e integración continua; apoyo a los demás |
+| Marco André Bolaños Rojas | Lilfacce | B | Flujo comercial (`crm`, `ventas`, `arrendamientos`) |
+| Angel Glicerio Ovalle Fernandez | AngelOvalle29 | C | Adquisiciones y agente de IA (`compras`, `construccion`, `ia`) |
+| Nathaly Saraí Reyes Cifuentes | NathalyR15 | D | Reportería, Power BI, auditoría y mensajería (`reportes`, `auditoria`) |
 
-El reparto sugerido de módulos está en `docs/roadmap.md`.
+Cada quien agrega su nombre en esta tabla. El detalle del reparto está en
+`docs/roadmap.md`.
 
 ---
 
@@ -54,12 +55,12 @@ Detalle en `docs/modelo-datos.md` y `docs/requisitos.md`.
 | API | Python 3.12 · Django 5 · Django REST Framework |
 | Base de datos | PostgreSQL 16 (con extensión pgvector) |
 | Mensajería | RabbitMQ · Celery |
-| Cache | Redis |
+| Cache | Redis (fuera por ahora; se agrega con su spec si hace falta) |
 | Reportes | openpyxl (Excel) · WeasyPrint (PDF) |
 | Autenticación | JWT (SimpleJWT) |
 | Frontend | React 19 · Vite · TypeScript · TanStack Query y Table · shadcn/ui |
 | Infraestructura | Docker · Docker Compose |
-| Despliegue | Backend en Railway · Frontend en Vercel |
+| Despliegue | Planes gratuitos: API y worker en Render · PostgreSQL en Neon · RabbitMQ en CloudAMQP · Frontend en Vercel |
 | IA y RAG | Gemini Flash (capa gratuita) · pgvector |
 | Correo | Gmail SMTP |
 | BI | Power BI sobre vistas del esquema `bi` |
@@ -68,16 +69,13 @@ Detalle en `docs/modelo-datos.md` y `docs/requisitos.md`.
 
 ## Arranque rápido
 
-> El proyecto Django se crea en la fase 0. Mientras tanto este repositorio
-> contiene únicamente la documentación y las especificaciones.
-
 Requisitos previos: Docker, Docker Compose y Python 3.12.
 
 ```bash
-git clone <url-del-repositorio>
+git clone https://github.com/DouGMV/Proyecto-Inmobiliaria.git
 cd Proyecto-Inmobiliaria
 
-cp .env.example .env            # completar las variables
+cp .env.example .env            # cambiar SECRET_KEY por una clave aleatoria
 
 docker compose up -d            # PostgreSQL con pgvector y RabbitMQ
 
@@ -86,18 +84,35 @@ python -m venv .venv
 source .venv/bin/activate       # en Windows: .venv\Scripts\activate
 pip install -r requirements/dev.txt
 
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py seed_demo
+python manage.py migrate        # también crea los 5 roles y la tabla de caché
+python manage.py createsuperuser   # pide correo y nombre completo
+python manage.py seed_demo      # países, ciudades, monedas y tipos de cambio
 python manage.py runserver
 ```
 
-En otra terminal, el worker de tareas asíncronas:
+**Si ya tienes PostgreSQL instalado en tu máquina**, el puerto 5432 estará
+ocupado y `docker compose up -d` fallará. Elige otro puerto en `.env` y úsalo
+también en la cadena de conexión:
 
 ```bash
-cd backend && source .venv/bin/activate
-celery -A config worker -l info
+POSTGRES_PORT=5434
+DATABASE_URL=postgresql://inmobiliaria:inmobiliaria@localhost:5434/inmobiliaria
 ```
+
+Para generar una `SECRET_KEY` de desarrollo:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(50))"
+```
+
+Calidad, antes de cada commit (desde `backend/`):
+
+```bash
+ruff format . && ruff check . && pytest
+```
+
+El worker de Celery se configura en la spec 002; hasta entonces el contenedor
+de RabbitMQ corre, pero ningún flujo lo usa todavía.
 
 El frontend, a partir de la fase 2:
 
@@ -112,6 +127,7 @@ npm run dev
 |---|---|
 | Frontend | http://localhost:5173/ |
 | API | http://localhost:8000/api/v1/ |
+| Estado del servicio | http://localhost:8000/api/v1/health/ |
 | Documentación de la API | http://localhost:8000/api/docs/ |
 | Panel de administración | http://localhost:8000/admin/ |
 | Panel de RabbitMQ | http://localhost:15672/ |

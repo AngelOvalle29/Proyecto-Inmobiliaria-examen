@@ -1,0 +1,24 @@
+# Lo que COPY . . NO debe meter en la imagen.
+
+# Entorno virtual local: en Windows tiene binarios que no corren en Linux, y
+# pesa cientos de MB. La imagen instala sus propias dependencias.
+.venv/
+venv/
+
+# Cachés y resultados de herramientas locales.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Generados: collectstatic corre dentro de la construcción.
+staticfiles/
+media/
+
+# Secretos locales. En producción las variables vienen de Render.
+.env
+.env.*

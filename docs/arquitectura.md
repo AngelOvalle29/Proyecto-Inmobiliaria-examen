@@ -34,6 +34,7 @@ revés. Un modelo jamás importa un servicio.
 |---|---|---|
 | `views.py` | Recibe la petición, delega, devuelve la respuesta | Reglas de negocio, consultas a modelos |
 | `serializers.py` | Valida formato de entrada y arma la salida | Reglas de negocio, acceso a base de datos |
+| `filters.py` | Traduce los parámetros de un listado (`?pais=`) a filtros sobre la consulta del selector (django-filter) | Decidir qué registros son visibles: eso es del selector |
 | `services.py` | Reglas de negocio de escritura, transacciones, auditoría | Hablar HTTP, conocer `request` |
 | `selectors.py` | Consultas, filtros, agregaciones, optimización | Escribir en la base de datos |
 | `models.py` | Campos, relaciones, constraints, validación propia | Llamar servicios, enviar correos |
@@ -111,6 +112,7 @@ apps/ventas/
 ├── enums.py
 ├── exceptions.py
 ├── serializers.py
+├── filters.py          # solo si la app tiene listados con filtros
 ├── services.py
 ├── selectors.py
 ├── views.py
@@ -126,8 +128,21 @@ apps/ventas/
 ```
 
 **Comunicación entre apps:** una app llama a los **servicios y selectores** de
-otra, nunca a sus modelos directamente. `core` y `usuarios` pueden ser
-importadas por todas; ellas no importan a nadie.
+otra, nunca a sus modelos directamente.
+
+Hay tres apps **transversales** que cualquier app puede importar: `core`,
+`usuarios` y `auditoria`. Entre ellas, la dependencia es fija:
+
+```
+core       → no importa ninguna app
+auditoria  → no importa ninguna app (referencia al usuario con
+             settings.AUTH_USER_MODEL)
+usuarios   → core, auditoria
+```
+
+Ningún modelo concreto de `core` hereda de `ModeloBase`: si lo hiciera, `core`
+dependería de `usuarios` en las migraciones y se formaría un ciclo, porque
+`Usuario` apunta a `core.Pais`. Justificación en `specs/001-fundacion.md` §10.
 
 ---
 
@@ -169,10 +184,10 @@ Dos bitácoras separadas, ambas en PostgreSQL.
 | Campo | Descripción |
 |---|---|
 | `id` | Identificador |
-| `usuario` | FK a usuario, nulo si la acción es del sistema |
+| `usuario` | FK a usuario, nulo si la acción es del sistema o un login fallido |
 | `entidad` | Nombre de la tabla afectada |
-| `entidad_id` | Identificador del registro |
-| `accion` | CREAR, ACTUALIZAR, ELIMINAR, APROBAR, ANULAR |
+| `entidad_id` | Identificador del registro, nulo si no hay registro asociado |
+| `accion` | CREAR, ACTUALIZAR, ELIMINAR, APROBAR, ANULAR, INICIAR_SESION, LOGIN_FALLIDO |
 | `valores_anteriores` | JSONB |
 | `valores_nuevos` | JSONB |
 | `ip` | Dirección de origen |

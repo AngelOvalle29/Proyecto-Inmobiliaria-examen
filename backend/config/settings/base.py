@@ -1,0 +1,266 @@
+"""
+Configuración común a todos los entornos.
+
+dev.py, test.py y prod.py importan este archivo y solo cambian lo que es
+distinto en su entorno. Todo valor que dependa del entorno o sea secreto se
+lee de variables de entorno; nunca se escribe aquí.
+"""
+
+from datetime import timedelta
+from pathlib import Path
+
+import environ
+
+# backend/
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+env = environ.Env()
+
+# En desarrollo las variables vienen del .env en la raíz del repositorio.
+# En la integración continua y en producción no hay .env: las variables las
+# define el entorno, y read_env no sobrescribe las que ya existen.
+environ.Env.read_env(BASE_DIR.parent / ".env")
+
+
+# ---------- Seguridad ----------
+
+# Sin valor por defecto a propósito: si falta, Django no arranca. Es preferible
+# a arrancar con una clave falsa (spec 001, §8).
+SECRET_KEY = env("SECRET_KEY")
+
+DEBUG = env.bool("DEBUG", default=False)
+
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
+
+
+# ---------- Aplicaciones ----------
+
+DJANGO_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+]
+
+THIRD_PARTY_APPS = [
+    "rest_framework",
+    # Instalada como app para que sus mensajes de error salgan en español.
+    "rest_framework_simplejwt",
+    "django_filters",
+    "drf_spectacular",
+    "corsheaders",
+]
+
+# Primero las transversales, que cualquier app puede importar, y luego los
+# dominios del negocio (docs/arquitectura.md §3).
+LOCAL_APPS = [
+    "apps.core",
+    "apps.usuarios",
+    "apps.auditoria",
+    "apps.catalogo",
+    "apps.crm",
+    "apps.ventas",
+    "apps.arrendamientos",
+    "apps.compras",
+    "apps.construccion",
+    "apps.reportes",
+    "apps.ia",
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# Modelo de usuario propio (login por correo). Debe estar definido antes del
+# primer migrate: cambiarlo después obliga a recrear la base de datos, porque
+# las tablas de Django (admin, permisos) ya apuntarían al User estándar.
+AUTH_USER_MODEL = "usuarios.Usuario"
+
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    # Justo después de SecurityMiddleware: sirve los archivos estáticos antes de
+    # que el resto de la cadena procese la petición (spec 002, §5.3).
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    # Antes de CommonMiddleware: debe agregar las cabeceras de CORS incluso a
+    # las respuestas que CommonMiddleware genera por su cuenta (redirecciones).
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+ROOT_URLCONF = "config.urls"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = "config.wsgi.application"
+
+
+# ---------- Base de datos ----------
+
+# Solo PostgreSQL, en todos los entornos (CLAUDE.md prohíbe SQLite).
+# Sin valor por defecto, por la misma razón que SECRET_KEY.
+DATABASES = {
+    "default": env.db("DATABASE_URL"),
+}
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# ---------- Contraseñas ----------
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation."
+        "UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        # Mínimo de 10 caracteres (docs/arquitectura.md §9).
+        "OPTIONS": {"min_length": 10},
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
+
+
+# ---------- Idioma y zona horaria ----------
+
+LANGUAGE_CODE = "es"
+
+# Zona en que se muestran las fechas en el panel. Las fechas se guardan
+# siempre en UTC gracias a USE_TZ.
+TIME_ZONE = "America/Guatemala"
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# ---------- Archivos estáticos ----------
+
+STATIC_URL = "static/"
+
+# Destino de collectstatic. Cómo se sirven en producción lo decide la spec 002.
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
+# ---------- API (Django REST Framework) ----------
+
+REST_FRAMEWORK = {
+    # Solo JWT. Se declara explícitamente para no heredar el valor por defecto
+    # de DRF, que activaría autenticación por sesión y básica.
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    # Cerrado por defecto: todo endpoint exige autenticación salvo que diga
+    # explícitamente lo contrario (como /health/). Olvidar un permiso deja el
+    # endpoint cerrado, no abierto.
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # Paginación obligatoria en todo listado, de 25 en 25 (arquitectura.md §4).
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
+    # Los listados se filtran con la clase filterset_class que declara cada
+    # vista (filters.py de cada app).
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    # Toda respuesta de error sale en el formato uniforme.
+    "EXCEPTION_HANDLER": "apps.core.manejador_errores.manejar_excepcion",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Límite de peticiones por IP. Solo lo usan las vistas que declaran
+    # throttle_scope = "auth": login y renovación de token (arquitectura.md §9).
+    "DEFAULT_THROTTLE_RATES": {"auth": "10/min"},
+    # Cuántos proxies propios hay delante de Django. Define qué IP es la real:
+    # 0 (desarrollo) ignora X-Forwarded-For, que cualquier cliente puede
+    # inventar; en producción (Render) hay uno y se configura NUM_PROXIES=1
+    # (spec 002).
+    "NUM_PROXIES": env.int("NUM_PROXIES", default=0),
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=env.int("JWT_ACCESS_TOKEN_MINUTES", default=30)
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=env.int("JWT_REFRESH_TOKEN_DAYS", default=7)
+    ),
+    # El último acceso lo actualiza registrar_acceso de forma explícita, junto
+    # con su registro de auditoría (spec 001, §6).
+    "UPDATE_LAST_LOGIN": False,
+}
+
+
+# ---------- Caché ----------
+
+# En PostgreSQL y no en memoria: la usa el límite de peticiones, y en
+# producción gunicorn corre varios procesos. Con caché en memoria cada proceso
+# contaría por separado y el límite real se multiplicaría. La tabla la crea la
+# migración core.0002, así que basta con correr migrate.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "cache_django",
+    }
+}
+
+# Documentación automática en /api/docs/.
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API Inmobiliaria",
+    "DESCRIPTION": "ERP inmobiliario: proyecto final de Programación Comercial.",
+    "VERSION": "1.0.0",
+    # El esquema se sirve en /api/schema/; no hace falta repetirlo dentro de sí.
+    "SERVE_INCLUDE_SCHEMA": False,
+    # Nombre de los conjuntos de opciones que aparecen en más de un campo.
+    "ENUM_NAME_OVERRIDES": {
+        "EstadoSaludEnum": "apps.core.serializers.ESTADOS_SALUD",
+    },
+}
+
+
+# ---------- CORS ----------
+
+# Solo el frontend puede llamar a la API desde un navegador
+# (arquitectura.md §9). Vacío por defecto: ningún otro origen.
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+
+
+# ---------- Celery (spec 002, §5.5) ----------
+
+# RabbitMQ como broker. En desarrollo la URL viene del .env (el RabbitMQ de
+# docker compose); en producción prod.py la exige sin valor por defecto.
+CELERY_BROKER_URL = env("RABBITMQ_URL", default="amqp://localhost:5672//")
+
+# Sin backend de resultados (docs/arquitectura.md §6): nadie consulta lo que
+# devuelve una tarea, así que no se guarda.
+CELERY_TASK_IGNORE_RESULT = True
+
+CELERY_TIMEZONE = TIME_ZONE
+
+# Ajustes para la cuota gratuita de CloudAMQP (20 conexiones, 1 millón de
+# mensajes al mes): una sola conexión reutilizada para publicar, y el worker sin
+# eventos de monitoreo, que serían mensajes extra que nadie lee.
+CELERY_BROKER_POOL_LIMIT = 1
+CELERY_WORKER_SEND_TASK_EVENTS = False
+
+# Si RabbitMQ no está listo cuando arranca el worker, reintenta en lugar de
+# terminar: en Render, el contenedor puede despertar antes que la conexión.
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True

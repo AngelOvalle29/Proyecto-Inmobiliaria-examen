@@ -45,7 +45,8 @@ SimpleJWT · Docker Compose.
 **Frontend:** React 19 + Vite + TypeScript · TanStack Query · TanStack Table ·
 React Hook Form + Zod · shadcn/ui + Tailwind · Recharts. Ver `docs/frontend.md`.
 
-**Despliegue:** backend en Railway, frontend en Vercel.
+**Despliegue (planes gratuitos):** API y worker en Render, PostgreSQL con
+pgvector en Neon, RabbitMQ en CloudAMQP y frontend en Vercel.
 Ver `specs/002-despliegue.md`.
 
 **Servicios externos:** Gemini Flash (capa gratuita) para el agente y los
@@ -117,8 +118,8 @@ tiempo. Un endpoint de escritura sin auditoría está incompleto.
 
 ## Decisiones cerradas
 
-Django REST Framework · PostgreSQL · React + Vite + TypeScript · Railway para
-el backend · Vercel para el frontend · Gemini Flash para IA y embeddings ·
+Django REST Framework · PostgreSQL · React + Vite + TypeScript · Render, Neon
+y CloudAMQP gratuitos para el backend · Vercel para el frontend · Gemini Flash para IA y embeddings ·
 Gmail SMTP para correo · todo en contenedores. No propongas alternativas salvo
 que el equipo lo pida.
 

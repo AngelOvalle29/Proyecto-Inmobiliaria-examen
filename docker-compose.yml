@@ -1,5 +1,5 @@
 # Infraestructura para DESARROLLO LOCAL.
-# En producción, Railway provee PostgreSQL y RabbitMQ como servicios propios.
+# En producción, PostgreSQL lo provee Neon y RabbitMQ, CloudAMQP (spec 002).
 #
 #   docker compose up -d
 #
@@ -15,7 +15,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-inmobiliaria}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inmobiliaria}
     ports:
-      - "5432:5432"
+      # Puerto de la máquina configurable: si ya hay un PostgreSQL instalado
+      # en el 5432, definir POSTGRES_PORT en .env y usar ese mismo puerto en
+      # DATABASE_URL. Dentro del contenedor siempre es 5432.
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
