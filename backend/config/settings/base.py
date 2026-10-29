@@ -191,8 +191,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {"auth": "10/min"},
     # Cuántos proxies propios hay delante de Django. Define qué IP es la real:
     # 0 (desarrollo) ignora X-Forwarded-For, que cualquier cliente puede
-    # inventar; en producción (Render) hay uno y se configura NUM_PROXIES=1
-    # (spec 002).
+    # inventar; en producción (Render) hay tres y se configura NUM_PROXIES=3
+    # (spec 002, §8).
     "NUM_PROXIES": env.int("NUM_PROXIES", default=0),
 }
 

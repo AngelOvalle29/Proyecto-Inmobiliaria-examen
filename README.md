@@ -60,7 +60,7 @@ Detalle en `docs/modelo-datos.md` y `docs/requisitos.md`.
 | Autenticación | JWT (SimpleJWT) |
 | Frontend | React 19 · Vite · TypeScript · TanStack Query y Table · shadcn/ui |
 | Infraestructura | Docker · Docker Compose |
-| Despliegue | Planes gratuitos: API y worker en Render · PostgreSQL en Neon · RabbitMQ en CloudAMQP · Frontend en Vercel (por ahora, sitio estático en Render) |
+| Despliegue | Planes gratuitos: API y worker en Render · PostgreSQL en Neon · RabbitMQ en CloudAMQP · Frontend en Vercel |
 | IA y RAG | Gemini Flash (capa gratuita) · pgvector |
 | Correo | Gmail SMTP |
 | BI | Power BI sobre vistas del esquema `bi` |
@@ -150,27 +150,30 @@ detalle técnico están en `specs/002-despliegue.md`.
 | Pieza | Dónde | Nota |
 |---|---|---|
 | API y worker de Celery | Render, servicio web `inmobiliaria-api` (Docker) | Un solo contenedor: Render no tiene workers gratuitos |
-| Frontend | Render, sitio estático `inmobiliaria-web` | Temporal, mientras Vercel verifica la cuenta (spec 002, §6.1) |
+| Frontend | Vercel, proyecto `proyecto-inmobiliaria` (plan Hobby) | Publica la rama `main`; cada pull request tiene su vista previa |
 | PostgreSQL 16 con pgvector | Neon | Conexión directa, `sslmode=require` |
 | RabbitMQ | CloudAMQP, plan Little Lemur | URL `amqps://` |
 
 | En producción | URL |
 |---|---|
-| Frontend | *se completa al verificar el despliegue* |
-| API | *se completa al verificar el despliegue* |
-| Documentación de la API | `<API>/api/docs/` |
-| Panel de administración | `<API>/admin/` |
+| Frontend | https://proyecto-inmobiliaria-chi.vercel.app |
+| API | https://inmobiliaria-api-x8gr.onrender.com/api/v1/ |
+| Estado del servicio | https://inmobiliaria-api-x8gr.onrender.com/api/v1/health/ |
+| Documentación de la API | https://inmobiliaria-api-x8gr.onrender.com/api/docs/ |
+| Panel de administración | https://inmobiliaria-api-x8gr.onrender.com/admin/ |
 
 ### Cómo se publica un cambio
 
 1. El cambio llega a `develop` por pull request, como siempre.
 2. El integrante A abre un pull request de `develop` a `main`; otro integrante
    lo aprueba y A lo fusiona (`docs/convenciones.md` §1.1, regla 9).
-3. Render despliega solo los dos servicios desde `main`. La configuración está
-   versionada en `render.yaml` (un *Blueprint*). Si se agrega un servicio
-   nuevo a ese archivo y no aparece, en Render: **Blueprints → el proyecto →
-   Sync**.
-4. Si el contenedor nuevo no arranca, Render conserva la versión anterior en
+3. Render despliega la API desde `main`, y Vercel el frontend desde `main`. La
+   configuración de Render está versionada en `render.yaml` (un *Blueprint*);
+   si se agrega un servicio nuevo a ese archivo y no aparece, en Render:
+   **Blueprints → el proyecto → Sync**.
+4. **Guardar una variable en el panel de Render vuelve a desplegar desde
+   `main`**, no desde `develop`.
+5. Si el contenedor nuevo no arranca, Render conserva la versión anterior en
    línea. Para volver atrás a propósito: **el servicio → Events → Rollback** en
    un despliegue anterior, y luego revertir el cambio en `main` con un pull
    request.
@@ -196,8 +199,15 @@ con su explicación está al final de `.env.example`. Las secretas son
 `DATABASE_URL`, `RABBITMQ_URL` y `DJANGO_SUPERUSER_PASSWORD`.
 `CORS_ALLOWED_ORIGINS` es la URL del frontend, sin barra final.
 
-El frontend solo necesita `VITE_API_URL`, la URL de la API terminada en
-`/api/v1`. No es secreta: queda visible en el código que descarga el navegador.
+El frontend en Vercel solo necesita `VITE_API_URL` (la URL de la API terminada
+en `/api/v1`) y `VITE_ENTORNO=produccion`, de tipo **Config**. No son secretas:
+quedan visibles en el código que descarga el navegador, y por eso Vercel no
+acepta guardarlas como *Secret*. Vite las incrusta al compilar: si cambian, hay
+que volver a desplegar (**Deployments → Redeploy**).
+
+`NUM_PROXIES` vale **3** en producción: delante de Django están Cloudflare, el
+borde de Render y un proxy interno. Si no es exacto, la bitácora registra la IP
+de un proxy en vez de la del usuario (spec 002, §8).
 
 ### Lo que hay que saber del plan gratuito
 
@@ -225,7 +235,9 @@ El frontend solo necesita `VITE_API_URL`, la URL de la API terminada en
 |---|---|
 | `lstat ... backend/backend: no such file or directory` al construir | Con `rootDir`, Render resuelve `dockerfilePath` y `dockerContext` desde `backend/`, no desde la raíz. Deben ser `./Dockerfile` y `.` (spec 002, §5.1) |
 | El contenedor sale con código 1 al arrancar | Falta una variable obligatoria, `SECRET_KEY` es corta o `DJANGO_SUPERUSER_PASSWORD` no pasa los validadores. El motivo está en los Logs |
-| El frontend muestra un error de red al llamar a la API | `CORS_ALLOWED_ORIGINS` no tiene la URL exacta del frontend (con `https://` y sin barra final) |
+| El frontend muestra un error de red al llamar a la API | `CORS_ALLOWED_ORIGINS` no tiene la URL exacta del frontend (con `https://` y sin barra final), o `VITE_API_URL` no termina en `/api/v1` |
+| Una vista previa de Vercel no llega a la API | Es esperado: cada vista previa tiene su propia URL y no está en `CORS_ALLOWED_ORIGINS` |
+| La bitácora registra IP `10.x` o de Cloudflare | `NUM_PROXIES` no es 3 |
 | La primera carga tarda un minuto | Es la siesta del plan gratuito, no un error |
 
 ---

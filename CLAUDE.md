@@ -59,7 +59,7 @@ El enunciado prohíbe explícitamente el vibecoding. Esto significa, en la prác
 | Frontend | React 19 + Vite + TypeScript | Ver `docs/frontend.md` |
 | Contenedores | Docker + Docker Compose | |
 | Despliegue backend | Render (API y worker), Neon (PostgreSQL con pgvector), CloudAMQP (RabbitMQ) | Planes gratuitos. Ver `specs/002-despliegue.md` |
-| Despliegue frontend | Vercel | Plan Hobby, gratuito. Mientras Vercel verifica la cuenta, sitio estático gratuito en Render (spec 002, §6.1) |
+| Despliegue frontend | Vercel | Plan Hobby, gratuito |
 
 No cambies ninguna de estas piezas sin consultarlo con el equipo.
 
@@ -197,7 +197,6 @@ lo pida:
 - Despliegue **sin costo**: backend en **Render** (API y worker en un mismo
   contenedor), base de datos en **Neon**, RabbitMQ en **CloudAMQP** y frontend
   en **Vercel**, todos en su plan gratuito. Reemplazó a Railway el 2026-10-21.
-  El frontend está temporalmente un sitio estático en Render mientras Vercel verifica la cuenta (spec 002, §6.1).
   Justificación en `specs/002-despliegue.md`.
 - **Gemini Flash** para el agente y para los embeddings del RAG, en su capa
   gratuita. Nunca se llama al SDK de Gemini directamente desde un servicio:
