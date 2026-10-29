@@ -5,7 +5,6 @@ No conocen request ni hablan HTTP. Cada escritura registra su auditoría dentro
 de la misma transacción: si algo falla, se revierten las dos.
 """
 
-import re
 from datetime import date
 from decimal import Decimal
 
@@ -14,6 +13,8 @@ from django.forms.models import model_to_dict
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
+from apps.core.exceptions import CiudadFueraDelPais
+from apps.core.normalizacion import normalizar_documento
 from apps.usuarios.enums import NombreRol
 from apps.usuarios.models import Usuario
 
@@ -21,7 +22,6 @@ from .enums import TipoCliente
 from .exceptions import (
     AgenteConClientes,
     AgenteInactivo,
-    CiudadFueraDelPais,
     ClienteDuplicado,
     SinPerfilDeAgente,
     UsuarioNoEsAgente,
@@ -276,15 +276,10 @@ def _bloquear_agente(*, agente_id: int) -> Agente:
     return Agente.objects.select_for_update().get(pk=agente_id)
 
 
-def _normalizar_documento(valor: str) -> str:
-    """Regla 7: sin espacios ni guiones y en mayúsculas. "12 34-k" → "1234K"."""
-    return re.sub(r"[\s-]", "", valor).upper()
-
-
 def _normalizar_documentos(datos: dict) -> None:
     for campo in ("documento_identidad", "nit"):
         if campo in datos:
-            datos[campo] = _normalizar_documento(datos[campo])
+            datos[campo] = normalizar_documento(datos[campo])
 
 
 def _validar_ciudad(*, pais, ciudad) -> None:

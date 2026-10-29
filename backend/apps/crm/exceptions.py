@@ -19,19 +19,6 @@ class ClienteDuplicado(ErrorDominio):
         )
 
 
-class CiudadFueraDelPais(ErrorDominio):
-    """Regla 9: la ciudad indicada pertenece a otro país."""
-
-    codigo = "CIUDAD_FUERA_DEL_PAIS"
-    estado_http = 400
-
-    def __init__(self, *, ciudad: str, pais: str) -> None:
-        super().__init__(
-            f"La ciudad {ciudad} no pertenece a {pais}.",
-            detalles={"ciudad": ciudad, "pais": pais},
-        )
-
-
 class AgenteInactivo(ErrorDominio):
     """Regla 5: a un agente desactivado no se le asignan clientes."""
 

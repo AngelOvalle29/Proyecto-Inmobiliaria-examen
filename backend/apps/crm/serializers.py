@@ -7,6 +7,7 @@ escrita aquí.
 
 from rest_framework import serializers
 
+from apps.core.normalizacion import normalizar_documento
 from apps.core.selectors import listar_ciudades, listar_paises
 from apps.core.serializers import PaisResumenSerializer
 from apps.usuarios.selectors import listar_usuarios_activos
@@ -20,6 +21,10 @@ OBLIGATORIOS_POR_TIPO = {
     TipoCliente.PERSONA: ["nombre", "apellidos", "documento_identidad"],
     TipoCliente.EMPRESA: ["razon_social", "nit"],
 }
+
+
+# Campos que se guardan normalizados (core/normalizacion.py).
+DOCUMENTOS = {"documento_identidad", "nit"}
 
 
 # ---------- Resúmenes (relaciones dentro de otra respuesta) ----------
@@ -161,7 +166,14 @@ class ClienteEntradaSerializer(serializers.Serializer):
         errores = {}
         tipo = valor("tipo")
         for campo in OBLIGATORIOS_POR_TIPO.get(tipo, []):
-            if not str(valor(campo)).strip():
+            # Documento y NIT se revisan ya normalizados: "-" tiene texto, pero
+            # al quitarle los guiones queda vacío. Sin esto llegaría vacío a la
+            # base, el constraint lo rechazaría y la API respondería 500.
+            if campo in DOCUMENTOS:
+                vacio = not normalizar_documento(str(valor(campo)))
+            else:
+                vacio = not str(valor(campo)).strip()
+            if vacio:
                 errores[campo] = [
                     f"Obligatorio para un cliente de tipo {TipoCliente(tipo).label}."
                 ]

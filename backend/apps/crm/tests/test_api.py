@@ -201,6 +201,38 @@ def test_una_persona_sin_documento_responde_400_indicando_el_campo():
     assert "documento_identidad" in error["detalles"]
 
 
+@pytest.mark.parametrize("documento", ["-", " - - "])
+def test_un_documento_solo_de_guiones_responde_400_y_no_500(documento):
+    """Observación de A en #35: al normalizar queda vacío."""
+    respuesta = cliente_http(usuario_con_rol(NombreRol.GERENTE)).post(
+        CLIENTES,
+        datos_persona(
+            documento_identidad=documento, agente_asignado=AgenteFactory().pk
+        ),
+        format="json",
+    )
+
+    assert respuesta.status_code == 400
+    assert "documento_identidad" in respuesta.json()["error"]["detalles"]
+
+
+def test_el_nit_de_una_empresa_solo_de_guiones_responde_400():
+    respuesta = cliente_http(usuario_con_rol(NombreRol.GERENTE)).post(
+        CLIENTES,
+        {
+            "tipo": "EMPRESA",
+            "razon_social": "Empresa Demo, S. A.",
+            "nit": "--",
+            "pais": PaisFactory().pk,
+            "agente_asignado": AgenteFactory().pk,
+        },
+        format="json",
+    )
+
+    assert respuesta.status_code == 400
+    assert "nit" in respuesta.json()["error"]["detalles"]
+
+
 def test_un_documento_repetido_responde_409_con_formato_uniforme():
     existente = ClienteFactory(documento_identidad="1234567890101")
 

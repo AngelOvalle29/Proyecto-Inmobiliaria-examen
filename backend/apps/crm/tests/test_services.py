@@ -7,12 +7,12 @@ import pytest
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.models import LogAuditoria
+from apps.core.exceptions import CiudadFueraDelPais
 from apps.core.tests.factories import CiudadFactory, PaisFactory
 from apps.crm.enums import TipoCliente
 from apps.crm.exceptions import (
     AgenteConClientes,
     AgenteInactivo,
-    CiudadFueraDelPais,
     ClienteDuplicado,
     SinPerfilDeAgente,
     UsuarioNoEsAgente,

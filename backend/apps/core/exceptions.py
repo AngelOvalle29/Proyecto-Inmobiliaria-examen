@@ -43,3 +43,22 @@ class TipoCambioNoDisponible(ErrorDominio):
                 "fecha": fecha.isoformat(),
             },
         )
+
+
+class CiudadFueraDelPais(ErrorDominio):
+    """
+    La ciudad indicada pertenece a otro país.
+
+    Vive en core y no en una app de dominio porque la usan crm, compras y
+    construccion: un cliente, un proveedor o una propiedad en una ciudad que
+    no es de su país.
+    """
+
+    codigo = "CIUDAD_FUERA_DEL_PAIS"
+    estado_http = 400
+
+    def __init__(self, *, ciudad: str, pais: str) -> None:
+        super().__init__(
+            f"La ciudad {ciudad} no pertenece a {pais}.",
+            detalles={"ciudad": ciudad, "pais": pais},
+        )
