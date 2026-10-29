@@ -172,7 +172,7 @@ días recortando **alcance y proceso, no puntos de la rúbrica**
 
 | Día | A · Douglas | B · Marco | C · Angel | D · Nathaly |
 |---|---|---|---|---|
-| **Mié 28** | Despliegue en producción (spec 002) · spec 003 de catálogo | Implementar CRM (spec 004 aprobada) | Specs de IA y de compras · llave de Gemini | **Confirmar fechas** con el catedrático · specs de reportes y mensajería |
+| **Mié 28** | Despliegue en producción (spec 002) · spec 003 de catálogo | Implementar CRM (spec 004 aprobada) | Specs de IA y de compras · llave de Gemini | Specs de reportes y mensajería · revisar Celery en el PR del despliegue |
 | **Jue 29** | `TipoPropiedad`, `Propiedad` y `Unidad` en `develop` · base del frontend | CRM terminado | `Proveedor` y `Constructora` · ingesta del RAG | Capa genérica de reportes · bitácora del agente |
 | **Vie 30** | Avalúos y documentos oficiales | Cotizaciones y ventas | Contratos de compra y proyectos | Flujo de ingesta en Celery · 5 reportes |
 | **Sáb 31** | Pantallas genéricas y las del catálogo | Arrendamientos | Herramientas del agente sobre los selectores | 5 reportes · vistas del esquema `bi` |
@@ -186,8 +186,9 @@ días recortando **alcance y proceso, no puntos de la rúbrica**
   semana por una revisión. Con este calendario, una espera así lo hace fallar.
 - **El bloque de C.** La IA vale 2 puntos y empieza el 28. Si se atrasa, A
   apoya primero ahí.
-- **La fecha real de entrega.** Si el catedrático confirma una fecha anterior
-  al 3 de noviembre, se recorta primero la columna "Solo si sobra tiempo".
+- **La fecha de cierre.** El equipo decidió no confirmar las fechas con el
+  catedrático y trabajar con el 3 de noviembre como cierre. Si hiciera falta
+  terminar antes, se recorta primero la columna "Solo si sobra tiempo".
 
 ---
 
@@ -327,7 +328,8 @@ tengan sentido.
 ## Antes de empezar
 
 1. Confirmar con el catedrático que el dominio no está tomado.
-2. Confirmar fechas de entrega y de defensa.
+2. ~~Confirmar fechas de entrega y de defensa.~~ Descartado por el equipo
+   el 2026-10-28: se trabaja con el 3 de noviembre como cierre.
 3. Confirmar con el catedrático que el frontend puede usar TypeScript. La
    restricción del enunciado aplica a la API, pero conviene dejarlo por escrito.
 4. Asignar nombres reales a A, B, C y D.
