@@ -146,6 +146,11 @@ resultados.
   (*Blueprint*): servicio, plan, región, ruta de salud y nombres de las
   variables. Los valores secretos no van ahí: se marcan para cargarlos en el
   panel. Así la configuración se revisa en un pull request como el código.
+- *Corregido en el primer despliegue:* con `rootDir: backend`, Render resuelve
+  `dockerfilePath` y `dockerContext` **relativas a `backend/`**, aunque su
+  documentación dice que son relativas a la raíz. Con `./backend` buscaba
+  `backend/backend` y la construcción fallaba; las rutas correctas son
+  `./Dockerfile` y `.`.
 
 **Neon:** un proyecto con su base. `DATABASE_URL` usa la cadena de **conexión
 directa** (no la del *pooler*) con `sslmode=require`.
@@ -161,8 +166,8 @@ directa** (no la del *pooler*) con `sslmode=require`.
 | `DATABASE_URL` | Cadena de conexión directa de Neon |
 | `RABBITMQ_URL` | URL de CloudAMQP |
 | `ALLOWED_HOSTS` | Vacía salvo que se agregue un dominio propio (`prod.py` agrega `RENDER_EXTERNAL_HOSTNAME`) |
-| `CORS_ALLOWED_ORIGINS` | `https://<proyecto>.vercel.app` |
-| `NUM_PROXIES` | `1` (spec 001, §6). Se comprueba en producción (§8) |
+| `CORS_ALLOWED_ORIGINS` | `https://proyecto-inmobiliaria-chi.vercel.app`, sin barra final |
+| `NUM_PROXIES` | `3`: Cloudflare, el borde de Render y un proxy interno. Medido en producción (§8) |
 | `DJANGO_SUPERUSER_EMAIL`, `DJANGO_SUPERUSER_NOMBRE_COMPLETO`, `DJANGO_SUPERUSER_PASSWORD` | Datos del administrador inicial (§5.8). La contraseña la elige A y solo existe en el panel de Render |
 | `CARGAR_DATOS_DEMO` | `true` para que el arranque corra `seed_demo` (§5.8) |
 
@@ -361,6 +366,45 @@ del frontend, con su propia spec.
 El plan Hobby es gratuito y está restringido a uso personal y no comercial, lo
 cual un proyecto académico cumple.
 
+### 6.1 Mientras tanto: sitio estático en Render
+
+*Agregado el 2026-10-28.* Al crear la cuenta, Vercel la marcó para una
+verificación manual ("Your account requires further verification"), que puede
+tardar días. Mientras se resuelve, el frontend se publica como **sitio
+estático gratuito de Render**, definido en el mismo `render.yaml`
+(`inmobiliaria-web`):
+
+- Se construye con `cd frontend && npm ci && npm run build` y publica
+  `./frontend/dist`. **No usa `rootDir`**: con `rootDir`, Render resolvió las
+  rutas de la API relativas a `backend/` aunque su documentación dice que son
+  relativas a la raíz (§5.1). Escribiendo la ruta completa desde la raíz, la
+  configuración es correcta con cualquiera de las dos reglas.
+- `NODE_VERSION=24`, porque Vite 8 necesita Node 20.19 o superior.
+- `VITE_API_URL` se carga en el panel, porque depende del nombre que Render le
+  dio a la API.
+- Los sitios estáticos de Render **no se duermen**: solo la API lo hace.
+- La regla de reescritura de `/*` a `/index.html`, que necesitará el enrutador
+  de React, se agrega con la base del frontend (#15). Hoy hay una sola página.
+
+Cuando Vercel habilite la cuenta, se decide si volver a Vercel o quedarse en
+Render. Mientras tanto, `CORS_ALLOWED_ORIGINS` apunta al sitio estático.
+
+**Cerrado el 2026-10-29: el frontend volvió a Vercel**, como estaba decidido.
+Vercel habilitó la cuenta, y el sitio estático nunca llegó a crearse en Render:
+se quitó de `render.yaml` antes de que la configuración llegara a `main`.
+Vercel además da una vista previa por pull request, que Render no da. Lo que se
+aprendió al configurarlo:
+
+- **Rama de producción:** Vercel toma la rama por defecto del repositorio, que
+  es `develop`. Se cambia a `main` en *Settings → Git → Production Branch*, para
+  que producción solo publique lo que pasó por el PR de `develop` a `main`.
+- **`VITE_API_URL` como tipo *Config*, no *Secret*:** Vercel no acepta como
+  secreta una variable con el prefijo `VITE_`, porque de todos modos queda
+  visible en el código que descarga el navegador. Debe terminar en `/api/v1`.
+- **Las vistas previas no llegan a la API:** cada una tiene su propia URL, que
+  no está en `CORS_ALLOWED_ORIGINS`. Sirven para revisar cómo se ven las
+  pantallas.
+
 ## 7. Integración continua y verificación
 
 Flujo en `.github/workflows/ci.yml`, ejecutado en cada pull request y cada push
@@ -389,39 +433,42 @@ fusiona.
 ## 8. Criterios de aceptación
 
 **Antes de desplegar (local)**
-- [ ] La imagen del `Dockerfile` se construye sin variables de entorno reales
-- [ ] El contenedor arranca con settings de producción: aplica las migraciones,
+- [x] La imagen del `Dockerfile` se construye sin variables de entorno reales
+- [x] El contenedor arranca con settings de producción: aplica las migraciones,
       crea el administrador inicial, carga los datos de demostración, levanta el
       worker y `/api/v1/health/` responde 200
-- [ ] Arrancar el contenedor dos veces no duplica el administrador ni los datos
-- [ ] `pytest` pasa completo con Python 3.12, dentro de un contenedor
-- [ ] El panel de Django se ve con sus estilos sirviendo desde WhiteNoise
-- [ ] El worker del contenedor se conecta a RabbitMQ y ejecuta la tarea de
+- [x] Arrancar el contenedor dos veces no duplica el administrador ni los datos
+- [x] `pytest` pasa completo con Python 3.12, dentro de un contenedor
+- [x] El panel de Django se ve con sus estilos sirviendo desde WhiteNoise
+- [x] El worker del contenedor se conecta a RabbitMQ y ejecuta la tarea de
       diagnóstico
-- [ ] La extensión `vector` queda habilitada después de `migrate`
-- [ ] `npm run lint`, `npm run typecheck` y `npm run build` pasan en `frontend/`
-- [ ] El frontend local muestra el estado de la API local
+- [x] La extensión `vector` queda habilitada después de `migrate`
+- [x] `npm run lint`, `npm run typecheck` y `npm run build` pasan en `frontend/`
+- [x] El frontend local muestra el estado de la API local
 
 **En producción**
-- [ ] `https://<servicio>.onrender.com/api/v1/health/` responde 200
-- [ ] El servicio pasa la verificación de salud de Render en cada despliegue
-- [ ] `https://<proyecto>.vercel.app` carga el frontend y muestra el estado de
+- [x] `https://<servicio>.onrender.com/api/v1/health/` responde 200
+- [x] El servicio pasa la verificación de salud de Render en cada despliegue
+- [x] `https://<proyecto>.vercel.app` carga el frontend y muestra el estado de
       la API, sin errores de CORS
-- [ ] Con la API dormida, el frontend avisa que el servidor está despertando y
+- [x] Con la API dormida, el frontend avisa que el servidor está despertando y
       después muestra el estado
-- [ ] `/api/docs/` y el panel de Django son accesibles y se ven con estilos
-- [ ] El administrador inicial puede entrar al panel y hacer login en la API
-- [ ] El worker ejecuta la tarea de diagnóstico encolada desde producción
-- [ ] La extensión `vector` está habilitada en la base de Neon
-- [ ] La IP que registra la bitácora en un login de producción es la IP pública
-      real de quien inició sesión (confirma `NUM_PROXIES=1`)
-- [ ] Las migraciones corren automáticamente en cada despliegue
+- [x] `/api/docs/` y el panel de Django son accesibles y se ven con estilos
+- [x] El administrador inicial puede entrar al panel y hacer login en la API
+- [x] El worker ejecuta la tarea de diagnóstico encolada desde producción
+- [x] La extensión `vector` está habilitada en la base de Neon (0.8.0)
+- [x] La IP que registra la bitácora en un login de producción es la IP pública
+      real de quien inició sesión (confirmado con `NUM_PROXIES=3`)
+- [x] Las migraciones corren automáticamente en cada despliegue
 - [ ] `DEBUG` es `False` y un error 500 no muestra trazas al cliente, pero sí
-      queda en los registros de Render
+      queda en los registros de Render. *Comprobado a medias el 2026-10-29:*
+      una ruta inexistente responde la página 404 genérica, sin la lista de
+      rutas, así que `DEBUG` es `False`. El error 500 queda por probar: hoy
+      ningún endpoint falla a propósito
 - [ ] Una fusión de `develop` en `main` despliega automáticamente en Render y
       en Vercel
-- [ ] Todos los servicios están en su plan gratuito
-- [ ] No hay ninguna credencial en el repositorio
+- [x] Todos los servicios están en su plan gratuito
+- [x] No hay ninguna credencial en el repositorio
 
 **Integración continua**
 - [ ] GitHub Actions se ejecuta en cada pull request. *Depende de resolver el
@@ -546,6 +593,22 @@ incrementos que dependen del proveedor (4, 7 y 8).
    CloudAMQP y Vercel, guiada paso a paso; la hace A en los paneles (§5.1)
 8. Primera fusión de `develop` en `main`, verificación de los criterios en
    producción y documentación del despliegue en el README
+
+**Sesión 2026-10-29, verificación en producción (Claude Code, rol A).** A hizo
+las pruebas que necesitan sus credenciales; el agente revisó desde el
+navegador el frontend, la documentación y los estilos del panel. Dos hallazgos:
+
+- **`NUM_PROXIES` no era 1.** Con 1, la bitácora registraba una IP interna de
+  Render (`10.x`), y el límite de intentos de login habría contado a todos los
+  usuarios como uno solo. Con 2 registraba una IP de Cloudflare. Con **3**
+  coincide con la IP pública real. Se subió de uno en uno a propósito: un
+  valor mayor que el real haría tomar el primer valor de `X-Forwarded-For`, que
+  cualquier cliente puede inventar.
+- **Guardar una variable en el panel de Render vuelve a desplegar desde
+  `main`.** Como `main` todavía tenía las rutas viejas del `Dockerfile` (§5.1),
+  el despliegue falló. Se corrigieron las rutas en el panel, con los mismos
+  valores de DouGMV/Proyecto-Inmobiliaria#30, hasta que ese cambio llegue a
+  `main`.
 
 Por completar durante la implementación: qué se generó con el agente, qué se
 corrigió a mano y qué se descartó en cada incremento.

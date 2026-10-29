@@ -88,3 +88,23 @@ def test_el_comando_seed_demo_muestra_el_resumen():
 
     assert "Datos de demostración cargados." in salida.getvalue()
     assert "monedas: 5 nuevos" in salida.getvalue()
+
+
+def test_seed_demo_llama_a_los_comandos_de_las_apps_por_nombre():
+    salida = StringIO()
+
+    call_command("seed_demo", stdout=salida)
+
+    assert "Catálogo de demostración cargado." in salida.getvalue()
+
+
+def test_seed_demo_omite_un_comando_que_todavia_no_existe(monkeypatch):
+    monkeypatch.setattr(
+        "apps.core.management.commands.seed_demo.COMANDOS_DE_DEMO",
+        ["cargar_demo_inexistente"],
+    )
+    salida = StringIO()
+
+    call_command("seed_demo", stdout=salida)
+
+    assert "Se omite cargar_demo_inexistente" in salida.getvalue()

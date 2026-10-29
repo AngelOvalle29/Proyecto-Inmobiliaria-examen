@@ -37,7 +37,7 @@ Gasolinera) · `descripcion` · `requiere_unidades` (bool) · `activo`
 `id` · `codigo` (único, generado) · `nombre` · `tipo` (FK) · `ciudad` (FK) ·
 `direccion` · `latitud` · `longitud` · `area_m2` · `area_construida_m2` ·
 `estado` (enum) · `precio_lista` · `moneda` (FK) · `es_publica` (bool) ·
-`descripcion` · `fecha_registro` · `activo`
+`descripcion` · `activo` (sin `fecha_registro`: lo cubre `creado_en`, spec 003)
 
 **Estados:** `EN_NEGOCIACION`, `ADQUIRIDA`, `EN_CONSTRUCCION`, `DISPONIBLE`,
 `RESERVADA`, `VENDIDA`, `ARRENDADA`, `BAJA`.
