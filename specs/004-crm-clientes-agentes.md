@@ -7,9 +7,9 @@
 | **Autor** | Marco André Bolaños Rojas (rol B) |
 | **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-21 |
-| **Apps afectadas** | `crm` (incluido su comando `cargar_demo_crm`), `usuarios` (permiso por rol) |
+| **Apps afectadas** | `crm` (incluido su comando `cargar_demo_crm`), `usuarios` (permiso por rol, `listar_usuarios_activos`, `asegurar_usuario_demo`), `core` (`normalizar_documento`, `CiudadFueraDelPais`) |
 | **Rama** | `feature/004-crm-clientes-agentes` |
-| **Pull request** | — |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#35 |
 
 ---
 
@@ -46,7 +46,9 @@ las specs siguientes lo reutilizan.
   en una spec posterior del rol B.
 - Alta y edición de usuarios vía API: los usuarios se siguen creando desde el
   panel de Django (spec 001, §7).
-- Reactivar un cliente o un agente desactivado vía API: se hace desde el panel.
+- Reactivar un cliente o un agente desactivado: queda para una spec
+  posterior, con su propio servicio auditado. El panel de Django es de solo
+  lectura para `crm` (§10).
 - Comisiones calculadas: el porcentaje se guarda aquí, el cálculo llega con
   ventas.
 
@@ -364,47 +366,51 @@ Reasignar un cliente a su mismo agente no registra nada (regla 8).
 
 ## 8. Criterios de aceptación
 
+*Verificados el 2026-10-29 con las pruebas de `apps/crm/tests/` y una prueba
+de punta a punta con login JWT real (§11); los dos de datos de demostración, el
+mismo día con el incremento 8.*
+
 **Agentes**
-- [ ] Un administrador o gerente crea el perfil de agente de un usuario con rol
+- [x] Un administrador o gerente crea el perfil de agente de un usuario con rol
       `AGENTE`, y el sistema le asigna el código `AGT-NNN`
-- [ ] Crear un agente para un usuario sin rol `AGENTE` devuelve 400
+- [x] Crear un agente para un usuario sin rol `AGENTE` devuelve 400
       `USUARIO_NO_ES_AGENTE`
-- [ ] Un agente con clientes activos no se puede desactivar (409
+- [x] Un agente con clientes activos no se puede desactivar (409
       `AGENTE_CON_CLIENTES`)
-- [ ] Un agente, contabilidad o consulta que intenta crear o editar un agente
+- [x] Un agente, contabilidad o consulta que intenta crear o editar un agente
       recibe 403
 
 **Clientes**
-- [ ] Un agente crea un cliente y queda asignado a él, aunque envíe otro agente
-- [ ] Un agente lista solo sus clientes, y el detalle de un cliente ajeno
+- [x] Un agente crea un cliente y queda asignado a él, aunque envíe otro agente
+- [x] Un agente lista solo sus clientes, y el detalle de un cliente ajeno
       devuelve 404
-- [ ] Contabilidad y consulta listan todos los clientes, y reciben 403 al
+- [x] Contabilidad y consulta listan todos los clientes, y reciben 403 al
       intentar escribir
-- [ ] Una persona sin documento de identidad, o una empresa sin NIT, devuelve
+- [x] Una persona sin documento de identidad, o una empresa sin NIT, devuelve
       400 indicando el campo
-- [ ] Un documento o NIT repetido en el mismo país devuelve 409
+- [x] Un documento o NIT repetido en el mismo país devuelve 409
       `CLIENTE_DUPLICADO`; en otro país se acepta
-- [ ] El mismo documento escrito con espacios, guiones o minúsculas también
+- [x] El mismo documento escrito con espacios, guiones o minúsculas también
       devuelve 409 `CLIENTE_DUPLICADO`
-- [ ] Una ciudad de otro país devuelve 400 `CIUDAD_FUERA_DEL_PAIS`
-- [ ] Solo administrador y gerente reasignan, y no a un agente desactivado
-- [ ] Reasignar a su mismo agente responde 200 sin cambios y sin registro de
+- [x] Una ciudad de otro país devuelve 400 `CIUDAD_FUERA_DEL_PAIS`
+- [x] Solo administrador y gerente reasignan, y no a un agente desactivado
+- [x] Reasignar a su mismo agente responde 200 sin cambios y sin registro de
       auditoría
-- [ ] Un usuario con rol `AGENTE` sin perfil lista cero clientes y recibe 403
+- [x] Un usuario con rol `AGENTE` sin perfil lista cero clientes y recibe 403
       `SIN_PERFIL_DE_AGENTE` al crear uno
-- [ ] Los filtros y la búsqueda devuelven solo lo que corresponde, paginado de
+- [x] Los filtros y la búsqueda devuelven solo lo que corresponde, paginado de
       25 en 25
 
 **Transversales**
-- [ ] Toda escritura deja su registro de auditoría con valores anteriores y
+- [x] Toda escritura deja su registro de auditoría con valores anteriores y
       nuevos
-- [ ] Los registros nunca se borran físicamente: desactivar marca `activo` en
+- [x] Los registros nunca se borran físicamente: desactivar marca `activo` en
       falso
-- [ ] `cargar_demo_crm` (y `seed_demo`, que lo invoca) carga agentes y clientes
+- [x] `cargar_demo_crm` (y `seed_demo`, que lo invoca) carga agentes y clientes
       ficticios, sin duplicar al correrlo dos veces
-- [ ] Sin `DEMO_AGENTES_PASSWORD`, los agentes de demostración no pueden
+- [x] Sin `DEMO_AGENTES_PASSWORD`, los agentes de demostración no pueden
       iniciar sesión; con ella, sí. No hay ninguna contraseña en el repositorio
-- [ ] `ruff`, `pytest` y `makemigrations --check` pasan
+- [x] `ruff`, `pytest` y `makemigrations --check` pasan
 
 ## 9. Pruebas
 
@@ -491,6 +497,14 @@ complicaría todos los reportes por agente).
 Tiene permisos distintos (solo gerente y administrador) y es una operación de
 negocio con nombre propio en la bitácora. Si fuera un campo más del PATCH, la
 vista tendría que revisar campo por campo quién puede cambiar qué.
+
+**El panel de Django es de solo lectura para `crm`.** El panel no pasa por
+los servicios: si permitiera crear o editar, saltaría el código generado,
+la normalización del documento, la cartera y la auditoría (`CLAUDE.md` §8).
+La primera versión de esta spec dejaba la reactivación en el panel; se
+cambió al implementar el incremento 2, porque habría sido una escritura sin
+bitácora. A diferencia de los catálogos de `core` (spec 001, §7), aquí no se
+justifica una excepción: los datos son de clientes, con datos personales.
 
 **`DELETE` es un borrado lógico.** Cumple la regla transversal de borrado
 lógico de `CLAUDE.md` §7 y conserva los verbos estándar de REST. Se registra
@@ -581,5 +595,56 @@ en el repositorio. Se aplicaron los dos.
 8. Comando `cargar_demo_crm` con los datos de demostración
 9. Cierre: verificación de criterios y esta sección
 
-Por completar durante la implementación: qué se generó con el agente, qué se
-corrigió a mano y qué se descartó en cada incremento.
+**Implementación, 2026-10-28 y 29 (Claude Code, rol B).** El agente escribió el
+código de cada incremento con sus pruebas, y B lo revisó al cerrar cada uno.
+Por el plan de una semana (#28), los incrementos 3 a 5 y 6 y 7 fueron un commit
+cada pareja.
+
+- **Incremento 1 (`TieneRol`).** Sin cambios respecto de la spec. A copió los
+  mismos dos archivos en #34; al ser idénticos, no chocan.
+- **Incremento 2 (modelos).** La spec decía que la reactivación se hacía desde
+  el panel. Al implementar se vio que el panel no pasa por los servicios: se
+  saltaría la auditoría, el código y la normalización. El panel quedó de solo
+  lectura y se corrigió la spec (§2 y §10).
+- **Incrementos 3 a 5 (servicios y selectores).** Un filtro de campos editables
+  en `actualizar_cliente` estaba mal escrito y dejaba pasar cualquier campo; se
+  corrigió antes de correr las pruebas, y una prueba confirma que el agente y
+  el código no cambian al editar.
+- **Incrementos 6 y 7 (API).** `drf-spectacular` advertía al generar el esquema,
+  porque llama a la vista sin usuario y el selector de cartera necesita su rol.
+  Se resolvió con `swagger_fake_view`, como indica su documentación. Para
+  validar los ids recibidos sin consultar modelos desde el serializador se
+  agregaron dos selectores: `consultar_agentes_asignables` en `crm` y
+  `listar_usuarios_activos` en `usuarios` (área de A, marcado en el PR).
+- **Cierre (incremento 9).** Al verificar §8 criterio por criterio, tres solo
+  estaban probados en el servicio y no en la API (usuario sin rol `AGENTE`,
+  ciudad de otro país y reasignar al mismo agente); se agregaron las tres
+  pruebas de API. Resultado: 209 pruebas, cobertura de `crm` del 98 % (99 % en
+  servicios), esquema OpenAPI sin advertencias.
+
+**Prueba de punta a punta (2026-10-29),** con `runserver`, usuarios ficticios y
+login JWT real: un agente crea un cliente enviando otro agente y queda
+asignado a sí mismo (201, `CLI-00002`, `AGT-001`); el mismo documento con guion
+y espacio da 409 `CLIENTE_DUPLICADO`; otro agente recibe 404 al pedirlo; el
+agente recibe 403 al reasignar; sin token, 401; desactivar al agente con
+cartera da 409 `AGENTE_CON_CLIENTES` con `clientes_activos: 2`; el gerente
+reasigna (200) y desactiva (204), y el cliente deja de verse (404). La
+bitácora registró cada escritura con su usuario e IP.
+
+**Revisión de A del PR (#35) y cierre, 2026-10-29.**
+- A encontró que un documento o NIT formado solo por guiones (`"-"`) pasaba el
+  serializador, quedaba vacío al normalizarse y la API respondía **500**. El
+  serializador ahora revisa el valor ya normalizado y responde 400 con el
+  campo. Es un error que las pruebas no cubrían: se agregaron tres casos.
+- Con su visto bueno, `normalizar_documento` pasó a `core/normalizacion.py` y
+  `CiudadFueraDelPais` a `core/exceptions.py`, para que `compras` y
+  `construccion` (spec 006, rol C) las usen sin depender de `crm`. `core` sigue
+  sin importar ninguna app.
+- **Incremento 8:** `cargar_demo_crm` carga 3 agentes y 10 clientes ficticios,
+  sin duplicar, y `seed_demo` lo llama por nombre desde #34. Los usuarios de los
+  agentes los crea `asegurar_usuario_demo` en `usuarios/services.py` (área de
+  A), para que `crm` no use el modelo de otra app; con `password=None`, Django
+  deja la contraseña inutilizable.
+- Resultado final: 302 pruebas del proyecto, esquema OpenAPI sin advertencias.
+
+**Pendiente:** lo que B revisó y corrigió a mano, que escribe B.

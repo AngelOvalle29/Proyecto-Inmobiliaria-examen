@@ -3,6 +3,8 @@
 Nunca escriben en la base de datos.
 """
 
+from django.db.models import QuerySet
+
 from .models import Usuario
 
 
@@ -32,3 +34,13 @@ def existe_superusuario() -> bool:
     sola vez (spec 002, §5.8): si ya existe alguno, no se crea otro.
     """
     return Usuario.objects.filter(is_superuser=True).exists()
+
+
+def listar_usuarios_activos() -> QuerySet[Usuario]:
+    """
+    Usuarios que pueden iniciar sesión (is_active es su borrado lógico).
+
+    Lo usan otras apps para validar que un id de usuario recibido en la API
+    exista, por ejemplo al crear el perfil de agente (spec 004).
+    """
+    return Usuario.objects.filter(is_active=True).select_related("rol")
