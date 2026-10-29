@@ -1,14 +1,14 @@
-# 005 · Cotizaciones y ventas
+# 007 · Cotizaciones y ventas
 
 | Campo | Valor |
 |---|---|
-| **Número** | 005 |
+| **Número** | 007 |
 | **Estado** | En revisión |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
 | **Revisor** | Por asignar |
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `crm` (cotizaciones), `ventas`; pide a `catalogo` un servicio para el estado de las unidades (§6) |
-| **Rama** | `feature/005-cotizaciones-ventas` |
+| **Rama** | `feature/007-cotizaciones-ventas` |
 | **Pull request** | — |
 | **Issues** | #17, #18 |
 
@@ -310,3 +310,7 @@ unidades y lo dejó como pedido a A (§6).
 **Plan de implementación:** (1) `Cotizacion` con su flujo y API; (2)
 `calcular_cuotas` y modelos de `ventas`; (3) firma y anulación; (4) pagos y
 mora; (5) API de ventas y datos de demostración.
+
+**Renumeración, 2026-10-29.** Esta spec se propuso como 005, pero ese número
+lo tomó la spec del agente de IA (#36), fusionada antes. Pasa a 007, y la de
+arrendamientos a 008, para dejar el 006 a proveedores y constructoras (#39).
