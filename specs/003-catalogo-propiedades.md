@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 003 |
-| **Estado** | Aprobada, en implementación |
+| **Estado** | Implementada, en revisión |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-28 |
@@ -177,7 +177,7 @@ def crear_tipo_propiedad(...) / actualizar_tipo_propiedad(...) / desactivar_tipo
 # catalogo/selectors.py
 def listar_propiedades() -> QuerySet[Propiedad]          # activas, con tipo, ciudad, país y moneda
 def obtener_propiedad(*, propiedad_id: int) -> Propiedad
-def listar_unidades(*, propiedad: Propiedad) -> QuerySet[Unidad]
+def listar_unidades(*, propiedad: Propiedad | None = None) -> QuerySet[Unidad]
 def listar_propiedades_publicas() -> QuerySet[Propiedad] # para el agente de IA (rol C)
 def listar_tipos_propiedad() -> QuerySet[TipoPropiedad]
 ```
@@ -195,19 +195,19 @@ como en la spec 004. **Cambiar de estado:** `ACTUALIZAR` con
 
 ## 8. Criterios de aceptación
 
-- [ ] Los siete tipos de propiedad existen después de `migrate`
-- [ ] Un administrador o gerente crea una propiedad y recibe `PROP-NNNNN`
-- [ ] Agente, contabilidad y consulta leen propiedades y reciben 403 al escribir
-- [ ] La base rechaza precios y áreas menores o iguales a cero
-- [ ] Agregar una unidad a una casa devuelve 409 `TIPO_SIN_UNIDADES`
-- [ ] Dos unidades con el mismo código en la misma propiedad: 409 `UNIDAD_DUPLICADA`
-- [ ] Desactivar una propiedad con unidades activas: 409 `PROPIEDAD_CON_UNIDADES`
-- [ ] `PATCH` no cambia el estado; `/cambiar-estado/` sí, y lo audita con su motivo
-- [ ] Los filtros y la búsqueda devuelven solo lo que corresponde, paginado
-- [ ] El listado de propiedades no hace una consulta por propiedad (N+1)
-- [ ] Toda escritura queda en la bitácora
-- [ ] `cargar_demo_catalogo` carga propiedades y unidades ficticias sin duplicar
-- [ ] `ruff`, `pytest` y `makemigrations --check` pasan
+- [x] Los siete tipos de propiedad existen después de `migrate`
+- [x] Un administrador o gerente crea una propiedad y recibe `PROP-NNNNN`
+- [x] Agente, contabilidad y consulta leen propiedades y reciben 403 al escribir
+- [x] La base rechaza precios y áreas menores o iguales a cero
+- [x] Agregar una unidad a una casa devuelve 409 `TIPO_SIN_UNIDADES`
+- [x] Dos unidades con el mismo código en la misma propiedad: 409 `UNIDAD_DUPLICADA`
+- [x] Desactivar una propiedad con unidades activas: 409 `PROPIEDAD_CON_UNIDADES`
+- [x] `PATCH` no cambia el estado; `/cambiar-estado/` sí, y lo audita con su motivo
+- [x] Los filtros y la búsqueda devuelven solo lo que corresponde, paginado
+- [x] El listado de propiedades no hace una consulta por propiedad (N+1)
+- [x] Toda escritura queda en la bitácora
+- [x] `cargar_demo_catalogo` carga propiedades y unidades ficticias sin duplicar
+- [x] `ruff`, `pytest` y `makemigrations --check` pasan
 
 ## 9. Pruebas
 
@@ -248,7 +248,27 @@ mismo patrón y misma razón que la spec 004.
 reducido del plan de una semana: solo lo que desbloquea a B y C.
 
 **Plan de implementación:**
-1. Modelos, constraints, migración de los tipos y panel
-2. Servicios (incluido `cambiar_estado_propiedad`) y selectores, con auditoría
-3. API, filtros y permisos
-4. `cargar_demo_catalogo` y cierre
+1. Modelos, constraints, migración de los tipos y panel ✅
+2. Servicios (incluido `cambiar_estado_propiedad`) y selectores, con auditoría ✅
+3. API, filtros y permisos ✅
+4. `cargar_demo_catalogo` y cierre ✅
+
+**Sesión 2026-10-28, implementación (Claude Code, rol A).** Lo que se descubrió
+o se decidió al implementar:
+
+- `listar_unidades` acepta `propiedad` opcional: `/unidades/{id}/` necesita
+  todas las unidades activas, no solo las de una propiedad. Se agregaron
+  `existe_unidad` y `contar_unidades_activas` para que los servicios no
+  consulten los modelos directamente.
+- El duplicado de código de unidad cuenta también las desactivadas, porque la
+  restricción única de la base las incluye.
+- Las relaciones se leen como resumen (`tipo: {id, nombre}`) y se escriben con
+  su id (`tipo_id`), que solo acepta tipos, ciudades y monedas activos.
+- Un `PUT` responde 403 y no 405: DRF revisa los permisos antes que el método,
+  y `TieneRol` cierra todo método de escritura no declarado.
+- Desactivar un tipo de propiedad no afecta a las propiedades que ya lo usan;
+  la spec no pedía otra cosa.
+- `TieneRol` se implementó aquí en `usuarios/permissions.py`, tal como lo
+  define la spec 004, para que CRM lo reutilice.
+- `seed_demo` llama a los comandos de demostración de cada app por nombre y
+  omite los que aún no existen (DouGMV/Proyecto-Inmobiliaria#13).

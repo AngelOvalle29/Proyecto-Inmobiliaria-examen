@@ -10,11 +10,17 @@ from django.forms.models import model_to_dict
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
+from apps.core.selectors import listar_ciudades, listar_monedas
 
+from . import datos_demo
 from .enums import EstadoPropiedad
 from .exceptions import PropiedadConUnidades, TipoSinUnidades, UnidadDuplicada
 from .models import Propiedad, TipoPropiedad, Unidad
-from .selectors import contar_unidades_activas, existe_unidad
+from .selectors import (
+    contar_unidades_activas,
+    existe_unidad,
+    listar_tipos_propiedad,
+)
 
 # Campos que se pueden editar. Quedan fuera codigo (lo genera el sistema),
 # estado (solo cambia por cambiar_estado_propiedad, regla 7), activo (solo
@@ -343,3 +349,72 @@ def desactivar_unidad(
 ) -> None:
     """Borrado lógico de la unidad."""
     _desactivar(unidad, autor=autor, ip=ip)
+
+
+# --- Datos de demostración --------------------------------------------------
+
+
+@transaction.atomic
+def cargar_demo_catalogo() -> dict[str, int]:
+    """
+    Carga las propiedades y unidades ficticias de datos_demo.py y devuelve
+    cuántas creó de cada una.
+
+    Es idempotente, como cargar_catalogos_demo de core: busca cada propiedad
+    por su nombre y cada unidad por su código, y solo crea lo que falta. Nunca
+    modifica lo que ya existe, así que correrlo en cada arranque (spec 002,
+    §5.8) no duplica nada ni deshace cambios hechos desde la API.
+
+    Necesita las ciudades y monedas de demostración de core; seed_demo las
+    carga antes.
+
+    Asigna el estado directamente y no con cambiar_estado_propiedad, y no
+    registra auditoría (spec 003, §7): es la foto inicial de la demostración,
+    no una operación del negocio.
+    """
+    creados = {"propiedades": 0, "unidades": 0}
+
+    for datos in datos_demo.PROPIEDADES:
+        codigo_pais, nombre_ciudad = datos["ciudad"]
+        propiedad, creada = Propiedad.objects.get_or_create(
+            nombre=datos["nombre"],
+            defaults={
+                "tipo": listar_tipos_propiedad().get(nombre=datos["tipo"]),
+                "ciudad": listar_ciudades().get(
+                    pais__codigo_iso=codigo_pais, nombre=nombre_ciudad
+                ),
+                "direccion": datos["direccion"],
+                "area_m2": datos["area_m2"],
+                "area_construida_m2": datos["area_construida_m2"],
+                "precio_lista": datos["precio_lista"],
+                "moneda": listar_monedas().get(codigo=datos["moneda"]),
+                "estado": datos["estado"],
+                "es_publica": datos["es_publica"],
+                "descripcion": datos["descripcion"],
+            },
+        )
+        if creada:
+            # Mismo formato que crear_propiedad (regla 3).
+            propiedad.codigo = f"PROP-{propiedad.pk:05d}"
+            propiedad.save(update_fields=["codigo"])
+            creados["propiedades"] += 1
+
+        unidades = datos_demo.UNIDADES.get(datos["nombre"], [])
+        for codigo, nivel, area, habitaciones, banos, precio, estado in unidades:
+            _, creada = Unidad.objects.get_or_create(
+                propiedad=propiedad,
+                codigo=codigo,
+                defaults={
+                    "nivel": nivel,
+                    "area_m2": area,
+                    "habitaciones": habitaciones,
+                    "banos": banos,
+                    "precio_lista": precio,
+                    "moneda": propiedad.moneda,
+                    "estado": estado,
+                },
+            )
+            if creada:
+                creados["unidades"] += 1
+
+    return creados
