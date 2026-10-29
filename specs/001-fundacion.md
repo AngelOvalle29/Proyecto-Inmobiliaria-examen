@@ -301,7 +301,8 @@ La IP del cliente se obtiene en la capa HTTP (`apps/core/http.py`) y el
 servicio la recibe ya resuelta, sin conocer `request`. Con `NUM_PROXIES=0`
 (desarrollo) se usa `REMOTE_ADDR` y se ignora `X-Forwarded-For`. Con
 `NUM_PROXIES=1` (producción, spec 002) se toma el último valor de `X-Forwarded-For`, el que
-agregó el proxy propio.
+agregó el proxy propio. *Actualizado el 2026-10-29:* en Render resultaron ser
+tres proxies y el valor de producción es `NUM_PROXIES=3` (spec 002, §8).
 
 *Corrección durante la implementación:* el borrador decía "primer valor de
 `X-Forwarded-For`". Ese valor lo escribe el cliente y se puede falsificar: un

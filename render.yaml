@@ -29,8 +29,11 @@ services:
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.prod
+      # Proxies delante de Django: Cloudflare, el borde de Render y un proxy
+      # interno de Render. Se midió en producción: con 1 la bitácora guardaba
+      # una IP interna (10.x) y con 2 una de Cloudflare (spec 002, §8).
       - key: NUM_PROXIES
-        value: "1"
+        value: "3"
       - key: CARGAR_DATOS_DEMO
         value: "true"
       # Se genera a mano con al menos 50 caracteres: el valor que genera
