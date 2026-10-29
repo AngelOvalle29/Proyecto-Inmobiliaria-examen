@@ -10,7 +10,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.auditoria.models import LogAuditoria
-from apps.core.tests.factories import PaisFactory
+from apps.core.tests.factories import CiudadFactory, PaisFactory
 from apps.usuarios.enums import NombreRol
 from apps.usuarios.models import Rol
 from apps.usuarios.tests.factories import UsuarioFactory
@@ -216,6 +216,49 @@ def test_un_documento_repetido_responde_409_con_formato_uniforme():
 
     assert respuesta.status_code == 409
     assert respuesta.json()["error"]["codigo"] == "CLIENTE_DUPLICADO"
+
+
+def test_crear_un_agente_para_un_usuario_sin_rol_agente_responde_400():
+    contador = usuario_con_rol(NombreRol.CONTABILIDAD)
+
+    respuesta = cliente_http(usuario_con_rol(NombreRol.GERENTE)).post(
+        AGENTES,
+        {
+            "usuario": contador.pk,
+            "porcentaje_comision": "3.00",
+            "fecha_ingreso": "2026-10-01",
+        },
+        format="json",
+    )
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["error"]["codigo"] == "USUARIO_NO_ES_AGENTE"
+
+
+def test_una_ciudad_de_otro_pais_responde_400():
+    respuesta = cliente_http(usuario_con_rol(NombreRol.GERENTE)).post(
+        CLIENTES,
+        datos_persona(ciudad=CiudadFactory().pk, agente_asignado=AgenteFactory().pk),
+        format="json",
+    )
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["error"]["codigo"] == "CIUDAD_FUERA_DEL_PAIS"
+
+
+def test_reasignar_al_mismo_agente_responde_200_sin_registro():
+    """Regla 8."""
+    cliente = ClienteFactory()
+
+    respuesta = cliente_http(usuario_con_rol(NombreRol.GERENTE)).post(
+        f"{CLIENTES}{cliente.pk}/reasignar/",
+        {"agente": cliente.agente_asignado.pk},
+        format="json",
+    )
+
+    assert respuesta.status_code == 200
+    assert respuesta.json()["agente_asignado"]["id"] == cliente.agente_asignado.pk
+    assert not LogAuditoria.objects.exists()
 
 
 def test_desactivar_un_agente_con_clientes_responde_409():
