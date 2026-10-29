@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 010 |
-| **Estado** | Aprobada, en implementación |
+| **Estado** | Implementada, en revisión |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-29 |
@@ -139,28 +139,34 @@ para que la ciudad se pueda buscar como relación (regla 11). Es un filtro de
 ```
 src/
 ├── App.tsx                        # rutas
+├── menu.ts                        # [{ ruta, etiqueta, roles }]: una sola lista, y los roles
 ├── sesion/
-│   ├── ContextoSesion.tsx         # usuario actual, iniciar y cerrar sesión (único estado global)
-│   └── tokens.ts                  # acceso en memoria, refresco en localStorage
+│   ├── tokens.ts                  # acceso en memoria, refresco en localStorage
+│   ├── useSesion.ts               # el contexto y su hook (único estado global)
+│   └── ProveedorSesion.tsx        # recupera la sesión al cargar; abrir y cerrar sesión
 ├── api/
 │   ├── cliente.ts                 # + interceptores: Authorization y renovación (regla 5)
 │   ├── errores.ts                 # lee el formato uniforme de error (regla 8)
-│   ├── paginacion.ts              # tipo de la respuesta paginada de DRF
-│   ├── usuarios/                  # useIniciarSesion, useUsuarioActual
-│   └── catalogo/                  # usePropiedades, useCrearPropiedad, useTiposPropiedad…
-├── componentes/comunes/
-│   ├── RutaProtegida.tsx          # reglas 1 y 2
-│   ├── TablaDatos.tsx             # columnas + página + total; usa TanStack Table
-│   └── FormularioDatos.tsx        # campos declarados + esquema Zod + mutación
-├── layouts/
-│   ├── LayoutAuth.tsx
-│   └── LayoutPrincipal.tsx        # menú por rol (regla 3) y cerrar sesión
-├── menu.ts                        # [{ ruta, etiqueta, roles }]: una sola lista
-├── lib/formato.ts                 # formatearMoneda, formatearFecha
+│   ├── paginacion.ts              # tamaño de página y total de páginas
+│   ├── core/                      # useEstadoServicio, usePaises, useMonedas, useBuscarCiudades
+│   ├── usuarios/                  # useUsuarioActual, useIniciarSesion
+│   └── catalogo/                  # usePropiedades, useTiposPropiedad, useCrearPropiedad…
+├── componentes/
+│   ├── ui/                        # shadcn/ui, sin Radix
+│   └── comunes/
+│       ├── RutaProtegida.tsx      # reglas 1 y 2
+│       ├── TablaDatos.tsx         # reglas 7, 13 y 14
+│       ├── FormularioDatos.tsx    # reglas 8, 11 y 12
+│       ├── CampoRelacion.tsx      # búsqueda mientras se escribe (regla 11)
+│       └── Dialogo.tsx            # ventana modal con el <dialog> nativo
+├── hooks/useRetraso.ts            # espera a que se deje de escribir
+├── layouts/                       # LayoutAuth y LayoutPrincipal (menú por rol)
+├── lib/                           # formato.ts (moneda y fecha) y utils.ts (cn)
 └── paginas/
     ├── auth/Login.tsx
     ├── inicio/Inicio.tsx
-    └── catalogo/ListaPropiedades.tsx, NuevaPropiedad.tsx
+    ├── errores/NoEncontrada.tsx
+    └── catalogo/ListaPropiedades.tsx, NuevaPropiedad.tsx, DialogoCambiarEstado.tsx
 ```
 
 **Cómo se agrega una pantalla nueva** (lo que copian los demás):
@@ -187,27 +193,27 @@ crear una propiedad lo registra el servicio del catálogo (spec 003).
 
 ## 8. Criterios de aceptación
 
-- [ ] Sin sesión, cualquier ruta lleva a `/login`; después de entrar, vuelve a
+- [x] Sin sesión, cualquier ruta lleva a `/login`; después de entrar, vuelve a
       la ruta pedida
-- [ ] Credenciales incorrectas muestran el mensaje de la API, sin recargar
-- [ ] Al recargar la página con sesión, se sigue dentro sin volver a escribir
+- [x] Credenciales incorrectas muestran el mensaje de la API, sin recargar
+- [x] Al recargar la página con sesión, se sigue dentro sin volver a escribir
       la contraseña
-- [ ] Con el token de acceso vencido, la siguiente petición lo renueva sola y
+- [x] Con el token de acceso vencido, la siguiente petición lo renueva sola y
       funciona
-- [ ] Cerrar sesión vuelve a `/login`; con el botón Atrás no se ven datos
-- [ ] Un usuario `CONSULTA` no ve "Nueva propiedad" en el menú, y al abrir la
+- [x] Cerrar sesión vuelve a `/login`; con el botón Atrás no se ven datos
+- [x] Un usuario `CONSULTA` no ve "Nueva propiedad" en el menú, y al abrir la
       ruta a mano ve el aviso de permiso
-- [ ] La lista de propiedades pagina contra la API (25 por página) y sus
+- [x] La lista de propiedades pagina contra la API (25 por página) y sus
       filtros cambian la consulta, no filtran en el navegador
-- [ ] Los precios se ven con su moneda y las fechas como `dd/mm/aaaa`
-- [ ] Crear una propiedad con un precio de 0 muestra el error junto al campo;
+- [x] Los precios se ven con su moneda y las fechas como `dd/mm/aaaa`
+- [x] Crear una propiedad con un precio de 0 muestra el error junto al campo;
       una válida aparece en la lista con su código `PROP-NNNNN`
-- [ ] La ciudad se busca al escribir y solo ofrece ciudades del país elegido;
+- [x] La ciudad se busca al escribir y solo ofrece ciudades del país elegido;
       al cambiar el país, se vacía (reglas 11 y 12)
-- [ ] "Cambiar estado" pide confirmación y la lista se actualiza sin recargar
+- [x] "Cambiar estado" pide confirmación y la lista se actualiza sin recargar
       (regla 13); un usuario `CONSULTA` no ve la acción
 - [ ] En Vercel, recargar `/catalogo/propiedades` no da 404
-- [ ] `npm run lint`, `npm run typecheck` y `npm run build` pasan
+- [x] `npm run lint`, `npm run typecheck` y `npm run build` pasan
 
 ## 9. Pruebas
 
@@ -271,3 +277,37 @@ la primera pantalla que la use: el detalle del contrato de la spec 007.
 También señaló que el límite de intentos de login, de 10 por minuto por IP,
 bloquearía a los evaluadores que entran desde la misma red. Se corrigió aparte,
 en DouGMV/Proyecto-Inmobiliaria#45.
+
+**Sesión 2026-10-29, implementación (Claude Code, rol A).** Los criterios de §8
+se comprobaron en el navegador contra el backend local, con un gerente y un
+usuario de consulta de prueba. Falta uno: la recarga en Vercel, que se comprueba
+en la vista previa del PR. Lo que se decidió o se descubrió al implementar:
+
+- **React Router 7 y TanStack Table 8**, no sus versiones 8 y 9. Las nuevas
+  cambiaron la API; las anteriores son las de la documentación y los ejemplos
+  que el equipo va a encontrar. Todas las dependencias se fijan con `==`,
+  publicadas hace dos semanas o más, y `npm audit` no encuentra
+  vulnerabilidades.
+- **Los componentes de shadcn/ui se copiaron sin Radix**: el selector y la
+  ventana modal usan los del navegador (`<select>` y `<dialog>`), que ya son
+  accesibles.
+- **Renovación:** la sesión solo se cierra si la API rechaza el token de
+  refresco (401). Si falla la red, por ejemplo mientras Render despierta, se
+  ofrece reintentar en vez de sacar al usuario.
+- **El formulario valida solo el formato en el navegador.** Las reglas de
+  negocio (precio mayor que cero) las valida la API, y su error aparece junto
+  al campo (regla 8). Se comprobó con un precio de 0.
+- **Error encontrado y corregido en la prueba:** el campo de relación borraba
+  lo que se escribía después de elegir una opción. Un efecto vaciaba el texto
+  cada vez que el valor quedaba vacío, y escribir lo vaciaba. Ahora el campo se
+  vuelve a crear (con otra `key`) solo cuando cambia el campo del que depende.
+- **El código de las tablas y la lectura de valores del formulario**
+  (`useReactTable` y `watch`) lleva un aviso de oxlint para el React Compiler.
+  Se desactiva con un comentario que explica por qué: el proyecto no lo usa.
+- **El tipo de error de la API se escribe a mano** (`api/errores.ts`), porque
+  el esquema OpenAPI no documenta el formato del manejador global. Es la única
+  excepción a la regla de tipos generados.
+- `api/paginacion.ts` no define un tipo genérico de respuesta paginada: cada
+  una se toma del esquema (`PaginatedPropiedadList`…).
+- **La compilación avisa que el paquete pasa de 500 kB.** No bloquea; dividirlo
+  por rutas queda para cuando haya más pantallas.

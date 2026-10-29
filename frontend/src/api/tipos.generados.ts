@@ -1092,6 +1092,7 @@ export interface operations {
     v1_ciudades_list: {
         parameters: {
             query?: {
+                buscar?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 pais?: number;

@@ -114,6 +114,19 @@ def test_ciudades_filtra_por_pais(cliente):
     assert datos[0]["pais"] == {"id": guatemala.id, "nombre": "Guatemala"}
 
 
+def test_ciudades_busca_por_nombre_dentro_del_pais(cliente):
+    guatemala = PaisFactory(nombre="Guatemala", codigo_iso="GTM")
+    CiudadFactory(nombre="Quetzaltenango", pais=guatemala)
+    CiudadFactory(nombre="Antigua Guatemala", pais=guatemala)
+    CiudadFactory(nombre="Querétaro", pais=PaisFactory(codigo_iso="MEX"))
+
+    datos = cliente.get(
+        "/api/v1/ciudades/", {"pais": guatemala.id, "buscar": "QUE"}
+    ).json()["results"]
+
+    assert [ciudad["nombre"] for ciudad in datos] == ["Quetzaltenango"]
+
+
 def test_ciudades_omite_las_de_un_pais_desactivado(cliente):
     CiudadFactory(nombre="Quetzaltenango", pais=PaisFactory(codigo_iso="GTM"))
     CiudadFactory(nombre="Puebla", pais=PaisFactory(codigo_iso="MEX", activo=False))
