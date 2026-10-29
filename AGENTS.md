@@ -46,7 +46,7 @@ SimpleJWT · Docker Compose.
 React Hook Form + Zod · shadcn/ui + Tailwind · Recharts. Ver `docs/frontend.md`.
 
 **Despliegue (planes gratuitos):** API y worker en Render, PostgreSQL con
-pgvector en Neon, RabbitMQ en CloudAMQP y frontend en Vercel.
+pgvector en Neon, RabbitMQ en CloudAMQP y frontend en Vercel (temporalmente un sitio estático en Render mientras Vercel verifica la cuenta).
 Ver `specs/002-despliegue.md`.
 
 **Servicios externos:** Gemini Flash (capa gratuita) para el agente y los

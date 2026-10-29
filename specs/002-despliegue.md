@@ -366,6 +366,29 @@ del frontend, con su propia spec.
 El plan Hobby es gratuito y está restringido a uso personal y no comercial, lo
 cual un proyecto académico cumple.
 
+### 6.1 Mientras tanto: sitio estático en Render
+
+*Agregado el 2026-10-28.* Al crear la cuenta, Vercel la marcó para una
+verificación manual ("Your account requires further verification"), que puede
+tardar días. Mientras se resuelve, el frontend se publica como **sitio
+estático gratuito de Render**, definido en el mismo `render.yaml`
+(`inmobiliaria-web`):
+
+- Se construye con `cd frontend && npm ci && npm run build` y publica
+  `./frontend/dist`. **No usa `rootDir`**: con `rootDir`, Render resolvió las
+  rutas de la API relativas a `backend/` aunque su documentación dice que son
+  relativas a la raíz (§5.1). Escribiendo la ruta completa desde la raíz, la
+  configuración es correcta con cualquiera de las dos reglas.
+- `NODE_VERSION=24`, porque Vite 8 necesita Node 20.19 o superior.
+- `VITE_API_URL` se carga en el panel, porque depende del nombre que Render le
+  dio a la API.
+- Los sitios estáticos de Render **no se duermen**: solo la API lo hace.
+- La regla de reescritura de `/*` a `/index.html`, que necesitará el enrutador
+  de React, se agrega con la base del frontend (#15). Hoy hay una sola página.
+
+Cuando Vercel habilite la cuenta, se decide si volver a Vercel o quedarse en
+Render. Mientras tanto, `CORS_ALLOWED_ORIGINS` apunta al sitio estático.
+
 ## 7. Integración continua y verificación
 
 Flujo en `.github/workflows/ci.yml`, ejecutado en cada pull request y cada push
