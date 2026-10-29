@@ -232,6 +232,7 @@ SPECTACULAR_SETTINGS = {
     # Nombre de los conjuntos de opciones que aparecen en más de un campo.
     "ENUM_NAME_OVERRIDES": {
         "EstadoSaludEnum": "apps.core.serializers.ESTADOS_SALUD",
+        "EstadoPropiedadEnum": "apps.catalogo.enums.EstadoPropiedad",
     },
 }
 

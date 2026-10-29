@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 003 |
-| **Estado** | En revisión |
+| **Estado** | Implementada, en revisión |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `catalogo` (incluido su comando `cargar_demo_catalogo`) |
 | **Rama** | `feature/003-catalogo-propiedades` |
-| **Pull request** | — |
+| **Pull request** | [DouGMV/Proyecto-Inmobiliaria#34](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/34) (spec aprobada en #33) |
 
 ---
 
@@ -141,13 +141,15 @@ Configuración común de la spec 001. Permisos con `TieneRol` de la spec 004
 | GET | `/api/v1/propiedades/{id}/unidades/` | Autenticado |
 | POST | `/api/v1/propiedades/{id}/unidades/` | `ADMINISTRADOR`, `GERENTE` |
 | GET · PATCH · DELETE | `/api/v1/unidades/{id}/` | Lectura autenticado; escritura `ADMINISTRADOR`, `GERENTE` |
+| POST | `/api/v1/unidades/{id}/cambiar-estado/` | `ADMINISTRADOR`, `GERENTE` |
 
 **Filtros de `/propiedades/`:** `?tipo=`, `?ciudad=`, `?pais=`, `?estado=`,
 `?moneda=`, `?precio_min=`, `?precio_max=`, `?es_publica=` y `?buscar=` (código,
 nombre o dirección), en `catalogo/filters.py`, como en la spec 004.
 
 **`PATCH /propiedades/{id}/` no cambia el estado**: para eso está
-`/cambiar-estado/`, que audita la transición con su propia acción.
+`/cambiar-estado/`, que audita la transición con su propia acción. Lo mismo
+vale para `PATCH /unidades/{id}/`.
 
 **Errores nuevos:**
 
@@ -169,6 +171,10 @@ def cambiar_estado_propiedad(*, propiedad: Propiedad, estado: EstadoPropiedad,
     """Punto único de cambio de estado: lo usan las vistas y los servicios de
     ventas, arrendamientos, compras y construcción. Audita estado anterior,
     nuevo y motivo. Si el estado no cambia, no hace nada."""
+def cambiar_estado_unidad(*, unidad: Unidad, estado: EstadoPropiedad,
+                          autor: Usuario | None, ip: str | None, motivo: str) -> Unidad
+    """Igual que cambiar_estado_propiedad, para una unidad. No cambia el
+    estado de su propiedad: eso lo decide el servicio que la llama."""
 def crear_unidad(*, propiedad: Propiedad, datos: dict, autor: Usuario, ip: str | None) -> Unidad
 def actualizar_unidad(...) -> Unidad
 def desactivar_unidad(...) -> None
@@ -177,37 +183,39 @@ def crear_tipo_propiedad(...) / actualizar_tipo_propiedad(...) / desactivar_tipo
 # catalogo/selectors.py
 def listar_propiedades() -> QuerySet[Propiedad]          # activas, con tipo, ciudad, país y moneda
 def obtener_propiedad(*, propiedad_id: int) -> Propiedad
-def listar_unidades(*, propiedad: Propiedad) -> QuerySet[Unidad]
+def listar_unidades(*, propiedad: Propiedad | None = None) -> QuerySet[Unidad]
 def listar_propiedades_publicas() -> QuerySet[Propiedad] # para el agente de IA (rol C)
 def listar_tipos_propiedad() -> QuerySet[TipoPropiedad]
 ```
 
 **Para B y C:** las demás apps **solo** usan estos servicios y selectores, nunca
 los modelos de `catalogo` directamente (`docs/arquitectura.md` §3). En
-particular, cambian el estado con `cambiar_estado_propiedad`.
+particular, cambian el estado con `cambiar_estado_propiedad` y
+`cambiar_estado_unidad`.
 
 ## 7. Auditoría
 
 Crear, editar y desactivar los tres modelos: `CREAR`, `ACTUALIZAR` y `ELIMINAR`,
-como en la spec 004. **Cambiar de estado:** `ACTUALIZAR` con
+como en la spec 004. **Cambiar de estado** (propiedad o unidad): `ACTUALIZAR` con
 `{"estado": anterior}` → `{"estado": nuevo, "motivo": ...}`.
 `cargar_demo_catalogo` no audita.
 
 ## 8. Criterios de aceptación
 
-- [ ] Los siete tipos de propiedad existen después de `migrate`
-- [ ] Un administrador o gerente crea una propiedad y recibe `PROP-NNNNN`
-- [ ] Agente, contabilidad y consulta leen propiedades y reciben 403 al escribir
-- [ ] La base rechaza precios y áreas menores o iguales a cero
-- [ ] Agregar una unidad a una casa devuelve 409 `TIPO_SIN_UNIDADES`
-- [ ] Dos unidades con el mismo código en la misma propiedad: 409 `UNIDAD_DUPLICADA`
-- [ ] Desactivar una propiedad con unidades activas: 409 `PROPIEDAD_CON_UNIDADES`
-- [ ] `PATCH` no cambia el estado; `/cambiar-estado/` sí, y lo audita con su motivo
-- [ ] Los filtros y la búsqueda devuelven solo lo que corresponde, paginado
-- [ ] El listado de propiedades no hace una consulta por propiedad (N+1)
-- [ ] Toda escritura queda en la bitácora
-- [ ] `cargar_demo_catalogo` carga propiedades y unidades ficticias sin duplicar
-- [ ] `ruff`, `pytest` y `makemigrations --check` pasan
+- [x] Los siete tipos de propiedad existen después de `migrate`
+- [x] Un administrador o gerente crea una propiedad y recibe `PROP-NNNNN`
+- [x] Agente, contabilidad y consulta leen propiedades y reciben 403 al escribir
+- [x] La base rechaza precios y áreas menores o iguales a cero
+- [x] Agregar una unidad a una casa devuelve 409 `TIPO_SIN_UNIDADES`
+- [x] Dos unidades con el mismo código en la misma propiedad: 409 `UNIDAD_DUPLICADA`
+- [x] Desactivar una propiedad con unidades activas: 409 `PROPIEDAD_CON_UNIDADES`
+- [x] `PATCH` no cambia el estado; `/cambiar-estado/` sí, y lo audita con su motivo
+- [x] Lo mismo para las unidades, con `/unidades/{id}/cambiar-estado/`
+- [x] Los filtros y la búsqueda devuelven solo lo que corresponde, paginado
+- [x] El listado de propiedades no hace una consulta por propiedad (N+1)
+- [x] Toda escritura queda en la bitácora
+- [x] `cargar_demo_catalogo` carga propiedades y unidades ficticias sin duplicar
+- [x] `ruff`, `pytest` y `makemigrations --check` pasan
 
 ## 9. Pruebas
 
@@ -248,7 +256,41 @@ mismo patrón y misma razón que la spec 004.
 reducido del plan de una semana: solo lo que desbloquea a B y C.
 
 **Plan de implementación:**
-1. Modelos, constraints, migración de los tipos y panel
-2. Servicios (incluido `cambiar_estado_propiedad`) y selectores, con auditoría
-3. API, filtros y permisos
-4. `cargar_demo_catalogo` y cierre
+1. Modelos, constraints, migración de los tipos y panel ✅
+2. Servicios (incluido `cambiar_estado_propiedad`) y selectores, con auditoría ✅
+3. API, filtros y permisos ✅
+4. `cargar_demo_catalogo` y cierre ✅
+
+**Sesión 2026-10-28, implementación (Claude Code, rol A).** Lo que se descubrió
+o se decidió al implementar:
+
+- `listar_unidades` acepta `propiedad` opcional: `/unidades/{id}/` necesita
+  todas las unidades activas, no solo las de una propiedad. Se agregaron
+  `existe_unidad` y `contar_unidades_activas` para que los servicios no
+  consulten los modelos directamente.
+- El duplicado de código de unidad cuenta también las desactivadas, porque la
+  restricción única de la base las incluye.
+- Las relaciones se leen como resumen (`tipo: {id, nombre}`) y se escriben con
+  su id (`tipo_id`), que solo acepta tipos, ciudades y monedas activos.
+- Un `PUT` responde 403 y no 405: DRF revisa los permisos antes que el método,
+  y `TieneRol` cierra todo método de escritura no declarado.
+- Desactivar un tipo de propiedad no afecta a las propiedades que ya lo usan;
+  la spec no pedía otra cosa.
+- `TieneRol` se implementó aquí en `usuarios/permissions.py`, tal como lo
+  define la spec 004, para que CRM lo reutilice.
+- `seed_demo` llama a los comandos de demostración de cada app por nombre y
+  omite los que aún no existen (DouGMV/Proyecto-Inmobiliaria#13).
+
+**Sesión 2026-10-29, revisión cruzada con la spec 004 y la de ventas (Claude
+Code, rol A).**
+
+- `TieneRol` se copió tal cual del PR de CRM (DouGMV/Proyecto-Inmobiliaria#35):
+  hacían lo mismo, y con archivos idénticos los dos PR se fusionan sin conflicto.
+- `CiudadResumenSerializer` del catálogo pasó a llamarse
+  `CiudadConPaisSerializer`: CRM tiene uno con el mismo nombre y otros campos, y
+  la documentación de la API no admite dos componentes con el mismo nombre.
+- **Agregado a pedido de la spec de ventas** (DouGMV/Proyecto-Inmobiliaria#37):
+  `cambiar_estado_unidad` y `POST /unidades/{id}/cambiar-estado/`. En un
+  edificio se vende o se arrienda cada apartamento, no el edificio. Por la
+  regla 7, el `PATCH` de una unidad ya no cambia su estado. Los dos servicios
+  comparten los mismos pasos (bloqueo, auditoría, sin cambio no audita).
