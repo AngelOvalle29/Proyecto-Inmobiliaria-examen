@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 
 import { useEstadoServicio } from '../../api/core/consultas'
+import { Button } from '../../componentes/ui/button'
 
 // A partir de cuánto tiempo de espera se avisa que el servidor está despertando.
 const ESPERA_ANTES_DE_AVISAR_MS = 5_000
 
 /**
- * Página mínima de la spec 002 (§6): muestra si la API y su base de datos
- * responden. Prueba de punta a punta que el frontend desplegado llega al backend
- * desplegado y que CORS está bien configurado.
+ * Muestra si la API y su base de datos responden. Nació como la página mínima de
+ * la spec 002 (§6); desde la spec 010 es una tarjeta de la pantalla de inicio.
  */
 export function EstadoServicio() {
   const consulta = useEstadoServicio()
@@ -28,13 +28,19 @@ export function EstadoServicio() {
   }
 
   return (
-    <main>
-      <h1>Sistema de Gestión Inmobiliaria</h1>
-      <p role="status">{mensaje}</p>
-      <button onClick={() => consulta.refetch()} disabled={consulta.isFetching}>
+    <div className="flex flex-col items-start gap-3">
+      <p role="status" className="text-sm">
+        {mensaje}
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => consulta.refetch()}
+        disabled={consulta.isFetching}
+      >
         Volver a consultar
-      </button>
-    </main>
+      </Button>
+    </div>
   )
 }
 

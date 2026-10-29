@@ -1,12 +1,9 @@
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  color: #1f2937;
-  background: #f9fafb;
-}
+@import 'tailwindcss';
 
-main {
-  max-width: 40rem;
-  margin: 4rem auto;
-  padding: 0 1rem;
+/*
+ * Estilos base. Todo lo demás se escribe con clases de Tailwind en cada
+ * componente (spec 010, docs/frontend.md §1).
+ */
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
 }

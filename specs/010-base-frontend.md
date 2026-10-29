@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 010 |
-| **Estado** | En revisión |
+| **Estado** | Aprobada, en implementación |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-29 |
 | **Apps afectadas** | `frontend/` (ninguna app del backend) |
 | **Rama** | `feature/010-base-frontend` |
-| **Pull request** | — |
+| **Pull request** | — (spec aprobada en DouGMV/Proyecto-Inmobiliaria#41) |
 | **Issue** | #15 |
 
 ---
@@ -70,7 +70,8 @@ hacer lo mismo y nadie puede explicar las demás en la defensa.
 5. **Renovación automática.** Si la API responde 401 con sesión iniciada, se
    renueva el token de acceso **una sola vez** y se repite la petición. Si
    varias peticiones reciben 401 a la vez, comparten la misma renovación. Si
-   la renovación falla, se cierra la sesión.
+   la renovación falla, se cierra la sesión. Un 401 de `/auth/login/` o de
+   `/auth/refresh/` **nunca** dispara la renovación: así no hay un ciclo.
 6. **Cerrar sesión** borra los dos tokens y la caché de TanStack Query, para que
    el siguiente usuario no vea datos del anterior.
 7. **Toda lista se pagina en el servidor** (`?page=`, 25 por página, como la
@@ -86,6 +87,26 @@ hacer lo mismo y nadie puede explicar las demás en la defensa.
 10. **Sin `fetch` ni `axios` en los componentes.** Cada dominio tiene sus hooks
     en `api/<dominio>/consultas.ts` y `mutaciones.ts` (`docs/frontend.md` §3).
 
+*Agregadas en la revisión de B (#41)*, para que las pantallas de los demás
+bloques no los resuelvan cada una a mano:
+
+11. **Relaciones con muchas opciones.** Un campo de tipo relación en
+    `FormularioDatos` busca en la API con `?buscar=` mientras se escribe y
+    muestra las primeras coincidencias. Sirve para clientes, propiedades y
+    unidades, que pueden ser cientos. Para listas cortas (monedas, tipos),
+    un selector normal.
+12. **Campos condicionales y dependientes.**
+    - Un campo puede declarar `visibleSi`: por ejemplo, razón social y NIT
+      solo si el cliente es una empresa, o las cuotas solo si el contrato es
+      financiado. Un campo oculto no se envía.
+    - Un campo puede depender del valor de otro: las ciudades se buscan dentro
+      del país elegido, y al cambiar el país se vacía la ciudad.
+13. **Acciones por fila.** `TablaDatos` acepta una columna de acciones, cada una
+    con su mutación: aprobar, pagar, rescindir… Las que no se pueden deshacer
+    piden confirmación antes de llamar a la API.
+14. **Tablas sin paginar.** `TablaDatos` también acepta una lista ya cargada,
+    como las cuotas que vienen dentro del detalle de un contrato.
+
 ## 4. Modelo de datos
 
 Sin cambios en el backend. Los tipos de las respuestas salen de
@@ -97,8 +118,8 @@ Sin cambios en el backend. Los tipos de las respuestas salen de
 |---|---|---|
 | `/login` | Inicio de sesión | Sin sesión |
 | `/` | Inicio: usuario, rol y estado de la API (la página actual pasa aquí) | Todos |
-| `/catalogo/propiedades` | **Ejemplo de lista:** `TablaDatos` con filtros por tipo, estado y búsqueda | Todos |
-| `/catalogo/propiedades/nueva` | **Ejemplo de formulario:** `FormularioDatos` para crear una propiedad | `ADMINISTRADOR`, `GERENTE` |
+| `/catalogo/propiedades` | **Ejemplo de lista:** `TablaDatos` con filtros por tipo, estado y búsqueda, y la acción por fila "Cambiar estado" (regla 13) | Todos; la acción, `ADMINISTRADOR` y `GERENTE` |
+| `/catalogo/propiedades/nueva` | **Ejemplo de formulario:** `FormularioDatos` para crear una propiedad. El país y la ciudad muestran las reglas 11 y 12: la ciudad se busca dentro del país elegido | `ADMINISTRADOR`, `GERENTE` |
 
 Endpoints que usa, todos existentes:
 - `POST /auth/login/`
@@ -106,7 +127,12 @@ Endpoints que usa, todos existentes:
 - `GET /auth/yo/`
 - `GET /health/`
 - `GET` y `POST /propiedades/`
-- `GET /tipos-propiedad/`, `/ciudades/` y `/monedas/`
+- `POST /propiedades/{id}/cambiar-estado/`
+- `GET /tipos-propiedad/`, `/paises/`, `/ciudades/` y `/monedas/`
+
+**Único cambio en el backend:** `GET /ciudades/` acepta `?buscar=` (nombre),
+para que la ciudad se pueda buscar como relación (regla 11). Es un filtro de
+`core/filters.py`, del área de A.
 
 ## 6. Componentes y módulos
 
@@ -176,6 +202,10 @@ crear una propiedad lo registra el servicio del catálogo (spec 003).
 - [ ] Los precios se ven con su moneda y las fechas como `dd/mm/aaaa`
 - [ ] Crear una propiedad con un precio de 0 muestra el error junto al campo;
       una válida aparece en la lista con su código `PROP-NNNNN`
+- [ ] La ciudad se busca al escribir y solo ofrece ciudades del país elegido;
+      al cambiar el país, se vacía (reglas 11 y 12)
+- [ ] "Cambiar estado" pide confirmación y la lista se actualiza sin recargar
+      (regla 13); un usuario `CONSULTA` no ve la acción
 - [ ] En Vercel, recargar `/catalogo/propiedades` no da 404
 - [ ] `npm run lint`, `npm run typecheck` y `npm run build` pasan
 
@@ -226,3 +256,18 @@ partir de:
 3. `TablaDatos`, `formatearMoneda` y la lista de propiedades.
 4. `FormularioDatos`, errores por campo y la creación de propiedades; cierre
    con los criterios de §8.
+
+**Revisión de B en #41 (aprobada en una ronda).** Marco aprobó y pidió que la
+implementación cubriera:
+- relaciones con búsqueda;
+- campos condicionales y dependientes;
+- acciones por fila;
+- tablas sin paginar;
+- que el login y la renovación no disparen la renovación.
+
+Se agregaron como reglas 11 a 14 y en la regla 5. La regla 14 se comprueba con
+la primera pantalla que la use: el detalle del contrato de la spec 007.
+
+También señaló que el límite de intentos de login, de 10 por minuto por IP,
+bloquearía a los evaluadores que entran desde la misma red. Se corrigió aparte,
+en DouGMV/Proyecto-Inmobiliaria#45.
