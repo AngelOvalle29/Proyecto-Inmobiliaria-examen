@@ -1,0 +1,51 @@
+# Configuración del backend en Render, versionada como el código
+# (spec 002, §5.1). Render la lee como "Blueprint" desde la rama main.
+#
+# Los secretos NO van aquí: las variables con "sync: false" se piden en el
+# panel de Render al crear el Blueprint, y solo existen allí.
+
+services:
+  - type: web
+    name: inmobiliaria-api
+    runtime: docker
+    # Plan gratuito: 512 MB, se duerme tras 15 minutos sin tráfico.
+    plan: free
+    # Este de Estados Unidos, cerca de Neon y de CloudAMQP (spec 002, §4).
+    region: virginia
+    branch: main
+    # Solo cambios dentro de backend/ disparan un despliegue.
+    rootDir: backend
+    # Con rootDir definido, Render resuelve estas rutas relativas a backend/,
+    # no a la raíz del repositorio. Lo comprobó el primer despliegue: con
+    # "./backend" buscaba backend/backend y fallaba.
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Render llama aquí con el host <servicio>.onrender.com; prod.py lo agrega
+    # a ALLOWED_HOSTS desde RENDER_EXTERNAL_HOSTNAME.
+    healthCheckPath: /api/v1/health/
+    # "commit" y no "checksPass": GitHub Actions no se está ejecutando (#14), y
+    # esperar las verificaciones bloquearía todos los despliegues.
+    autoDeployTrigger: commit
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.prod
+      - key: NUM_PROXIES
+        value: "1"
+      - key: CARGAR_DATOS_DEMO
+        value: "true"
+      # Se genera a mano con al menos 50 caracteres: el valor que genera
+      # Render ("generateValue") es más corto y prod.py lo rechazaría.
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_NOMBRE_COMPLETO
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false

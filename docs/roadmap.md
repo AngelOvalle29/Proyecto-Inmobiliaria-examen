@@ -71,7 +71,7 @@ que se empieza de inmediato.
 1. Destrabar la integración continua (GitHub Actions no se ha ejecutado nunca)
    y activar la protección de `main` y `develop` (requiere GitHub Pro, gratuito
    con el Student Developer Pack).
-2. **Spec 002:** despliegue en Railway y Vercel. Incluye cerrar los pendientes de
+2. **Spec 002:** despliegue gratuito en Render, Neon, CloudAMQP y Vercel. Incluye cerrar los pendientes de
    la spec 001 (estado en la cabecera y búsqueda sin mayúsculas en
    `obtener_id_usuario_por_email`).
 3. **Spec 003, catálogo**, empezando por `TipoPropiedad`, `Propiedad` y `Unidad`
@@ -125,7 +125,7 @@ monedas que no son el dólar necesita su propio registro de tipo de cambio.
    empieza con los datos que ya existen (tipos de cambio, catálogos).
 5. **Spec de mensajería:** configuración de Celery y los flujos de
    notificaciones e ingesta de documentos. La ingesta alimenta el RAG de C y se
-   acuerda con C; el worker en Railway lo configura A en la spec 002.
+   acuerda con C; el worker desplegado lo configura A en la spec 002.
 6. Los 15 reportes, conforme cada bloque tenga datos.
 7. Power BI y el esquema `bi`, cuando haya tablas con datos.
 
@@ -135,6 +135,60 @@ Los bloques no tienen el mismo tamaño: los de C (IA, compras y construcción) y
 D (15 reportes, Power BI, mensajería y auditoría) son mayores que el de B. Se
 revisa en la reunión semanal, con las fechas reales del catedrático, y se
 mueven piezas a tiempo en lugar de descubrirlo en la última semana.
+
+---
+
+## Plan de una semana (del 2026-10-28 al 2026-11-03)
+
+Decidido el 2026-10-28. Al ritmo de las primeras semanas no alcanzaba: buena
+parte del tiempo se fue en incrementos muy pequeños, varias rondas de revisión
+por spec y esperas de días entre revisiones. Este plan termina el sistema en 7
+días recortando **alcance y proceso, no puntos de la rúbrica**
+(`docs/requisitos.md`). El reparto por rol de la sección anterior se mantiene.
+
+### Alcance
+
+| Componente (puntos) | Se hace | Solo si sobra tiempo |
+|---|---|---|
+| Sistema base (5) | **17 entidades con CRUD** (el mínimo es de 12 a 15): `TipoPropiedad`, `Propiedad`, `Unidad`, `Avaluo`, `DocumentoOficial`, `Cliente`, `Agente`, `Cotizacion`, `ContratoVenta`, `CuotaPago`, `ContratoArrendamiento`, `PagoRenta`, `Proveedor`, `ContratoCompra`, `Constructora`, `ProyectoConstruccion`, `PagoConstructora` | `Amenidad`, `EventoPropiedad`, `AvanceObra`, `CotizacionDetalle` como entidad aparte. `PlanPago` pasa a ser datos del `ContratoVenta` |
+| Mensajería (2) | **Un flujo real:** la ingesta de documentos, que además alimenta el RAG | Notificaciones por correo con PDF |
+| Agente de IA (2) | Modo público, con RAG y citas de documento y sección | Modo interno con permisos |
+| Logs y auditoría (2) | Bitácora del sistema (ya existe) y del agente | — |
+| Reportería y Power BI (2) | **Los 15 reportes** con Excel y PDF, simples sobre la capa genérica; 3 o 4 vistas del esquema `bi` y un tablero | Tableros adicionales |
+| Despliegue (1) | Render, Neon, CloudAMQP y Vercel (spec 002) | — |
+| Frontend | Lista y formulario **genéricos**, reutilizados en todas las entidades | Ficha de propiedad, mapa, gráficas |
+
+### Proceso
+
+- **Specs de una o dos páginas**, con la plantilla. Se revisan **el mismo día** y
+  en **una sola ronda**: se aprueba con comentarios y los ajustes van en el
+  siguiente PR. Una revisión que tarda más de medio día atrasa a todo el equipo.
+- **Fusión a `develop` todos los días.** El historial debe mostrar trabajo
+  continuo de los cuatro (`docs/convenciones.md`).
+- **Incrementos más grandes:** una spec en pocos commits, cada uno revisable.
+- Las reglas de `docs/convenciones.md` §1.1 siguen vigentes.
+
+### Calendario
+
+| Día | A · Douglas | B · Marco | C · Angel | D · Nathaly |
+|---|---|---|---|---|
+| **Mié 28** | Despliegue en producción (spec 002) · spec 003 de catálogo | Implementar CRM (spec 004 aprobada) | Specs de IA y de compras · llave de Gemini | Specs de reportes y mensajería · revisar Celery en el PR del despliegue |
+| **Jue 29** | `TipoPropiedad`, `Propiedad` y `Unidad` en `develop` · base del frontend | CRM terminado | `Proveedor` y `Constructora` · ingesta del RAG | Capa genérica de reportes · bitácora del agente |
+| **Vie 30** | Avalúos y documentos oficiales | Cotizaciones y ventas | Contratos de compra y proyectos | Flujo de ingesta en Celery · 5 reportes |
+| **Sáb 31** | Pantallas genéricas y las del catálogo | Arrendamientos | Herramientas del agente sobre los selectores | 5 reportes · vistas del esquema `bi` |
+| **Dom 1** | Apoyo y despliegue continuo | Pantallas de su bloque | Pantallas de su bloque | 5 reportes |
+| **Lun 2** | **Todos:** datos de demostración completos, integración y corrección de errores | | | Tablero de Power BI |
+| **Mar 3** | **Todos:** manual técnico, §11 de cada spec y ensayo de la defensa cruzada | | | |
+
+### Riesgos de este plan
+
+- **Las revisiones lentas.** Es el riesgo principal: la spec 004 esperó una
+  semana por una revisión. Con este calendario, una espera así lo hace fallar.
+- **El bloque de C.** La IA vale 2 puntos y empieza el 28. Si se atrasa, A
+  apoya primero ahí.
+- **La fecha de cierre.** El equipo decidió no confirmar las fechas con el
+  catedrático y trabajar con el 3 de noviembre como cierre. Si hiciera falta
+  terminar antes, se recorta primero la columna "Solo si sobra tiempo".
 
 ---
 
@@ -162,10 +216,11 @@ Spec: `specs/001-fundacion.md`
 
 Objetivo: tener producción funcionando cuando todavía no duele arreglarla.
 
-- Backend desplegado en Railway: API, worker, PostgreSQL y RabbitMQ
+- Backend desplegado sin costo: API y worker en Render, PostgreSQL en Neon y
+  RabbitMQ en CloudAMQP
 - Frontend desplegado en Vercel (al inicio, una página en blanco basta)
 - Variables de entorno y secretos configurados en ambos proveedores
-- Límite de gasto configurado en Railway
+- Todos los servicios en su plan gratuito
 - Integración continua con GitHub Actions, obligatoria para fusionar
 - Despliegue automático al fusionar a `main`
 - Endpoint de salud (`/api/v1/health/`) respondiendo públicamente
@@ -261,7 +316,7 @@ tengan sentido.
 | Riesgo | Mitigación |
 |---|---|
 | El despliegue falla cerca de la entrega | Desplegar en la fase 1, mantenerlo vivo |
-| La factura de Railway se dispara | Límite de gasto configurado desde el primer día |
+| Se agota una cuota gratuita (horas de Render, cómputo de Neon, mensajes de CloudAMQP) | No mantener la API despierta todo el mes; ver `specs/002-despliegue.md` §5.8 |
 | Historial de Git concentrado al final | Commits distribuidos, reunión semanal |
 | El RAG consume más tiempo del previsto | Empezar con pocos documentos y ampliar |
 | Límites de la capa gratuita de Gemini | Cache de respuestas, límite de peticiones por usuario, revisar los límites en AI Studio antes de la defensa |
@@ -274,15 +329,16 @@ tengan sentido.
 ## Antes de empezar
 
 1. Confirmar con el catedrático que el dominio no está tomado.
-2. Confirmar fechas de entrega y de defensa.
+2. ~~Confirmar fechas de entrega y de defensa.~~ Descartado por el equipo
+   el 2026-10-28: se trabaja con el 3 de noviembre como cierre.
 3. Confirmar con el catedrático que el frontend puede usar TypeScript. La
    restricción del enunciado aplica a la API, pero conviene dejarlo por escrito.
 4. Asignar nombres reales a A, B, C y D.
 5. Crear el repositorio y acordar las reglas internas de trabajo
    (`docs/convenciones.md` §1.1), porque la protección de ramas no está
    disponible en el plan gratuito.
-6. Crear las cuentas de Railway y Vercel, y acordar quién paga y cómo se
-   reparte el costo (alrededor de $15 a $20 al mes entre cuatro).
+6. Crear las cuentas gratuitas de Render, Neon, CloudAMQP y Vercel. Se
+   descartó Railway (alrededor de $15 a $20 al mes) para no pagar.
 7. Obtener la llave de la API de Gemini en Google AI Studio y confirmar ahí los
    identificadores exactos de los modelos y la dimensión de los embeddings.
 8. Crear una cuenta de Gmail para el proyecto, activar la verificación en dos

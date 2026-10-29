@@ -155,7 +155,12 @@ VITE_ENTORNO=desarrollo
 
 ## 7. Calidad
 
-- ESLint y Prettier, con las mismas reglas para todos.
+- **oxlint** y Prettier, con las mismas reglas para todos (`npm run lint` corre
+  los dos). Se usa oxlint y no ESLint porque es el que trae la plantilla
+  oficial de Vite desde 2026; revisa las reglas de React y TypeScript que
+  importan aquí, como las reglas de los hooks.
+- **TypeScript 5.9**, no 7: `openapi-typescript`, que genera los tipos de la API,
+  solo admite TypeScript 5. Se sube cuando lo soporte.
 - `npm run typecheck` en cada pull request, junto con las pruebas del backend.
 - Modo estricto de TypeScript activado. Nada de `any` sin justificar en el
   pull request.

@@ -47,9 +47,9 @@ class UsuarioManager(BaseUserManager):
     def normalize_email(cls, email):
         """
         Correo completo en minúsculas (regla 1). Django solo baja el dominio,
-        así que Ana@demo.test y ana@demo.test serían dos cuentas. Este método
-        lo usan el manager, el formulario del panel (AbstractUser.clean) y el
-        selector de logins fallidos, así que todos guardan y buscan igual.
+        así que Ana@demo.test y ana@demo.test serían dos cuentas. Lo usan el
+        manager y el formulario del panel (AbstractUser.clean), así que todo
+        correo nuevo se guarda en minúsculas. Las búsquedas usan iexact.
         """
         return super().normalize_email(email).lower()
 

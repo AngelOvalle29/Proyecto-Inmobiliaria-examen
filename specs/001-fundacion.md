@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 001 |
-| **Estado** | Implementada, pendiente de aprobación del pull request |
+| **Estado** | Implementada |
 | **Autor** | Equipo |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-08 |
@@ -300,7 +300,7 @@ el código.
 La IP del cliente se obtiene en la capa HTTP (`apps/core/http.py`) y el
 servicio la recibe ya resuelta, sin conocer `request`. Con `NUM_PROXIES=0`
 (desarrollo) se usa `REMOTE_ADDR` y se ignora `X-Forwarded-For`. Con
-`NUM_PROXIES=1` (Railway) se toma el último valor de `X-Forwarded-For`, el que
+`NUM_PROXIES=1` (producción, spec 002) se toma el último valor de `X-Forwarded-For`, el que
 agregó el proxy propio.
 
 *Corrección durante la implementación:* el borrador decía "primer valor de
