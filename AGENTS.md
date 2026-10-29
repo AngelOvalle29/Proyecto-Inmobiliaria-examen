@@ -120,12 +120,12 @@ tiempo. Un endpoint de escritura sin auditoría está incompleto.
 
 Django REST Framework · PostgreSQL · React + Vite + TypeScript · Render, Neon
 y CloudAMQP gratuitos para el backend · Vercel para el frontend · Gemini Flash para IA y embeddings ·
-Gmail SMTP para correo · todo en contenedores. No propongas alternativas salvo
+Gmail SMTP para correo · Supabase Storage para documentos · todo en contenedores. No propongas alternativas salvo
 que el equipo lo pida.
 
 ## Decisiones abiertas (no las cierres por tu cuenta)
 
-Almacenamiento de documentos oficiales en producción · dominio propio.
+Dominio propio.
 
 ---
 
