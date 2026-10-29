@@ -48,7 +48,9 @@ dólar aplicada, mora calculada y cambios de estado por `catalogo`.
 3. Se firma con fecha de inicio, **duración en meses** (1 a 120), renta
    mensual, moneda, depósito (0 o más, en la misma moneda), día de cobro (1 a
    28), días de gracia (0 a 31) y porcentaje de mora (0 a 100). La fecha de
-   fin la calcula el sistema: inicio + duración − 1 día.
+   fin la calcula el sistema: inicio + duración − 1 día, con la misma regla de
+   fin de mes que el calendario (un 31 que el mes no tiene pasa al último día).
+   Del 31 de enero con 1 mes: 28 o 29 de febrero menos un día.
 4. **Al firmar se generan todos los pagos de renta** (decidido por B): uno por
    mes de la duración. El primero vence en la primera fecha con el día de
    cobro igual o posterior al inicio; los demás, ese día de cada mes siguiente.
@@ -75,12 +77,24 @@ dólar aplicada, mora calculada y cambios de estado por `catalogo`.
 9. **Renovar** (decidido por B) crea un contrato nuevo para el mismo cliente y
    la misma propiedad o unidad, que empieza el día siguiente al fin del
    anterior, con su propia renta y duración. El anterior queda `RENOVADO` y la
-   propiedad sigue `ARRENDADA`. Se renueva un contrato `VIGENTE` o `VENCIDO`, y
-   cada contrato se renueva una sola vez.
+   propiedad sigue `ARRENDADA`. **Solo se renueva un contrato `VIGENTE`**
+   (decidido por B), y una sola vez. Un contrato ya finalizado (`VENCIDO`) no
+   se renueva: su propiedad volvió a `DISPONIBLE` y pudo arrendarse o venderse
+   a otro, así que se firma un contrato nuevo, que revisa la regla 1.
 10. **Rescindir** (decidido por B): el contrato `VIGENTE` pasa a `RESCINDIDO`
-    con su fecha de rescisión; los pagos `PENDIENTE` de períodos posteriores a
-    esa fecha pasan a `CANCELADO`; los anteriores se siguen debiendo; la
-    propiedad vuelve a `DISPONIBLE`.
+    con su fecha de rescisión; los pagos `PENDIENTE` con **fecha de vencimiento
+    posterior** a la de rescisión pasan a `CANCELADO`; los demás se siguen
+    debiendo; la propiedad vuelve a `DISPONIBLE`.
+    - **La fecha de rescisión va del inicio del contrato a hoy** (decidido por
+      B): registra algo que ya pasó, así que no puede ser futura (400
+      `FECHA_RESCISION_INVALIDA`).
+    - **Contrato renovado que todavía no empieza** (decidido por B): si el
+      inquilino se va antes de que empiece la renovación, se rescinde el
+      contrato nuevo. Se cancelan todos sus pagos y también los pagos
+      pendientes del contrato anterior (`RENOVADO`) con vencimiento posterior
+      a la fecha de rescisión. Aquí el límite inferior de la fecha es el inicio
+      del contrato anterior. Un contrato `RENOVADO` no se rescinde por sí solo:
+      se rescinde siempre el más nuevo.
 11. **Finalizar**: un contrato `VIGENTE` cuya fecha de fin ya pasó pasa a
     `VENCIDO` y la propiedad vuelve a `DISPONIBLE`. Los pagos pendientes se
     siguen debiendo.
@@ -149,7 +163,8 @@ del contrato. El estado `VENCIDO` se quita (regla 8) y se agrega `CANCELADO`
 |---|---|---|
 | `CONTRATO_NO_VIGENTE` | Se rescinde o finaliza un contrato que no está `VIGENTE` | 409 |
 | `CONTRATO_NO_TERMINADO` | Se finaliza antes de la fecha de fin (regla 11) | 409 |
-| `CONTRATO_YA_RENOVADO` | Se renueva un contrato renovado o rescindido (regla 9) | 409 |
+| `CONTRATO_YA_RENOVADO` | Se renueva un contrato que no está `VIGENTE`: renovado, rescindido o vencido (regla 9) | 409 |
+| `FECHA_RESCISION_INVALIDA` | La fecha de rescisión es anterior al inicio o futura (regla 10) | 400 |
 | `PAGO_NO_PENDIENTE` | Se paga un pago ya pagado o cancelado | 409 |
 | `MONTO_INCORRECTO` | El monto no es renta más recargo; `detalles` dice el esperado (regla 7) | 400 |
 
@@ -172,10 +187,10 @@ def listar_arrendamientos_visibles(*, usuario) -> QuerySet[ContratoArrendamiento
 ```
 
 Los estados de la propiedad o unidad cambian con `cambiar_estado_propiedad` y
-`cambiar_estado_unidad` (pedido en la spec 007 e implementado por A en #34). El cálculo de fechas
-mensuales (un 31 que el mes no tiene pasa al último día) es el mismo que el de
-las cuotas de ventas; se escribe una sola vez, en `core`, si A está de
-acuerdo.
+`cambiar_estado_unidad` (pedido en la spec 007 e implementado por A en #34).
+El cálculo de fechas mensuales (un 31 que el mes no tiene pasa al último día)
+es el mismo que el de las cuotas de ventas; va una sola vez en `core/fechas.py`,
+función pura con sus pruebas (acordado con A en #35).
 
 ## 7. Auditoría
 
@@ -198,6 +213,10 @@ pagos generados al firmar no se auditan uno por uno.
       `RENOVADO` y la propiedad sigue `ARRENDADA`
 - [ ] Rescindir cancela los pagos futuros, conserva los vencidos y libera la
       propiedad
+- [ ] Una fecha de rescisión futura o anterior al inicio es 400
+- [ ] Renovar un contrato `VENCIDO` es 409
+- [ ] Rescindir la renovación que todavía no empieza cancela todos sus pagos y
+      los pendientes futuros del contrato anterior
 - [ ] Finalizar antes del fin es 409; después, deja el contrato `VENCIDO` y
       libera la propiedad
 - [ ] Un pago pendiente vencido aparece con `en_mora: true`
@@ -259,3 +278,11 @@ datos de demostración.
 **Renumeración, 2026-10-29.** Se propuso como 006, número que también usó la
 spec de proveedores y constructoras (#39). Pasa a 008, después de la de ventas
 (007, antes 005), que es el patrón que copia.
+
+**Revisión de A (Douglas), 2026-10-29.** Pidió cambios por un hueco: renovar un
+contrato `VENCIDO` no revisaba la propiedad, que ya pudo arrendarse a otro (regla
+9). B eligió renovar solo contratos `VIGENTE`. De sus sugerencias se aplicaron:
+qué pagos cancela una rescisión (por fecha de vencimiento) y los límites de su
+fecha, la regla de fin de mes en la fecha de fin, qué pasa si el inquilino se
+va antes de que empiece la renovación (las dos últimas, decididas por B), y las
+fechas mensuales en `core/fechas.py`.
