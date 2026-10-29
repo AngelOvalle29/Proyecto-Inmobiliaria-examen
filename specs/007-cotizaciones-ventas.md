@@ -41,20 +41,26 @@ programada.
 **Cotizaciones**
 
 1. Una cotización es por **exactamente una** propiedad o unidad (decidido por
-   B). Precio, descuento y total están en la propia cotización.
+   B). Precio, descuento y total están en la propia cotización. Como en la
+   regla 9, una propiedad de un tipo con unidades no se cotiza completa: se
+   cotizan sus unidades.
 2. El precio inicial es el precio de lista de la propiedad o unidad, y la
    moneda es la suya. El total es precio menos descuento, lo calcula el
    servicio y nunca se edita directamente. El descuento está entre 0 y el
    precio.
 3. El agente de la cotización es el agente asignado al cliente.
 4. Estados: `BORRADOR` → `ENVIADA` → `APROBADA` o `RECHAZADA`. Solo una
-   cotización en `BORRADOR` se edita. Una cotización cuya fecha de vencimiento
-   ya pasó no se envía ni se aprueba: el servicio la marca `VENCIDA` y lo
-   rechaza.
+   cotización en `BORRADOR` se edita. **Vencida no es un estado guardado**
+   (decidido por B): una cotización en `BORRADOR` o `ENVIADA` está vencida si
+   su fecha de vencimiento ya pasó, igual que la mora de la regla 17. La API la
+   muestra con `vencida: true`, y una cotización vencida no se envía ni se
+   aprueba (409 `COTIZACION_VENCIDA`).
 5. Solo se cotiza y se aprueba sobre una propiedad o unidad `DISPONIBLE`.
 6. **Aprobar reserva** (decidido por B): la propiedad o unidad pasa a
    `RESERVADA`. Rechazar una cotización aprobada (el cliente desistió) la
-   devuelve a `DISPONIBLE`.
+   devuelve a `DISPONIBLE`. **Una cotización que ya tiene contrato no se
+   rechaza** (409 `COTIZACION_YA_CONTRATADA`): su propiedad está `VENDIDA`, y
+   rechazarla la volvería a ofrecer.
 
 **Contratos de venta**
 
@@ -62,7 +68,9 @@ programada.
    (decidido por B). Desde una cotización toma su cliente, propiedad o unidad,
    moneda y total; cada cotización da lugar a un contrato como máximo.
 8. Sin cotización, la propiedad o unidad debe estar `DISPONIBLE`. Desde una
-   cotización, debe estar `RESERVADA` por esa cotización.
+   cotización, la cotización debe estar `APROBADA` y la propiedad o unidad
+   `RESERVADA`. La propiedad no guarda quién la reservó; no hace falta, porque
+   la regla 5 impide dos cotizaciones aprobadas sobre la misma propiedad.
 9. Una propiedad de un tipo con unidades no se vende completa: se venden sus
    unidades.
 10. Al firmar, la propiedad o unidad pasa a `VENDIDA`.
@@ -91,9 +99,11 @@ programada.
 
 **Pagos de cuotas**
 
-16. Un pago se registra sobre una cuota, en la moneda del contrato. Puede ser
-    parcial: la cuota queda `PARCIAL` hasta completar su total, y entonces
-    `PAGADA`. Un pago no puede exceder lo que falta de la cuota.
+16. Un pago se registra sobre una cuota de un contrato `VIGENTE`, en la moneda
+    del contrato; en un contrato `ANULADO` o `LIQUIDADO` no se registran pagos
+    (409 `CONTRATO_NO_VIGENTE`). Puede ser parcial: la cuota queda `PARCIAL`
+    hasta completar su total, y entonces `PAGADA`. Un pago no puede exceder lo
+    que falta de la cuota.
 17. Una cuota `PENDIENTE` o `PARCIAL` con fecha de vencimiento pasada está **en
     mora**. No se guarda como estado: se calcula al consultar, así nunca queda
     desactualizada (base del reporte R11).
@@ -131,8 +141,9 @@ Constraints: exactamente uno de `propiedad` o `unidad`; `precio > 0`;
 `0 <= descuento <= precio`; `total = precio - descuento`;
 `fecha_vencimiento >= fecha_emision`.
 
-Del modelo original se quita `subtotal` (es el precio) y el estado
-`EN_NEGOCIACION`, que no tiene una acción que lo produzca.
+Del modelo original se quita `subtotal` (es el precio) y los estados
+`EN_NEGOCIACION`, que no tiene una acción que lo produzca, y `VENCIDA`, que se
+calcula (regla 4).
 
 ### `ventas.ContratoVenta`
 
@@ -185,8 +196,9 @@ historia completa de pagos queda en la bitácora de auditoría.
 | `COTIZACION_NO_EDITABLE` | Se edita una cotización fuera de `BORRADOR` | 409 |
 | `TRANSICION_INVALIDA` | Se envía, aprueba o rechaza desde un estado que no lo permite | 409 |
 | `COTIZACION_VENCIDA` | Se envía o aprueba una cotización vencida (regla 4) | 409 |
-| `COTIZACION_YA_CONTRATADA` | La cotización ya tiene contrato (regla 7) | 409 |
-| `PROPIEDAD_CON_UNIDADES` | Se vende completa una propiedad de un tipo con unidades (regla 9) | 409 |
+| `COTIZACION_YA_CONTRATADA` | La cotización ya tiene contrato: no da otro (regla 7) ni se rechaza (regla 6) | 409 |
+| `PROPIEDAD_CON_UNIDADES` | Se cotiza o vende completa una propiedad de un tipo con unidades (reglas 1 y 9) | 409 |
+| `CONTRATO_NO_VIGENTE` | Se registra un pago en un contrato anulado o liquidado (regla 16) | 409 |
 | `CONTRATO_CON_PAGOS` | Se anula un contrato que ya tiene pagos (regla 15) | 409 |
 | `PAGO_EXCEDE_SALDO` | El pago supera lo que falta de la cuota (regla 16) | 400 |
 | `TIPO_CAMBIO_NO_DISPONIBLE` | Ya existe (spec 001): no hay tasa al dólar en la fecha (regla 14) | 422 |
@@ -213,13 +225,15 @@ def listar_cotizaciones_visibles(*, usuario) -> QuerySet[Cotizacion]
 def listar_contratos_visibles(*, usuario) -> QuerySet[ContratoVenta]
 ```
 
-Los cambios de estado de la propiedad pasan por `cambiar_estado_propiedad`
-(spec 003). **Pedido a A:** el equivalente para unidades,
-`cambiar_estado_unidad`, con el mismo bloqueo de fila y auditoría; la spec
-003 solo tiene el de propiedades. Las tasas usan `obtener_tipo_cambio` de
-`core`.
+Los cambios de estado pasan por `cambiar_estado_propiedad` y
+`cambiar_estado_unidad` de `catalogo` (spec 003). El de unidades lo pidió esta
+spec y A lo agregó en #34. Las tasas usan `obtener_tipo_cambio` de `core`;
+para un contrato en dólares devuelve 1 (regla 7 de la spec 001), así que no
+hace falta un tipo de cambio USD→USD.
 
-Las fechas mensuales que caen en un día que el mes no tiene (31 de febrero) se
+El cálculo de fechas mensuales va en `core/fechas.py` (acordado con A en #35),
+compartido con arrendamientos: función pura, con sus pruebas. Las fechas
+mensuales que caen en un día que el mes no tiene (31 de febrero) se
 mueven al último día de ese mes.
 
 ## 7. Auditoría
@@ -237,7 +251,12 @@ del contrato dice cuántas se generaron, y se pueden recalcular.
 - [ ] Una cotización aprobada deja la propiedad `RESERVADA`; rechazarla la
       devuelve a `DISPONIBLE`
 - [ ] No se cotiza ni se aprueba sobre una propiedad no disponible (409)
-- [ ] Una cotización vencida no se envía ni se aprueba (409) y queda `VENCIDA`
+- [ ] Una cotización vencida aparece con `vencida: true` y no se envía ni se
+      aprueba (409)
+- [ ] Una cotización con contrato no se rechaza (409), y su propiedad sigue
+      `VENDIDA`
+- [ ] Un edificio con unidades no se cotiza ni se vende completo (409)
+- [ ] No se registran pagos en un contrato anulado (409)
 - [ ] Un contrato firmado desde una cotización toma sus datos y deja la
       propiedad `VENDIDA`; la misma cotización no da un segundo contrato
 - [ ] Un contrato de contado nace `LIQUIDADO` sin cuotas
@@ -284,6 +303,12 @@ bancos y la que un cliente espera).
 - *La mora se calcula, no se guarda.* Un estado `VENCIDA` guardado necesita una
   tarea diaria que lo actualice y queda mal si la tarea falla. Calcularla con
   la fecha de hoy siempre es correcto.
+- *La cotización vencida también se calcula (decidido por B, en la revisión).*
+  La primera versión guardaba `VENCIDA` y rechazaba en el mismo paso, pero
+  dentro de `transaction.atomic` el error deshace la marca: nunca quedaría
+  guardada (observación de A). Se descartó guardarla en una transacción aparte,
+  como el `LOGIN_FALLIDO` de la spec 001, porque calcularla es coherente con la
+  mora y no necesita una escritura especial.
 - *La última cuota ajusta el redondeo.* Redondear cada cuota a centavos deja
   unos centavos de diferencia con el saldo; si se reparte en la última, el
   capital cuadra exacto.
@@ -314,3 +339,11 @@ mora; (5) API de ventas y datos de demostración.
 **Renumeración, 2026-10-29.** Esta spec se propuso como 005, pero ese número
 lo tomó la spec del agente de IA (#36), fusionada antes. Pasa a 007, y la de
 arrendamientos a 008, para dejar el 006 a proveedores y constructoras (#39).
+
+**Revisión de A (Douglas), 2026-10-29.** Pidió cambios por dos huecos: rechazar
+una cotización ya contratada liberaba una propiedad vendida (regla 6), y la
+regla 4 no podía guardar `VENCIDA` y rechazar en el mismo paso. Se cerraron los
+dos; para el segundo, B eligió calcular la vencida. También se aplicaron sus
+sugerencias: la regla 9 vale para las cotizaciones, no se paga en un contrato
+anulado, la regla 8 redactada sin "reservada por", `cambiar_estado_unidad` ya
+existe, la tasa USD→USD es 1, y las fechas mensuales van en `core/fechas.py`.
