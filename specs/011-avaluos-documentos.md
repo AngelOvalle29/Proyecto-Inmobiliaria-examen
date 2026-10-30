@@ -3,9 +3,9 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 011 |
-| **Estado** | En revisión |
+| **Estado** | Aprobada |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco (Lilfacce) |
 | **Fecha** | 2026-10-29 |
 | **Apps afectadas** | `catalogo`; configuración de almacenamiento en `config/settings` |
 | **Rama** | `feature/011-avaluos-documentos` |
@@ -194,25 +194,25 @@ Las descargas no se auditan: son lecturas.
 
 ## 8. Criterios de aceptación
 
-- [ ] Un gerente registra un avalúo y aparece en el historial de la propiedad,
+- [x] Un gerente registra un avalúo y aparece en el historial de la propiedad,
       del más reciente al más antiguo
-- [ ] Un avalúo con fecha futura o valor 0 se rechaza (400)
-- [ ] Un avalúo con el documento de otra propiedad: 409
+- [x] Un avalúo con fecha futura o valor 0 se rechaza (400)
+- [x] Un avalúo con el documento de otra propiedad: 409
       `DOCUMENTO_DE_OTRA_PROPIEDAD`
-- [ ] Un gerente sube un PDF y lo descarga con la URL firmada; la URL deja de
+- [x] Un gerente sube un PDF y lo descarga con la URL firmada; la URL deja de
       servir después de 5 minutos
-- [ ] Un `.exe` renombrado a `.pdf`, o un PDF de 11 MB: 400
+- [x] Un `.exe` renombrado a `.pdf`, o un PDF de 11 MB: 400
       `ARCHIVO_NO_PERMITIDO`
-- [ ] Dos archivos con el mismo nombre no se pisan
-- [ ] En producción, el archivo queda en el bucket privado de Supabase, y su URL
+- [x] Dos archivos con el mismo nombre no se pisan
+- [x] En producción, el archivo queda en el bucket privado de Supabase, y su URL
       sin firmar no se puede abrir
-- [ ] Desactivar un documento que respalda un avalúo activo: 409
+- [x] Desactivar un documento que respalda un avalúo activo: 409
       `DOCUMENTO_EN_USO`
-- [ ] Agente, contabilidad y consulta leen y descargan, y reciben 403 al
+- [x] Agente, contabilidad y consulta leen y descargan, y reciben 403 al
       escribir
-- [ ] `?vence_antes=` devuelve solo los documentos que vencen antes de esa fecha
-- [ ] Toda escritura queda en la bitácora
-- [ ] `ruff`, `pytest`, `makemigrations --check` y el esquema OpenAPI pasan
+- [x] `?vence_antes=` devuelve solo los documentos que vencen antes de esa fecha
+- [x] Toda escritura queda en la bitácora
+- [x] `ruff`, `pytest`, `makemigrations --check` y el esquema OpenAPI pasan
 
 ## 9. Pruebas
 
@@ -257,7 +257,7 @@ Supabase, y la API solo decide quién puede.
 
 *Riesgo a comprobar en el incremento 1:* que Supabase acepte las URL firmadas
 que genera `boto3`. Si no las acepta, la descarga pasa por la API y la §5
-cambia en el mismo PR.
+cambia en el mismo PR. **Comprobado el 2026-10-29: sí las acepta (§11).**
 
 **La relación con los contratos va al revés.** `docs/modelo-datos.md` ponía en
 `DocumentoOficial` llaves hacia `ContratoVenta` y `ContratoCompra`. Pero esos
@@ -304,3 +304,117 @@ Propuso invertir la relación con los contratos para evitar el ciclo.
 2. Avalúos: modelo, servicios, API y datos de demostración.
 3. Documentos: modelo, subida, descarga, desactivación y filtros.
 4. Cierre con los criterios de §8 en producción.
+
+**Incremento 1, almacenamiento (2026-10-29, OpenCode, rol A).** Aprobada por
+Marco en el PR #42. Se agregó:
+
+- `django-storages==1.14.6` (publicada el 2025-04-02) y `boto3==1.43.114`
+  (publicada el 2026-10-14, quince días antes de este incremento). `pip-audit`
+  no reporta vulnerabilidades conocidas.
+- `STORAGES` en `base.py` según `STORAGE_BACKEND`: `local` usa
+  `FileSystemStorage` en `media/`; `s3` usa `S3Storage` con el endpoint, las
+  claves y la región de Supabase. Un valor distinto de esos dos detiene el
+  arranque, para no ignorar un error de configuración.
+- El bucket queda privado: `default_acl=None`, `querystring_auth=True` y
+  `querystring_expire=300` (los 5 minutos de la regla 10). `addressing_style`
+  es `path` porque Supabase no publica un subdominio por bucket.
+- `prod.py` ahora solo reemplaza `STORAGES["staticfiles"]` por el de
+  WhiteNoise; el almacenamiento por defecto sigue viniendo de `base.py`. Así se
+  evita que producción vuelva al disco efímero de Render.
+- `test.py` fuerza el disco local en una carpeta temporal, aunque el `.env`
+  local diga `s3`: las pruebas nunca tocan Supabase.
+- `config/urls.py` sirve `media/` solo con `DEBUG=True`, para probar la
+  descarga local. En producción la sirve Supabase con URL firmada.
+- `STORAGE_ENDPOINT_URL` se agregó a `.env.example`; `media/` ya estaba en
+  `.gitignore`.
+
+**Comprobación contra Supabase (2026-10-29).** Con el bucket privado
+`documentos` y sus claves S3 configuradas solo en el `.env` local:
+
+- la subida con `default_storage.save` terminó bien;
+- la URL de `default_storage.url` trae `X-Amz-Signature` y
+  `X-Amz-Expires=300`;
+- la descarga con la URL firmada respondió 200 con el contenido correcto;
+- la misma ruta sin la firma respondió 403;
+- el borrado con el almacenamiento terminó bien.
+
+Por tanto, se mantiene la descarga con URL firmada de la §5: Supabase sí acepta
+las que genera `boto3`. Las credenciales no se versionaron: viven solo en el
+`.env` local y, en producción, irán en el panel de Render. Falta repetir esta
+prueba en producción (§8).
+
+**Incremento 2, avalúos (2026-10-29, OpenCode, rol A).** Se implementó:
+
+- `DocumentoOficial` y `Avaluo` en una sola migración (`0003`), porque el
+  avalúo apunta al documento. El primero queda listo para el incremento 3; no
+  se expone todavía en la API. La migración incluye la ruta generada
+  `documentos/<código>/<uuid>.<extensión>` y los constraints de valor,
+  vencimiento y tamaño.
+- `TipoDocumento` con los siete valores de la regla 5.
+- Servicios `registrar_avaluo` y `desactivar_avaluo`, con
+  `transaction.atomic` y auditoría `CREAR`/`ELIMINAR`. La fecha futura se
+  rechaza con un `ErrorDominio` de código `VALIDACION` y 400, igual que
+  `EngancheFueraDeRango` en ventas, para no agregar un código que la §5 no
+  define. El documento ajeno responde `DOCUMENTO_DE_OTRA_PROPIEDAD` (409).
+- Selectores `listar_avaluos` y `listar_documentos`, con `select_related` y
+  solo registros activos de propiedades activas.
+- API `GET/POST /propiedades/{id}/avaluos/` y `GET/DELETE /avaluos/{id}/`.
+  DELETE desactiva; PATCH y PUT no existen porque un avalúo no se edita.
+  Escriben administración y gerencia; todos los roles autenticados leen.
+- Avalúos ficticios en `cargar_demo_catalogo`, con dos de Torre Mirador para
+  mostrar la plusvalía. La carga sigue siendo idempotente (propiedad, fecha y
+  perito) y no audita, como el resto de la demostración.
+- `docs/modelo-datos.md` actualizado con la forma real de ambos modelos.
+
+Verificado: `ruff format --check`, `ruff check`, `pytest` (**418 passed**),
+`makemigrations --check` y `spectacular --validate --fail-on-warn` sin
+errores. Las pruebas de la API cubren la matriz de permisos, el orden del
+historial, la fecha futura, el valor cero, el documento ajeno y el borrado
+lógico auditado. No se hizo commit: lo hace A.
+
+**Incremento 3, documentos (2026-10-29, OpenCode, rol A).** Se implementó:
+
+- Subida `multipart` en `POST /propiedades/{id}/documentos/`, listado con
+  `?tipo=` y `?vence_antes=`, detalle `GET/PATCH/DELETE /documentos/{id}/` y
+  descarga en `GET /documentos/{id}/descarga/`, que responde
+  `{ "url", "vence_en_segundos": 300 }`.
+- Validación por firma del contenido, no por la extensión: `%PDF-`,
+  `\xff\xd8\xff\xe0` y `\x89PNG\r\n\x1a\n` para PDF, JPG y PNG. El tamaño se
+  comprueba contra `TAMANO_MAXIMO_DOCUMENTO`. Un archivo inválido responde 400
+  `ARCHIVO_NO_PERMITIDO` y no crea registro ni auditoría.
+- El nombre se genera con `ruta_documento`: `documentos/<código>/<uuid>.<ext>`;
+  `nombre_original` conserva el nombre de la subida. El archivo se sube antes de
+  guardar el registro y se borra si la transacción falla, como dice la §6.
+- `PATCH` ignora `tipo` y `archivo`: solo cambia nombre, fechas y emisor. El
+  vencimiento anterior a la emisión responde 400 `VALIDACION`.
+- `DELETE` desactiva el documento y conserva el archivo. Si un avalúo activo lo
+  usa, responde 409 `DOCUMENTO_EN_USO`.
+- La descarga usa `default_storage.url`, de modo que en producción entrega la
+  URL firmada de Supabase y en pruebas la ruta local.
+- Para la auditoría, `_valores` convierte un `FieldFile` a su ruta (`name`)
+  antes de guardarlo: el contenido del archivo nunca se serializa y el JSON de
+  la bitácora es válido.
+- Se agregó `TipoClienteEnum` a `ENUM_NAME_OVERRIDES` para resolver la colisión
+  de nombres que drf-spectacular detectó entre los campos `tipo` de cliente y
+  documento.
+
+Pruebas nuevas: generación de nombre y auditoría, dos archivos homónimos,
+detección de JPG/PNG por contenido, ejecutable renombrado, archivo de más de
+10 MB, borrado del archivo si falla el registro, edición limitada, documento en
+uso, descarga, filtros, matriz de lectura/descarga y 403 de escritura para
+agente, contabilidad y consulta. Verificado: `ruff format --check`,
+`ruff check`, `pytest` (**453 passed**), `makemigrations --check` y
+`spectacular --validate --fail-on-warn` sin errores.
+
+**Comprobación contra Supabase con la configuración real (2026-10-29).** Se
+guardó un PDF de prueba en el bucket `documentos` usando `default_storage`:
+
+- la URL firmada trae `X-Amz-Expires=300`;
+- la descarga firmada respondió 200 con el contenido correcto;
+- la misma ruta sin firma respondió 403;
+- tras esperar 310 segundos, la URL firmada respondió 400: ya no sirve;
+- el archivo de prueba se borró al terminar.
+
+Con esto se cierran los dos criterios manuales de §8. El flujo HTTP completo
+contra Render se repite después de fusionar y desplegar la rama, pero no queda
+trabajo de código pendiente en esta spec. No se hizo commit: lo hace A.

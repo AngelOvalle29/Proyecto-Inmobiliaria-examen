@@ -11,14 +11,15 @@ ciudad o una moneda activos.
 
 from decimal import Decimal
 
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.core.selectors import listar_ciudades, listar_monedas
 from apps.core.serializers import MonedaResumenSerializer, PaisResumenSerializer
 
-from .enums import EstadoPropiedad
-from .models import Propiedad, TipoPropiedad, Unidad
-from .selectors import listar_tipos_propiedad
+from .enums import EstadoPropiedad, TipoDocumento
+from .models import Avaluo, DocumentoOficial, Propiedad, TipoPropiedad, Unidad
+from .selectors import listar_documentos, listar_tipos_propiedad
 
 # Regla 4: precios y áreas mayores que cero. La base lo garantiza con sus
 # constraints; validarlo aquí da un 400 con el campo señalado en vez de un 500.
@@ -131,3 +132,113 @@ class UnidadSerializer(serializers.ModelSerializer):
             "area_m2": MAYOR_QUE_CERO,
             "precio_lista": MAYOR_QUE_CERO,
         }
+
+
+class DocumentoOficialResumenSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    nombre = serializers.CharField()
+    tipo = serializers.CharField()
+
+
+class AvaluoSerializer(serializers.ModelSerializer):
+    # La propiedad sale de la URL al registrar y no se cambia: un avalúo no se
+    # edita (regla 3).
+    propiedad = PropiedadResumenSerializer(read_only=True)
+    moneda = MonedaResumenSerializer(read_only=True)
+    moneda_id = serializers.PrimaryKeyRelatedField(
+        source="moneda", queryset=listar_monedas(), write_only=True
+    )
+    documento = DocumentoOficialResumenSerializer(read_only=True)
+    documento_id = serializers.PrimaryKeyRelatedField(
+        source="documento",
+        queryset=listar_documentos(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+
+    class Meta:
+        model = Avaluo
+        fields = [
+            "id",
+            "propiedad",
+            "fecha",
+            "valor",
+            "moneda",
+            "moneda_id",
+            "perito",
+            "metodologia",
+            "documento",
+            "documento_id",
+            "observaciones",
+        ]
+        extra_kwargs = {"valor": MAYOR_QUE_CERO}
+
+    def validate_fecha(self, valor):
+        # Regla 2: el servicio lo vuelve a comprobar; aquí se señala el campo.
+        if valor > timezone.localdate():
+            raise serializers.ValidationError("No puede ser futura.")
+        return valor
+
+
+class DocumentoOficialSerializer(serializers.ModelSerializer):
+    # El archivo no se expone: se descarga por /descarga/ con una URL firmada.
+    # Tampoco se puede reemplazar ni cambiar el tipo (regla 7).
+    propiedad = PropiedadResumenSerializer(read_only=True)
+
+    class Meta:
+        model = DocumentoOficial
+        fields = [
+            "id",
+            "propiedad",
+            "tipo",
+            "nombre",
+            "nombre_original",
+            "tipo_contenido",
+            "tamano_bytes",
+            "fecha_emision",
+            "fecha_vencimiento",
+            "emisor",
+            "creado_en",
+        ]
+        read_only_fields = [
+            "propiedad",
+            "tipo",
+            "nombre_original",
+            "tipo_contenido",
+            "tamano_bytes",
+            "creado_en",
+        ]
+
+    def validate(self, datos):
+        emision = datos.get("fecha_emision", self.instance.fecha_emision)
+        vencimiento = datos.get("fecha_vencimiento", self.instance.fecha_vencimiento)
+        if vencimiento is not None and vencimiento < emision:
+            raise serializers.ValidationError(
+                {"fecha_vencimiento": ["No puede ser anterior a la fecha de emisión."]}
+            )
+        return datos
+
+
+class DocumentoSubirSerializer(serializers.Serializer):
+    """Entrada de la subida: multipart con el archivo y sus datos (regla 5)."""
+
+    archivo = serializers.FileField()
+    tipo = serializers.ChoiceField(choices=TipoDocumento.choices)
+    nombre = serializers.CharField(max_length=200)
+    fecha_emision = serializers.DateField()
+    fecha_vencimiento = serializers.DateField(required=False, allow_null=True)
+    emisor = serializers.CharField(max_length=150)
+
+    def validate(self, datos):
+        vencimiento = datos.get("fecha_vencimiento")
+        if vencimiento is not None and vencimiento < datos["fecha_emision"]:
+            raise serializers.ValidationError(
+                {"fecha_vencimiento": ["No puede ser anterior a la fecha de emisión."]}
+            )
+        return datos
+
+
+class DescargaDocumentoSerializer(serializers.Serializer):
+    url = serializers.CharField()
+    vence_en_segundos = serializers.IntegerField()
