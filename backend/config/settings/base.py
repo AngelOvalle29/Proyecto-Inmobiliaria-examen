@@ -10,6 +10,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # backend/
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -163,6 +164,53 @@ STATIC_URL = "static/"
 
 # Destino de collectstatic. Cómo se sirven en producción lo decide la spec 002.
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
+# ---------- Archivos subidos (spec 011) ----------
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Dónde se guardan los documentos oficiales. "local" en desarrollo y pruebas;
+# "s3" en producción, contra el bucket privado de Supabase (spec 011, §6).
+STORAGE_BACKEND = env("STORAGE_BACKEND", default="local")
+if STORAGE_BACKEND not in {"local", "s3"}:
+    raise ImproperlyConfigured(
+        f"STORAGE_BACKEND desconocido: {STORAGE_BACKEND!r}. Use 'local' o 's3'."
+    )
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Se declara también aquí para no perderlo al definir STORAGES: en
+    # producción prod.py lo cambia por el de WhiteNoise (spec 002, §5.3).
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
+if STORAGE_BACKEND == "s3":
+    # Supabase Storage habla el protocolo S3, así que se usa el backend estándar
+    # de django-storages en vez de escribir uno propio (spec 011, §10).
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "endpoint_url": env("STORAGE_ENDPOINT_URL"),
+            "bucket_name": env("STORAGE_BUCKET"),
+            "access_key": env("STORAGE_ACCESS_KEY"),
+            "secret_key": env("STORAGE_SECRET_KEY"),
+            "region_name": env("STORAGE_REGION"),
+            # El bucket es privado (regla 10): sin ACL pública, y cada descarga
+            # pide una URL firmada que vence a los 5 minutos.
+            "default_acl": None,
+            "querystring_auth": True,
+            "querystring_expire": 300,
+            # Supabase no publica un subdominio por bucket: la ruta lleva el
+            # nombre del bucket en vez del estilo bucket.host.
+            "addressing_style": "path",
+            "signature_version": "s3v4",
+            # El nombre del archivo ya es un uuid (regla 8); si se repitiera,
+            # es mejor fallar que pisar el de otro.
+            "file_overwrite": False,
+        },
+    }
 
 
 # ---------- API (Django REST Framework) ----------
