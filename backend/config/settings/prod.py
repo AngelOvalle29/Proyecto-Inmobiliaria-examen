@@ -90,11 +90,11 @@ DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 # mucho tiempo sin riesgo de usar una versión vieja. Solo en producción: el
 # manifiesto exige haber corrido collectstatic, y en desarrollo y en las
 # pruebas no se corre.
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
+# Solo se cambia el almacenamiento de los estáticos: el de los archivos subidos
+# lo decide base.py según STORAGE_BACKEND (spec 011, §6). En producción debe ser
+# "s3"; con "local" los documentos se perderían en cada despliegue de Render.
+STORAGES["staticfiles"] = {
+    "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
 }
 
 

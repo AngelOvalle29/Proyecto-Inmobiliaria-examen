@@ -196,8 +196,15 @@ detalle técnico están en `specs/002-despliegue.md`.
 Se cargan en el panel de Render, **nunca en el repositorio**. La lista completa
 con su explicación está al final de `.env.example`. Las secretas son
 `SECRET_KEY` (al menos 50 caracteres, o el contenedor no arranca),
-`DATABASE_URL`, `RABBITMQ_URL` y `DJANGO_SUPERUSER_PASSWORD`.
+`DATABASE_URL`, `RABBITMQ_URL`, `DJANGO_SUPERUSER_PASSWORD` y las claves del
+bucket (`STORAGE_ACCESS_KEY` y `STORAGE_SECRET_KEY`).
 `CORS_ALLOWED_ORIGINS` es la URL del frontend, sin barra final.
+
+**Documentos oficiales (spec 011):** `STORAGE_BACKEND` vale `s3` en
+`render.yaml`, y el panel pide `STORAGE_ENDPOINT_URL`, `STORAGE_BUCKET`,
+`STORAGE_REGION` y las dos claves, que salen de Supabase (*Storage → S3
+Connection*). Si faltan, el contenedor no arranca. Con `local` arrancaría, pero
+los archivos se borrarían en cada despliegue.
 
 El frontend en Vercel solo necesita `VITE_API_URL` (la URL de la API terminada
 en `/api/v1`) y `VITE_ENTORNO=produccion`, de tipo **Config**. No son secretas:
@@ -219,7 +226,11 @@ de un proxy en vez de la del usuario (spec 002, §8).
 - **No hay terminal.** Por eso el administrador y los datos de demostración los
   crea el script de arranque.
 - **No hay disco persistente.** Lo que se escriba en el contenedor se pierde al
-  reiniciar.
+  reiniciar. Por eso los documentos van a Supabase.
+- **Supabase pausa el proyecto** tras una semana sin actividad, y entonces los
+  documentos no se pueden subir ni descargar. **Antes de una revisión o de la
+  defensa, abrir el panel de Supabase y reactivarlo si está pausado**
+  (spec 011, §10).
 
 ### Cómo revisar que todo funciona
 

@@ -3,8 +3,13 @@
 from django.urls import path
 
 from .views import (
+    AvaluoDetalleView,
+    AvaluosDePropiedadView,
     CambiarEstadoPropiedadView,
     CambiarEstadoUnidadView,
+    DocumentoDescargaView,
+    DocumentoDetalleView,
+    DocumentosDePropiedadView,
     PropiedadDetalleView,
     PropiedadesView,
     TipoPropiedadDetalleView,
@@ -38,4 +43,21 @@ urlpatterns = [
         CambiarEstadoUnidadView.as_view(),
         name="unidad-cambiar-estado",
     ),
+    path(
+        "propiedades/<int:pk>/avaluos/",
+        AvaluosDePropiedadView.as_view(),
+        name="propiedad-avaluos",
+    ),
+    path("avaluos/<int:pk>/", AvaluoDetalleView.as_view(), name="avaluo"),
+    path(
+        "propiedades/<int:pk>/documentos/",
+        DocumentosDePropiedadView.as_view(),
+        name="propiedad-documentos",
+    ),
+    path(
+        "documentos/<int:pk>/descarga/",
+        DocumentoDescargaView.as_view(),
+        name="documento-descarga",
+    ),
+    path("documentos/<int:pk>/", DocumentoDetalleView.as_view(), name="documento"),
 ]

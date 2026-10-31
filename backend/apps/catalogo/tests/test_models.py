@@ -1,14 +1,24 @@
 """Pruebas de los modelos de catálogo: tipos iniciales y constraints (spec 003)."""
 
+from datetime import date
 from decimal import Decimal
 
 import pytest
 from django.db import IntegrityError
 
 from apps.catalogo.enums import EstadoPropiedad
-from apps.catalogo.models import TipoPropiedad
+from apps.catalogo.models import (
+    TAMANO_MAXIMO_DOCUMENTO,
+    TipoPropiedad,
+    ruta_documento,
+)
 
-from .factories import PropiedadFactory, UnidadFactory
+from .factories import (
+    AvaluoFactory,
+    DocumentoOficialFactory,
+    PropiedadFactory,
+    UnidadFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -56,3 +66,35 @@ def test_el_mismo_codigo_de_unidad_en_otra_propiedad_se_acepta():
     UnidadFactory(codigo="A-101")
 
     assert UnidadFactory(codigo="A-101").codigo == "A-101"
+
+
+def test_la_base_rechaza_un_avaluo_con_valor_cero():
+    """Regla 1 de la spec 011: el valor es mayor que cero."""
+    with pytest.raises(IntegrityError):
+        AvaluoFactory(valor=Decimal("0"))
+
+
+def test_la_base_rechaza_un_vencimiento_anterior_a_la_emision():
+    """Regla 5 de la spec 011."""
+    with pytest.raises(IntegrityError):
+        DocumentoOficialFactory(
+            fecha_emision=date(2026, 1, 10),
+            fecha_vencimiento=date(2026, 1, 9),
+        )
+
+
+def test_la_base_rechaza_un_documento_de_mas_de_diez_megas():
+    """Regla 6 de la spec 011."""
+    with pytest.raises(IntegrityError):
+        DocumentoOficialFactory(tamano_bytes=TAMANO_MAXIMO_DOCUMENTO + 1)
+
+
+def test_la_ruta_del_documento_usa_el_codigo_y_un_uuid():
+    """Regla 8 de la spec 011."""
+    documento = DocumentoOficialFactory()
+
+    ruta = ruta_documento(documento, "Mi Escritura.PDF")
+
+    assert ruta.startswith(f"documentos/{documento.propiedad.codigo}/")
+    assert ruta.endswith(".pdf")
+    assert ruta != ruta_documento(documento, "Mi Escritura.PDF")

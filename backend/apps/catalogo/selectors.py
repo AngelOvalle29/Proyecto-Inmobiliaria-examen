@@ -9,7 +9,7 @@ catálogo solo por estos selectores, nunca con los modelos directamente
 
 from django.db.models import QuerySet
 
-from .models import Propiedad, TipoPropiedad, Unidad
+from .models import Avaluo, DocumentoOficial, Propiedad, TipoPropiedad, Unidad
 
 
 def listar_tipos_propiedad() -> QuerySet[TipoPropiedad]:
@@ -75,3 +75,40 @@ def existe_unidad(
 def contar_unidades_activas(*, propiedad: Propiedad) -> int:
     """Regla 6: cuántas unidades activas impiden desactivar la propiedad."""
     return Unidad.objects.filter(propiedad=propiedad, activo=True).count()
+
+
+def listar_avaluos(*, propiedad: Propiedad | None = None) -> QuerySet[Avaluo]:
+    """
+    Avalúos activos, del más reciente al más antiguo. Con propiedad, solo los
+    de esa propiedad.
+    """
+    avaluos = (
+        Avaluo.objects.filter(activo=True, propiedad__activo=True)
+        .select_related("propiedad", "moneda", "documento")
+        .order_by("-fecha", "-id")
+    )
+    if propiedad is not None:
+        avaluos = avaluos.filter(propiedad=propiedad)
+    return avaluos
+
+
+def avaluo_activo_usa_documento(*, documento: DocumentoOficial) -> bool:
+    """Regla 9: si el documento respalda al menos un avalúo activo."""
+    return Avaluo.objects.filter(documento=documento, activo=True).exists()
+
+
+def listar_documentos(
+    *, propiedad: Propiedad | None = None
+) -> QuerySet[DocumentoOficial]:
+    """
+    Documentos oficiales activos de propiedades activas. Con propiedad, solo
+    los de esa propiedad.
+    """
+    documentos = (
+        DocumentoOficial.objects.filter(activo=True, propiedad__activo=True)
+        .select_related("propiedad")
+        .order_by("-fecha_emision", "-id")
+    )
+    if propiedad is not None:
+        documentos = documentos.filter(propiedad=propiedad)
+    return documentos

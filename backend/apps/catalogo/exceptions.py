@@ -67,3 +67,66 @@ class PropiedadNoDisponible(ErrorDominio):
                 "estado_requerido": estado_requerido,
             },
         )
+
+
+class FechaAvaluoFutura(ErrorDominio):
+    """
+    Regla 2 de la spec 011: un avalúo no puede tener fecha futura.
+
+    Se responde como un error de validación del campo, igual que
+    EngancheFueraDeRango en ventas, para no inventar un código fuera del
+    contrato de la API.
+    """
+
+    codigo = "VALIDACION"
+    estado_http = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Los datos enviados no son válidos.",
+            detalles={"fecha": ["No puede ser futura."]},
+        )
+
+
+class DocumentoDeOtraPropiedad(ErrorDominio):
+    """Regla 4 de la spec 011: el documento debe ser de la misma propiedad."""
+
+    codigo = "DOCUMENTO_DE_OTRA_PROPIEDAD"
+    estado_http = 409
+
+    def __init__(
+        self, *, documento: str, propiedad: str, propiedad_documento: str
+    ) -> None:
+        super().__init__(
+            f"El documento {documento} pertenece a la propiedad "
+            f"{propiedad_documento}, no a {propiedad}.",
+            detalles={
+                "documento": documento,
+                "propiedad": propiedad,
+                "propiedad_documento": propiedad_documento,
+            },
+        )
+
+
+class ArchivoNoPermitido(ErrorDominio):
+    """Regla 6 de la spec 011: solo PDF, JPG o PNG de hasta 10 MB."""
+
+    codigo = "ARCHIVO_NO_PERMITIDO"
+    estado_http = 400
+
+    def __init__(self, *, motivo: str) -> None:
+        super().__init__(motivo, detalles={"archivo": [motivo]})
+
+
+class DocumentoEnUso(ErrorDominio):
+    """Regla 9 de la spec 011: un documento que respalda un avalúo activo."""
+
+    codigo = "DOCUMENTO_EN_USO"
+    estado_http = 409
+
+    def __init__(self, *, documento: str) -> None:
+        super().__init__(
+            f"El documento {documento} respalda un avalúo activo: "
+            "desactive el avalúo primero.",
+            detalles={"documento": documento},
+        )

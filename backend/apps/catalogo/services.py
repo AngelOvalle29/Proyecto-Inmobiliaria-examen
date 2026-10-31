@@ -4,9 +4,16 @@ auditoría.
 No conocen request ni hablan HTTP.
 """
 
+from contextlib import suppress
+from pathlib import Path
+
 from django.contrib.auth.base_user import AbstractBaseUser
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import UploadedFile
 from django.db import models, transaction
+from django.db.models.fields.files import FieldFile
 from django.forms.models import model_to_dict
+from django.utils import timezone
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
@@ -15,13 +22,26 @@ from apps.core.selectors import listar_ciudades, listar_monedas
 from . import datos_demo
 from .enums import EstadoPropiedad
 from .exceptions import (
+    ArchivoNoPermitido,
+    DocumentoDeOtraPropiedad,
+    DocumentoEnUso,
+    FechaAvaluoFutura,
     PropiedadConUnidades,
     PropiedadNoDisponible,
     TipoSinUnidades,
     UnidadDuplicada,
 )
-from .models import Propiedad, TipoPropiedad, Unidad
+from .models import (
+    TAMANO_MAXIMO_DOCUMENTO,
+    Avaluo,
+    DocumentoOficial,
+    Propiedad,
+    TipoPropiedad,
+    Unidad,
+    ruta_documento,
+)
 from .selectors import (
+    avaluo_activo_usa_documento,
     contar_unidades_activas,
     existe_unidad,
     listar_tipos_propiedad,
@@ -56,20 +76,65 @@ CAMPOS_UNIDAD = [
     "precio_lista",
     "moneda",
 ]
+# Un avalúo no se edita (regla 3): estos campos solo se usan al registrarlo.
+CAMPOS_AVALUO = [
+    "propiedad",
+    "fecha",
+    "valor",
+    "moneda",
+    "perito",
+    "metodologia",
+    "documento",
+    "observaciones",
+]
+# El archivo no se reemplaza (regla 7): al crear se arma en el servicio y al
+# editar solo cambian estos cuatro campos.
+CAMPOS_DOCUMENTO = [
+    "propiedad",
+    "tipo",
+    "nombre",
+    "archivo",
+    "nombre_original",
+    "tipo_contenido",
+    "tamano_bytes",
+    "fecha_emision",
+    "fecha_vencimiento",
+    "emisor",
+]
+CAMPOS_DOCUMENTO_EDITABLES = [
+    "nombre",
+    "fecha_emision",
+    "fecha_vencimiento",
+    "emisor",
+]
+SEGUNDOS_URL_DESCARGA = 300
+
+# Regla 6: el tipo se deduce de los primeros bytes, no del nombre del archivo.
+# La extensión es la que se usa al guardarlo: un PNG llamado .txt se guarda
+# como .png.
+FIRMAS_ARCHIVO = {
+    "pdf": (b"%PDF-", "application/pdf"),
+    "jpg": (b"\xff\xd8\xff", "image/jpeg"),
+    "png": (b"\x89PNG\r\n\x1a\n", "image/png"),
+}
 
 
-# --- Ayudantes comunes a los tres modelos -----------------------------------
+# --- Ayudantes comunes a los modelos de catálogo -----------------------------
 #
-# Crear, editar y desactivar siguen los mismos pasos en los tres modelos. Se
+# Crear, editar y desactivar siguen los mismos pasos en todos los modelos. Se
 # escriben una vez aquí y cada servicio público agrega solo su regla propia.
 
 
 def _valores(instancia: models.Model, campos: list[str]) -> dict:
     """
     Los campos como se guardan en la bitácora. model_to_dict entrega el id de
-    las llaves foráneas (ciudad: 3), no el objeto, que no cabe en JSON.
+    las llaves foráneas (ciudad: 3), no el objeto, que no cabe en JSON. Un
+    FileField se guarda como la ruta, nunca con el contenido del archivo.
     """
-    return model_to_dict(instancia, fields=campos)
+    return {
+        campo: valor.name if isinstance(valor, FieldFile) else valor
+        for campo, valor in model_to_dict(instancia, fields=campos).items()
+    }
 
 
 def _auditar(
@@ -422,19 +487,170 @@ def desactivar_unidad(
     _desactivar(unidad, autor=autor, ip=ip)
 
 
+# --- Avalúos ----------------------------------------------------------------
+
+
+@transaction.atomic
+def registrar_avaluo(
+    *, propiedad: Propiedad, datos: dict, autor: AbstractBaseUser, ip: str | None
+) -> Avaluo:
+    """
+    Registra un avalúo de la propiedad (regla 1).
+
+    Valida la fecha no futura (regla 2) y que el documento adjunto, si lo hay,
+    sea de la misma propiedad (regla 4). El avalúo nunca se edita: si hay un
+    error, se desactiva y se registra el correcto (regla 3).
+    """
+    if datos["fecha"] > timezone.localdate():
+        raise FechaAvaluoFutura()
+
+    documento = datos.get("documento")
+    if documento is not None and documento.propiedad_id != propiedad.pk:
+        raise DocumentoDeOtraPropiedad(
+            documento=documento.nombre,
+            propiedad=propiedad.codigo,
+            propiedad_documento=documento.propiedad.codigo,
+        )
+
+    return _crear(
+        Avaluo,
+        datos={**datos, "propiedad": propiedad},
+        campos=CAMPOS_AVALUO,
+        autor=autor,
+        ip=ip,
+    )
+
+
+@transaction.atomic
+def desactivar_avaluo(
+    *, avaluo: Avaluo, autor: AbstractBaseUser, ip: str | None
+) -> None:
+    """Borrado lógico del avalúo (regla 3), auditado como ELIMINAR."""
+    _desactivar(avaluo, autor=autor, ip=ip)
+
+
+# --- Documentos oficiales ---------------------------------------------------
+
+
+def _validar_archivo(archivo: UploadedFile) -> tuple[str, str, int]:
+    """
+    Regla 6: devuelve (tipo de contenido, extensión, tamaño) si el archivo es
+    PDF, JPG o PNG de hasta 10 MB. Mira los primeros bytes y vuelve a dejar el
+    puntero al inicio para poder guardarlo después.
+    """
+    tamano = archivo.size
+    if tamano <= 0 or tamano > TAMANO_MAXIMO_DOCUMENTO:
+        raise ArchivoNoPermitido(motivo="El archivo debe pesar entre 1 byte y 10 MB.")
+
+    encabezado = archivo.read(16)
+    archivo.seek(0)
+    for extension, (firma, tipo_contenido) in FIRMAS_ARCHIVO.items():
+        if encabezado.startswith(firma):
+            return tipo_contenido, extension, tamano
+
+    raise ArchivoNoPermitido(motivo="Solo se aceptan archivos PDF, JPG o PNG.")
+
+
+@transaction.atomic
+def subir_documento(
+    *,
+    propiedad: Propiedad,
+    archivo: UploadedFile,
+    datos: dict,
+    autor: AbstractBaseUser,
+    ip: str | None,
+) -> DocumentoOficial:
+    """
+    Sube el archivo y registra el documento (reglas 5 a 8).
+
+    El almacenamiento no participa en la transacción de la base, así que se
+    sube primero y, si el registro falla, se intenta borrar el archivo para no
+    dejar uno huérfano (spec 011, §6).
+    """
+    tipo_contenido, extension, tamano = _validar_archivo(archivo)
+    nombre_original = Path(archivo.name).name
+    archivo.name = f"documento.{extension}"
+
+    ruta = ruta_documento(DocumentoOficial(propiedad=propiedad), archivo.name)
+    guardado = default_storage.save(ruta, archivo)
+
+    try:
+        return _crear(
+            DocumentoOficial,
+            datos={
+                **datos,
+                "propiedad": propiedad,
+                "archivo": guardado,
+                "nombre_original": nombre_original,
+                "tipo_contenido": tipo_contenido,
+                "tamano_bytes": tamano,
+            },
+            campos=CAMPOS_DOCUMENTO,
+            autor=autor,
+            ip=ip,
+        )
+    except Exception:
+        # Si además falla el borrado, queda un archivo huérfano, nunca un
+        # registro que apunte a un archivo inexistente. El error original se
+        # propaga igual.
+        with suppress(Exception):
+            default_storage.delete(guardado)
+        raise
+
+
+@transaction.atomic
+def actualizar_documento(
+    *,
+    documento: DocumentoOficial,
+    datos: dict,
+    autor: AbstractBaseUser,
+    ip: str | None,
+) -> DocumentoOficial:
+    """Edita nombre, fechas y emisor; el archivo no se reemplaza (regla 7)."""
+    return _actualizar(
+        documento,
+        datos=datos,
+        campos=CAMPOS_DOCUMENTO_EDITABLES,
+        autor=autor,
+        ip=ip,
+    )
+
+
+@transaction.atomic
+def desactivar_documento(
+    *, documento: DocumentoOficial, autor: AbstractBaseUser, ip: str | None
+) -> None:
+    """
+    Borrado lógico (regla 9). El archivo no se borra y un documento que
+    respalda un avalúo activo no se puede desactivar.
+    """
+    if avaluo_activo_usa_documento(documento=documento):
+        raise DocumentoEnUso(documento=documento.nombre)
+    _desactivar(documento, autor=autor, ip=ip)
+
+
+def generar_url_descarga(*, documento: DocumentoOficial) -> str:
+    """
+    Regla 10: URL firmada de 5 minutos con S3. En desarrollo y pruebas el
+    almacenamiento es local y devuelve la ruta de media, sin firma.
+    """
+    return default_storage.url(documento.archivo.name)
+
+
 # --- Datos de demostración --------------------------------------------------
 
 
 @transaction.atomic
 def cargar_demo_catalogo() -> dict[str, int]:
     """
-    Carga las propiedades y unidades ficticias de datos_demo.py y devuelve
-    cuántas creó de cada una.
+    Carga las propiedades, unidades y avalúos ficticios de datos_demo.py y
+    devuelve cuántos creó de cada uno.
 
     Es idempotente, como cargar_catalogos_demo de core: busca cada propiedad
-    por su nombre y cada unidad por su código, y solo crea lo que falta. Nunca
-    modifica lo que ya existe, así que correrlo en cada arranque (spec 002,
-    §5.8) no duplica nada ni deshace cambios hechos desde la API.
+    por su nombre, cada unidad por su código y cada avalúo por su propiedad,
+    fecha y perito, y solo crea lo que falta. Nunca modifica lo que ya existe,
+    así que correrlo en cada arranque (spec 002, §5.8) no duplica nada ni
+    deshace cambios hechos desde la API.
 
     Necesita las ciudades y monedas de demostración de core; seed_demo las
     carga antes.
@@ -443,7 +659,7 @@ def cargar_demo_catalogo() -> dict[str, int]:
     registra auditoría (spec 003, §7): es la foto inicial de la demostración,
     no una operación del negocio.
     """
-    creados = {"propiedades": 0, "unidades": 0}
+    creados = {"propiedades": 0, "unidades": 0, "avaluos": 0}
 
     for datos in datos_demo.PROPIEDADES:
         codigo_pais, nombre_ciudad = datos["ciudad"]
@@ -487,5 +703,21 @@ def cargar_demo_catalogo() -> dict[str, int]:
             )
             if creada:
                 creados["unidades"] += 1
+
+        avaluos = datos_demo.AVALUOS.get(datos["nombre"], [])
+        for fecha, valor, perito, metodologia, observaciones in avaluos:
+            _, creado = Avaluo.objects.get_or_create(
+                propiedad=propiedad,
+                fecha=fecha,
+                perito=perito,
+                defaults={
+                    "valor": valor,
+                    "moneda": propiedad.moneda,
+                    "metodologia": metodologia,
+                    "observaciones": observaciones,
+                },
+            )
+            if creado:
+                creados["avaluos"] += 1
 
     return creados
