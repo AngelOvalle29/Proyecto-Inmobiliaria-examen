@@ -4,6 +4,52 @@
  */
 
 export interface paths {
+    "/api/v1/agentes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/agentes/ */
+        get: operations["v1_agentes_list"];
+        put?: never;
+        /**
+         * Crear el perfil de agente de un usuario
+         * @description GET y POST /api/v1/agentes/
+         */
+        post: operations["v1_agentes_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agentes/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/agentes/{id}/ */
+        get: operations["v1_agentes_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * Desactivar un agente
+         * @description GET, PATCH y DELETE /api/v1/agentes/{id}/
+         */
+        delete: operations["v1_agentes_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar comisión o fecha de ingreso
+         * @description GET, PATCH y DELETE /api/v1/agentes/{id}/
+         */
+        patch: operations["v1_agentes_partial_update"];
+        trace?: never;
+    };
     "/api/v1/auth/login/": {
         parameters: {
             query?: never;
@@ -82,6 +128,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/clientes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/clientes/ */
+        get: operations["v1_clientes_list"];
+        put?: never;
+        /**
+         * Registrar un cliente
+         * @description GET y POST /api/v1/clientes/
+         */
+        post: operations["v1_clientes_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clientes/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET, PATCH y DELETE /api/v1/clientes/{id}/
+         *
+         *     get_object busca dentro de los clientes visibles: el cliente de otro
+         *     agente no se encuentra y la respuesta es 404, no 403 (regla 14).
+         */
+        get: operations["v1_clientes_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * Desactivar un cliente
+         * @description GET, PATCH y DELETE /api/v1/clientes/{id}/
+         *
+         *     get_object busca dentro de los clientes visibles: el cliente de otro
+         *     agente no se encuentra y la respuesta es 404, no 403 (regla 14).
+         */
+        delete: operations["v1_clientes_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar los datos de un cliente (no su agente)
+         * @description GET, PATCH y DELETE /api/v1/clientes/{id}/
+         *
+         *     get_object busca dentro de los clientes visibles: el cliente de otro
+         *     agente no se encuentra y la respuesta es 404, no 403 (regla 14).
+         */
+        patch: operations["v1_clientes_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/clientes/{id}/reasignar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pasar el cliente a otro agente
+         * @description POST /api/v1/clientes/{id}/reasignar/
+         */
+        post: operations["v1_clientes_reasignar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/": {
         parameters: {
             query?: never;
@@ -140,6 +263,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/propiedades/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/propiedades/ — con los filtros de PropiedadFilter. */
+        get: operations["v1_propiedades_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/propiedades/ — con los filtros de PropiedadFilter. */
+        post: operations["v1_propiedades_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/propiedades/{id}/ — DELETE desactiva. */
+        get: operations["v1_propiedades_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET, PATCH y DELETE /api/v1/propiedades/{id}/ — DELETE desactiva. */
+        delete: operations["v1_propiedades_destroy"];
+        options?: never;
+        head?: never;
+        /** @description GET, PATCH y DELETE /api/v1/propiedades/{id}/ — DELETE desactiva. */
+        patch: operations["v1_propiedades_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/cambiar-estado/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cambiar el estado de una propiedad
+         * @description POST /api/v1/propiedades/{id}/cambiar-estado/
+         */
+        post: operations["v1_propiedades_cambiar_estado_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/unidades/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/propiedades/{id}/unidades/ */
+        get: operations["v1_propiedades_unidades_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/propiedades/{id}/unidades/ */
+        post: operations["v1_propiedades_unidades_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tipos-cambio/": {
         parameters: {
             query?: never;
@@ -157,16 +355,189 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tipos-propiedad/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/tipos-propiedad/ */
+        get: operations["v1_tipos_propiedad_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/tipos-propiedad/ */
+        post: operations["v1_tipos_propiedad_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tipos-propiedad/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/tipos-propiedad/{id}/ */
+        get: operations["v1_tipos_propiedad_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET, PATCH y DELETE /api/v1/tipos-propiedad/{id}/ */
+        delete: operations["v1_tipos_propiedad_destroy"];
+        options?: never;
+        head?: never;
+        /** @description GET, PATCH y DELETE /api/v1/tipos-propiedad/{id}/ */
+        patch: operations["v1_tipos_propiedad_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/unidades/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/unidades/{id}/ — DELETE desactiva. */
+        get: operations["v1_unidades_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET, PATCH y DELETE /api/v1/unidades/{id}/ — DELETE desactiva. */
+        delete: operations["v1_unidades_destroy"];
+        options?: never;
+        head?: never;
+        /** @description GET, PATCH y DELETE /api/v1/unidades/{id}/ — DELETE desactiva. */
+        patch: operations["v1_unidades_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/unidades/{id}/cambiar-estado/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cambiar el estado de una unidad
+         * @description POST /api/v1/unidades/{id}/cambiar-estado/
+         */
+        post: operations["v1_unidades_cambiar_estado_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Salida de un agente. Teléfono y país son los de su usuario (regla 2). */
+        Agente: {
+            readonly id: number;
+            codigo?: string | null;
+            usuario: components["schemas"]["UsuarioResumen"];
+            telefono: string;
+            pais: components["schemas"]["PaisResumen"] | null;
+            /** Format: decimal */
+            porcentaje_comision: string;
+            /** Format: date */
+            fecha_ingreso: string;
+            readonly clientes_activos: number;
+        };
+        AgenteCrear: {
+            usuario: number;
+            /** Format: decimal */
+            porcentaje_comision: string;
+            /** Format: date */
+            fecha_ingreso: string;
+        };
+        AgenteResumen: {
+            id: number;
+            codigo: string;
+            nombre_completo: string;
+        };
+        /** @description Entrada de /propiedades/{id}/cambiar-estado/ y /unidades/{id}/cambiar-estado/. */
+        CambiarEstado: {
+            estado: components["schemas"]["EstadoPropiedadEnum"];
+            motivo: string;
+        };
         Ciudad: {
             readonly id: number;
             nombre: string;
             region?: string;
             pais: components["schemas"]["PaisResumen"];
         };
+        CiudadConPais: {
+            id: number;
+            nombre: string;
+            pais: components["schemas"]["PaisResumen"];
+        };
+        CiudadResumen: {
+            id: number;
+            nombre: string;
+        };
+        /** @description Salida de un cliente (spec 004, §5). */
+        Cliente: {
+            readonly id: number;
+            codigo?: string | null;
+            tipo: components["schemas"]["TipoEnum"];
+            nombre?: string;
+            apellidos?: string;
+            razon_social?: string;
+            /** @default  */
+            documento_identidad: string;
+            /** @default  */
+            nit: string;
+            email?: string;
+            telefono?: string;
+            pais: components["schemas"]["PaisResumen"];
+            ciudad: components["schemas"]["CiudadResumen"] | null;
+            direccion?: string;
+            agente_asignado: components["schemas"]["AgenteResumen"];
+            notas?: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+        };
+        /**
+         * @description Entrada para crear (todos los obligatorios) o editar (PATCH, solo lo que
+         *     cambia) un cliente.
+         *
+         *     Valida el formato: tipos, longitudes, que los ids existan y que estén los
+         *     datos que exige el tipo (regla 6), combinando lo que llega con lo que el
+         *     cliente ya tenía al editar. Las reglas que comparan con otros registros
+         *     (duplicados, ciudad del país, cartera) son del servicio.
+         */
+        ClienteEntrada: {
+            tipo: components["schemas"]["TipoEnum"];
+            nombre?: string;
+            apellidos?: string;
+            documento_identidad?: string;
+            razon_social?: string;
+            nit?: string;
+            email?: string;
+            telefono?: string;
+            pais: number;
+            ciudad?: number | null;
+            direccion?: string;
+            notas?: string;
+            agente_asignado?: number;
+        };
+        /**
+         * @description * `EN_NEGOCIACION` - En negociación
+         *     * `ADQUIRIDA` - Adquirida
+         *     * `EN_CONSTRUCCION` - En construcción
+         *     * `DISPONIBLE` - Disponible
+         *     * `RESERVADA` - Reservada
+         *     * `VENDIDA` - Vendida
+         *     * `ARRENDADA` - Arrendada
+         *     * `BAJA` - Baja
+         * @enum {string}
+         */
+        EstadoPropiedadEnum: "EN_NEGOCIACION" | "ADQUIRIDA" | "EN_CONSTRUCCION" | "DISPONIBLE" | "RESERVADA" | "VENDIDA" | "ARRENDADA" | "BAJA";
         /**
          * @description * `ok` - ok
          *     * `error` - error
@@ -193,6 +564,21 @@ export interface components {
             id: number;
             codigo: string;
         };
+        PaginatedAgenteList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Agente"][];
+        };
         PaginatedCiudadList: {
             /** @example 123 */
             count: number;
@@ -207,6 +593,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Ciudad"][];
+        };
+        PaginatedClienteList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Cliente"][];
         };
         PaginatedMonedaList: {
             /** @example 123 */
@@ -238,6 +639,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Pais"][];
         };
+        PaginatedPropiedadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Propiedad"][];
+        };
         PaginatedTipoCambioList: {
             /** @example 123 */
             count: number;
@@ -253,6 +669,36 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["TipoCambio"][];
         };
+        PaginatedTipoPropiedadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["TipoPropiedad"][];
+        };
+        PaginatedUnidadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Unidad"][];
+        };
         Pais: {
             readonly id: number;
             nombre: string;
@@ -263,6 +709,122 @@ export interface components {
             id: number;
             nombre: string;
         };
+        PatchedAgenteEditar: {
+            /** Format: decimal */
+            porcentaje_comision?: string;
+            /** Format: date */
+            fecha_ingreso?: string;
+        };
+        /**
+         * @description Entrada para crear (todos los obligatorios) o editar (PATCH, solo lo que
+         *     cambia) un cliente.
+         *
+         *     Valida el formato: tipos, longitudes, que los ids existan y que estén los
+         *     datos que exige el tipo (regla 6), combinando lo que llega con lo que el
+         *     cliente ya tenía al editar. Las reglas que comparan con otros registros
+         *     (duplicados, ciudad del país, cartera) son del servicio.
+         */
+        PatchedClienteEntrada: {
+            tipo?: components["schemas"]["TipoEnum"];
+            nombre?: string;
+            apellidos?: string;
+            documento_identidad?: string;
+            razon_social?: string;
+            nit?: string;
+            email?: string;
+            telefono?: string;
+            pais?: number;
+            ciudad?: number | null;
+            direccion?: string;
+            notas?: string;
+            agente_asignado?: number;
+        };
+        PatchedPropiedad: {
+            readonly id?: number;
+            readonly codigo?: string | null;
+            nombre?: string;
+            readonly tipo?: components["schemas"]["TipoPropiedadResumen"];
+            tipo_id?: number;
+            readonly ciudad?: components["schemas"]["CiudadConPais"];
+            ciudad_id?: number;
+            direccion?: string;
+            /** Format: decimal */
+            latitud?: string | null;
+            /** Format: decimal */
+            longitud?: string | null;
+            /** Format: decimal */
+            area_m2?: string;
+            /** Format: decimal */
+            area_construida_m2?: string | null;
+            readonly estado?: components["schemas"]["EstadoPropiedadEnum"];
+            /** Format: decimal */
+            precio_lista?: string;
+            readonly moneda?: components["schemas"]["MonedaResumen"];
+            moneda_id?: number;
+            es_publica?: boolean;
+            descripcion?: string;
+            /** Format: date-time */
+            readonly creado_en?: string;
+            /** Format: date-time */
+            readonly actualizado_en?: string;
+        };
+        PatchedTipoPropiedad: {
+            readonly id?: number;
+            nombre?: string;
+            descripcion?: string;
+            requiere_unidades?: boolean;
+        };
+        PatchedUnidad: {
+            readonly id?: number;
+            readonly propiedad?: components["schemas"]["PropiedadResumen"];
+            codigo?: string;
+            nivel?: number;
+            /** Format: decimal */
+            area_m2?: string;
+            habitaciones?: number;
+            banos?: number;
+            readonly estado?: components["schemas"]["EstadoPropiedadEnum"];
+            /** Format: decimal */
+            precio_lista?: string;
+            readonly moneda?: components["schemas"]["MonedaResumen"];
+            moneda_id?: number;
+        };
+        Propiedad: {
+            readonly id: number;
+            readonly codigo: string | null;
+            nombre: string;
+            readonly tipo: components["schemas"]["TipoPropiedadResumen"];
+            tipo_id: number;
+            readonly ciudad: components["schemas"]["CiudadConPais"];
+            ciudad_id: number;
+            direccion: string;
+            /** Format: decimal */
+            latitud?: string | null;
+            /** Format: decimal */
+            longitud?: string | null;
+            /** Format: decimal */
+            area_m2: string;
+            /** Format: decimal */
+            area_construida_m2?: string | null;
+            readonly estado: components["schemas"]["EstadoPropiedadEnum"];
+            /** Format: decimal */
+            precio_lista: string;
+            readonly moneda: components["schemas"]["MonedaResumen"];
+            moneda_id: number;
+            es_publica?: boolean;
+            descripcion?: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+            /** Format: date-time */
+            readonly actualizado_en: string;
+        };
+        PropiedadResumen: {
+            id: number;
+            codigo: string;
+        };
+        ReasignarCliente: {
+            agente: number;
+        };
         TipoCambio: {
             readonly id: number;
             moneda_origen: components["schemas"]["MonedaResumen"];
@@ -272,6 +834,22 @@ export interface components {
             /** Format: date */
             fecha: string;
         };
+        /**
+         * @description * `PERSONA` - Persona
+         *     * `EMPRESA` - Empresa
+         * @enum {string}
+         */
+        TipoEnum: "PERSONA" | "EMPRESA";
+        TipoPropiedad: {
+            readonly id: number;
+            nombre: string;
+            descripcion?: string;
+            requiere_unidades?: boolean;
+        };
+        TipoPropiedadResumen: {
+            id: number;
+            nombre: string;
+        };
         TokenRefresh: {
             readonly access: string;
             refresh: string;
@@ -279,6 +857,21 @@ export interface components {
         Tokens: {
             access: string;
             refresh: string;
+        };
+        Unidad: {
+            readonly id: number;
+            readonly propiedad: components["schemas"]["PropiedadResumen"];
+            codigo: string;
+            nivel: number;
+            /** Format: decimal */
+            area_m2: string;
+            habitaciones?: number;
+            banos?: number;
+            readonly estado: components["schemas"]["EstadoPropiedadEnum"];
+            /** Format: decimal */
+            precio_lista: string;
+            readonly moneda: components["schemas"]["MonedaResumen"];
+            moneda_id: number;
         };
         /** @description Respuesta de /auth/yo/ (spec 001, §5). */
         UsuarioActual: {
@@ -295,6 +888,12 @@ export interface components {
             /** Format: date-time */
             ultimo_acceso: string | null;
         };
+        UsuarioResumen: {
+            id: number;
+            /** Format: email */
+            email: string;
+            nombre_completo: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -304,6 +903,123 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    v1_agentes_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAgenteList"];
+                };
+            };
+        };
+    };
+    v1_agentes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgenteCrear"];
+                "application/x-www-form-urlencoded": components["schemas"]["AgenteCrear"];
+                "multipart/form-data": components["schemas"]["AgenteCrear"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agente"];
+                };
+            };
+        };
+    };
+    v1_agentes_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agente"];
+                };
+            };
+        };
+    };
+    v1_agentes_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_agentes_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAgenteEditar"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAgenteEditar"];
+                "multipart/form-data": components["schemas"]["PatchedAgenteEditar"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agente"];
+                };
+            };
+        };
+    };
     v1_auth_login_create: {
         parameters: {
             query?: never;
@@ -376,6 +1092,7 @@ export interface operations {
     v1_ciudades_list: {
         parameters: {
             query?: {
+                buscar?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 pais?: number;
@@ -392,6 +1109,157 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedCiudadList"];
+                };
+            };
+        };
+    };
+    v1_clientes_list: {
+        parameters: {
+            query?: {
+                agente?: number;
+                buscar?: string;
+                ciudad?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+                /**
+                 * @description * `PERSONA` - Persona
+                 *     * `EMPRESA` - Empresa
+                 */
+                tipo?: "EMPRESA" | "PERSONA";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedClienteList"];
+                };
+            };
+        };
+    };
+    v1_clientes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClienteEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClienteEntrada"];
+                "multipart/form-data": components["schemas"]["ClienteEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cliente"];
+                };
+            };
+        };
+    };
+    v1_clientes_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cliente"];
+                };
+            };
+        };
+    };
+    v1_clientes_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_clientes_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedClienteEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedClienteEntrada"];
+                "multipart/form-data": components["schemas"]["PatchedClienteEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cliente"];
+                };
+            };
+        };
+    };
+    v1_clientes_reasignar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasignarCliente"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReasignarCliente"];
+                "multipart/form-data": components["schemas"]["ReasignarCliente"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cliente"];
                 };
             };
         };
@@ -467,6 +1335,218 @@ export interface operations {
             };
         };
     };
+    v1_propiedades_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                ciudad?: number;
+                es_publica?: boolean;
+                /**
+                 * @description * `EN_NEGOCIACION` - En negociación
+                 *     * `ADQUIRIDA` - Adquirida
+                 *     * `EN_CONSTRUCCION` - En construcción
+                 *     * `DISPONIBLE` - Disponible
+                 *     * `RESERVADA` - Reservada
+                 *     * `VENDIDA` - Vendida
+                 *     * `ARRENDADA` - Arrendada
+                 *     * `BAJA` - Baja
+                 */
+                estado?: "ADQUIRIDA" | "ARRENDADA" | "BAJA" | "DISPONIBLE" | "EN_CONSTRUCCION" | "EN_NEGOCIACION" | "RESERVADA" | "VENDIDA";
+                moneda?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+                precio_max?: number;
+                precio_min?: number;
+                tipo?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPropiedadList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Propiedad"];
+                "application/x-www-form-urlencoded": components["schemas"]["Propiedad"];
+                "multipart/form-data": components["schemas"]["Propiedad"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Propiedad"];
+                };
+            };
+        };
+    };
+    v1_propiedades_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Propiedad"];
+                };
+            };
+        };
+    };
+    v1_propiedades_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_propiedades_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPropiedad"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPropiedad"];
+                "multipart/form-data": components["schemas"]["PatchedPropiedad"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Propiedad"];
+                };
+            };
+        };
+    };
+    v1_propiedades_cambiar_estado_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarEstado"];
+                "application/x-www-form-urlencoded": components["schemas"]["CambiarEstado"];
+                "multipart/form-data": components["schemas"]["CambiarEstado"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Propiedad"];
+                };
+            };
+        };
+    };
+    v1_propiedades_unidades_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUnidadList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_unidades_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Unidad"];
+                "application/x-www-form-urlencoded": components["schemas"]["Unidad"];
+                "multipart/form-data": components["schemas"]["Unidad"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
     v1_tipos_cambio_list: {
         parameters: {
             query?: {
@@ -490,6 +1570,216 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedTipoCambioList"];
+                };
+            };
+        };
+    };
+    v1_tipos_propiedad_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedTipoPropiedadList"];
+                };
+            };
+        };
+    };
+    v1_tipos_propiedad_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TipoPropiedad"];
+                "application/x-www-form-urlencoded": components["schemas"]["TipoPropiedad"];
+                "multipart/form-data": components["schemas"]["TipoPropiedad"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipoPropiedad"];
+                };
+            };
+        };
+    };
+    v1_tipos_propiedad_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipoPropiedad"];
+                };
+            };
+        };
+    };
+    v1_tipos_propiedad_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_tipos_propiedad_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedTipoPropiedad"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedTipoPropiedad"];
+                "multipart/form-data": components["schemas"]["PatchedTipoPropiedad"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipoPropiedad"];
+                };
+            };
+        };
+    };
+    v1_unidades_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
+    v1_unidades_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_unidades_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUnidad"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUnidad"];
+                "multipart/form-data": components["schemas"]["PatchedUnidad"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
+    v1_unidades_cambiar_estado_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarEstado"];
+                "application/x-www-form-urlencoded": components["schemas"]["CambiarEstado"];
+                "multipart/form-data": components["schemas"]["CambiarEstado"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unidad"];
                 };
             };
         };

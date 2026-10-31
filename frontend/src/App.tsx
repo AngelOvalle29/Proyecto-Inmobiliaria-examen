@@ -1,7 +1,50 @@
-import { EstadoServicio } from './paginas/estado/EstadoServicio'
+import { createBrowserRouter, RouterProvider } from 'react-router'
 
-// Por ahora una sola página. Las rutas, el login y el menú llegan con la base
-// del frontend (issue #15).
+import { RutaProtegida } from './componentes/comunes/RutaProtegida'
+import { LayoutAuth } from './layouts/LayoutAuth'
+import { LayoutPrincipal } from './layouts/LayoutPrincipal'
+import { ESCRIBEN_CATALOGO } from './menu'
+import { Login } from './paginas/auth/Login'
+import { ListaPropiedades } from './paginas/catalogo/ListaPropiedades'
+import { NuevaPropiedad } from './paginas/catalogo/NuevaPropiedad'
+import { NoEncontrada } from './paginas/errores/NoEncontrada'
+import { Inicio } from './paginas/inicio/Inicio'
+
+/**
+ * Rutas del frontend (spec 010, §5). Para agregar una pantalla: una ruta aquí y
+ * una línea en menu.ts. Todas las rutas con sesión pasan por RutaProtegida, y
+ * las limitadas por rol la repiten con sus roles (spec 010, reglas 1 y 2).
+ *
+ * En Vercel, vercel.json manda toda ruta a index.html: así recargar
+ * /catalogo/propiedades no da 404, porque es React Router quien la resuelve.
+ */
+const enrutador = createBrowserRouter([
+  {
+    element: <LayoutAuth />,
+    children: [{ path: '/login', element: <Login /> }],
+  },
+  {
+    element: (
+      <RutaProtegida>
+        <LayoutPrincipal />
+      </RutaProtegida>
+    ),
+    children: [
+      { path: '/', element: <Inicio /> },
+      { path: '/catalogo/propiedades', element: <ListaPropiedades /> },
+      {
+        path: '/catalogo/propiedades/nueva',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CATALOGO}>
+            <NuevaPropiedad />
+          </RutaProtegida>
+        ),
+      },
+      { path: '*', element: <NoEncontrada /> },
+    ],
+  },
+])
+
 export function App() {
-  return <EstadoServicio />
+  return <RouterProvider router={enrutador} />
 }

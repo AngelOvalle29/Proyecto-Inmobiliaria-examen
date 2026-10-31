@@ -21,10 +21,13 @@ FORMATO_FECHA_ISO = ["%Y-%m-%d"]
 
 class CiudadFilter(django_filters.FilterSet):
     pais = django_filters.NumberFilter(field_name="pais_id")
+    # Para buscar la ciudad mientras se escribe en un formulario (spec 010,
+    # regla 11): una ciudad no cabe en un selector cuando hay cientos.
+    buscar = django_filters.CharFilter(field_name="nombre", lookup_expr="icontains")
 
     class Meta:
         model = Ciudad
-        fields = ["pais"]
+        fields = ["pais", "buscar"]
 
 
 class TipoCambioFilter(django_filters.FilterSet):
