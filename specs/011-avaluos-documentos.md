@@ -418,3 +418,14 @@ guardó un PDF de prueba en el bucket `documentos` usando `default_storage`:
 Con esto se cierran los dos criterios manuales de §8. El flujo HTTP completo
 contra Render se repite después de fusionar y desplegar la rama, pero no queda
 trabajo de código pendiente en esta spec. No se hizo commit: lo hace A.
+
+**Revisión de A en #50 (2026-10-30).** Dos ajustes antes de pedir la revisión
+de otro integrante:
+
+- `render.yaml` declara las seis variables del almacenamiento:
+  `STORAGE_BACKEND=s3` con su valor fijo, y las otras cinco con `sync: false`.
+  Si se dejara `local`, la API arrancaría igual, pero guardaría los documentos
+  en el disco del contenedor, y Render lo borra en cada despliegue. **Antes del
+  release a `main` hay que cargarlas en el panel de Render.**
+- El README explica esas variables y agrega "reactivar Supabase" a lo que se
+  hace antes de una revisión o de la defensa (observación de B en #42).
