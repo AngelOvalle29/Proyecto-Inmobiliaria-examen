@@ -354,7 +354,8 @@ DRF aplica al límite, así la IP auditada y la limitada coinciden.
 - [x] Un login con credenciales inválidas devuelve 401 con el código
       `CREDENCIALES_INVALIDAS` en el formato uniforme
 - [x] Un endpoint protegido devuelve 401 sin token y 200 con token válido
-- [x] El undécimo intento de login en un minuto desde la misma IP devuelve 429
+- [x] El intento 31 de login en un minuto desde la misma IP devuelve 429 (eran 10
+      hasta la corrección de DouGMV/Proyecto-Inmobiliaria#45; ver §5)
 - [x] Un login exitoso actualiza `last_login` y deja un registro `INICIAR_SESION`
 - [x] Un login fallido deja un registro `LOGIN_FALLIDO` sin la contraseña
 - [x] Las contraseñas de menos de 10 caracteres se rechazan

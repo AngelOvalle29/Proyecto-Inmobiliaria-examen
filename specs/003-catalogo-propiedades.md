@@ -158,6 +158,7 @@ vale para `PATCH /unidades/{id}/`.
 | `TIPO_SIN_UNIDADES` | Se agrega una unidad a una propiedad cuyo tipo no las admite (regla 2) | 409 |
 | `UNIDAD_DUPLICADA` | Ya existe una unidad con ese código en la propiedad (regla 3) | 409 |
 | `PROPIEDAD_CON_UNIDADES` | Se desactiva una propiedad con unidades activas (regla 6) | 409 |
+| `PROPIEDAD_NO_DISPONIBLE` | Otra app cambia el estado con `estado_requerido` y la propiedad o unidad no está en ese estado (agregado por la spec 007) | 409 |
 
 ## 6. Servicios y selectores
 
@@ -167,12 +168,16 @@ def crear_propiedad(*, datos: dict, autor: Usuario, ip: str | None) -> Propiedad
 def actualizar_propiedad(*, propiedad: Propiedad, datos: dict, autor: Usuario, ip: str | None) -> Propiedad
 def desactivar_propiedad(*, propiedad: Propiedad, autor: Usuario, ip: str | None) -> None
 def cambiar_estado_propiedad(*, propiedad: Propiedad, estado: EstadoPropiedad,
-                             autor: Usuario | None, ip: str | None, motivo: str) -> Propiedad
+                             autor: Usuario | None, ip: str | None, motivo: str,
+                             estado_requerido: EstadoPropiedad | None = None) -> Propiedad
     """Punto único de cambio de estado: lo usan las vistas y los servicios de
     ventas, arrendamientos, compras y construcción. Audita estado anterior,
-    nuevo y motivo. Si el estado no cambia, no hace nada."""
+    nuevo y motivo. Si el estado no cambia, no hace nada. Con estado_requerido,
+    comprueba el estado actual después de bloquear la fila y lanza
+    PROPIEDAD_NO_DISPONIBLE si no coincide."""
 def cambiar_estado_unidad(*, unidad: Unidad, estado: EstadoPropiedad,
-                          autor: Usuario | None, ip: str | None, motivo: str) -> Unidad
+                          autor: Usuario | None, ip: str | None, motivo: str,
+                          estado_requerido: EstadoPropiedad | None = None) -> Unidad
     """Igual que cambiar_estado_propiedad, para una unidad. No cambia el
     estado de su propiedad: eso lo decide el servicio que la llama."""
 def crear_unidad(*, propiedad: Propiedad, datos: dict, autor: Usuario, ip: str | None) -> Unidad
@@ -294,3 +299,17 @@ Code, rol A).**
   edificio se vende o se arrienda cada apartamento, no el edificio. Por la
   regla 7, el `PATCH` de una unidad ya no cambia su estado. Los dos servicios
   comparten los mismos pasos (bloqueo, auditoría, sin cambio no audita).
+
+**Ampliación de la spec 007 (DouGMV/Proyecto-Inmobiliaria#44, 2026-10-29).** B
+agregó a los dos servicios el parámetro opcional `estado_requerido` y el error
+`PROPIEDAD_NO_DISPONIBLE` (409).
+- El estado actual se comprueba **después** de bloquear la fila, así que
+  comprobar y cambiar quedan en el mismo paso.
+- Sin eso, dos aprobaciones simultáneas de cotizaciones sobre la misma
+  propiedad podían pasar las dos.
+- Lo usan ventas y arrendamientos, por ejemplo: firmar exige `DISPONIBLE` o
+  `RESERVADA`, y anular exige `VENDIDA`.
+- Es opcional: quien no lo pasa, como la vista `/cambiar-estado/`, se comporta
+  igual que antes.
+- A lo revisó y aprobó en #44, y lo anota aquí para que la spec siga
+  describiendo el código.
