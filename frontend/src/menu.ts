@@ -47,6 +47,7 @@ export const MENU: EntradaMenu[] = [
   { ruta: '/crm/cotizaciones', etiqueta: 'Cotizaciones' },
   { ruta: '/crm/agentes', etiqueta: 'Agentes' },
   { ruta: '/ventas/contratos', etiqueta: 'Contratos de venta' },
+  { ruta: '/arrendamientos/contratos', etiqueta: 'Contratos de arrendamiento' },
 ]
 
 /** true si el rol puede abrir la entrada (o la ruta) que declara esos roles. */

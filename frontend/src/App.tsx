@@ -4,6 +4,9 @@ import { RutaProtegida } from './componentes/comunes/RutaProtegida'
 import { LayoutAuth } from './layouts/LayoutAuth'
 import { LayoutPrincipal } from './layouts/LayoutPrincipal'
 import { ESCRIBEN_CATALOGO, ESCRIBEN_CRM } from './menu'
+import { DetalleArrendamiento } from './paginas/arrendamientos/DetalleArrendamiento'
+import { FirmarArrendamiento } from './paginas/arrendamientos/FirmarArrendamiento'
+import { ListaArrendamientos } from './paginas/arrendamientos/ListaArrendamientos'
 import { Login } from './paginas/auth/Login'
 import { ListaPropiedades } from './paginas/catalogo/ListaPropiedades'
 import { NuevaPropiedad } from './paginas/catalogo/NuevaPropiedad'
@@ -85,6 +88,16 @@ const enrutador = createBrowserRouter([
         ),
       },
       { path: '/ventas/contratos/:id', element: <DetalleContratoVenta /> },
+      { path: '/arrendamientos/contratos', element: <ListaArrendamientos /> },
+      {
+        path: '/arrendamientos/contratos/nuevo',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CRM}>
+            <FirmarArrendamiento />
+          </RutaProtegida>
+        ),
+      },
+      { path: '/arrendamientos/contratos/:id', element: <DetalleArrendamiento /> },
       { path: '*', element: <NoEncontrada /> },
     ],
   },

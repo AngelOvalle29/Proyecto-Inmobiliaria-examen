@@ -141,6 +141,11 @@ opciones de propiedad y unidad viven en `api/catalogo/consultas.ts`, y
 `LayoutPrincipal` lleva `min-w-0` para que una tabla ancha haga scroll dentro de
 sí misma.
 
+**Agregado al implementar arrendamientos:** `DialogoPagarRenta` no usa
+`FormularioDatos`, porque el monto propuesto cambia con la fecha elegida. Un pago
+pendiente se puede pagar aunque el contrato haya terminado, porque se sigue
+debiendo (spec 008, reglas 10 y 11).
+
 ## 7. Auditoría
 
 No aplica: el frontend no escribe en la bitácora. Cada acción llama a un
