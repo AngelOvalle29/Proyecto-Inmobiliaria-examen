@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 010 |
-| **Estado** | Implementada, en revisión |
+| **Estado** | Implementada; ampliada a pedido de la spec 012 |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-29 |
@@ -106,6 +106,25 @@ bloques no los resuelvan cada una a mano:
     piden confirmación antes de llamar a la API.
 14. **Tablas sin paginar.** `TablaDatos` también acepta una lista ya cargada,
     como las cuotas que vienen dentro del detalle de un contrato.
+
+*Agregadas a pedido de la spec 012 (revisión de A en #49)*, para las pantallas
+de edición y el menú del bloque B:
+
+15. **Etiqueta inicial de una relación.** En un formulario de edición, el campo
+    de relación muestra el texto del valor actual (la ciudad del cliente) con
+    `etiquetaInicial`. Solo se usa mientras el valor sigue siendo el inicial:
+    si se vacía porque cambió el campo del que depende, el campo queda en
+    blanco.
+16. **Menú agrupado.** Cada entrada de `menu.ts` puede declarar un `grupo`
+    ("CRM", "Ventas"…). El menú muestra primero las entradas sin grupo y luego
+    cada grupo con su título, en el orden en que aparecen en la lista. Se
+    agrupa después de filtrar por rol, así que un grupo sin entradas visibles
+    no muestra su título.
+
+**Límite de `visibleSi` (señalado por B en #46).** Ocultar un campo no evita
+que Zod lo valide. Los campos que solo aplican a un caso (los de persona o
+empresa en un cliente) se declaran opcionales en el esquema y se exigen con
+`superRefine` según el campo que los activa (spec 012, regla 4).
 
 ## 4. Modelo de datos
 
@@ -311,3 +330,21 @@ en la vista previa del PR. Lo que se decidió o se descubrió al implementar:
   una se toma del esquema (`PaginatedPropiedadList`…).
 - **La compilación avisa que el paquete pasa de 500 kB.** No bloquea; dividirlo
   por rutas queda para cuando haya más pantallas.
+
+**Sesión 2026-10-30, reglas 15 y 16 (Claude Code, rol A).** Se probaron en el
+navegador con un cambio temporal en Nueva propiedad, que no se guardó en el
+repositorio: el formulario arrancaba con Guatemala y Quetzaltenango ya
+elegidos.
+
+- **Etiqueta inicial:** la ciudad mostró su etiqueta al abrir. Al cambiar el
+  país quedó en blanco, y al volver a Guatemala no reapareció.
+- **Menú:** "Inicio" sin título, y debajo el grupo *Catálogo* con sus dos
+  entradas.
+- **Error encontrado y corregido:** un selector con un valor inicial se veía
+  vacío. Las opciones (los países) llegan de la API después de crear el
+  formulario, y un `<select>` con `register` fija su valor una sola vez, cuando
+  esa opción todavía no existe. Los selectores de `FormularioDatos` ahora son
+  controlados (`Controller`), y vuelven a aplicar su valor cada vez que se
+  dibujan. Sin esto, la edición de un cliente mostraría su país vacío.
+- Se volvió a crear una propiedad completa (PROP-00029 en la base local) para
+  comprobar que los selectores controlados no rompieron la creación.

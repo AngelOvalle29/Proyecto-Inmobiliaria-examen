@@ -27,6 +27,12 @@ interface Props {
   deshabilitado?: boolean
   marcador?: string
   invalido?: boolean
+  /**
+   * Texto que se muestra al abrir el campo con un valor ya elegido, como la
+   * ciudad actual de un cliente que se edita. Sin él, el campo tendría el id
+   * pero se vería vacío (spec 010, regla 15).
+   */
+  etiquetaInicial?: string
 }
 
 /**
@@ -41,8 +47,10 @@ export function CampoRelacion({
   deshabilitado,
   marcador = 'Escriba para buscar',
   invalido,
+  etiquetaInicial = '',
 }: Props) {
-  const [texto, setTexto] = useState('')
+  // Solo es el valor de partida: después, el texto es lo que la persona escribe.
+  const [texto, setTexto] = useState(etiquetaInicial)
   const [abierto, setAbierto] = useState(false)
   const textoRetrasado = useRetraso(texto)
   const { opciones, cargando } = buscar(textoRetrasado)
