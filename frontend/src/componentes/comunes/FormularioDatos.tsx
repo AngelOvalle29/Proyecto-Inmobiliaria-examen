@@ -39,6 +39,12 @@ export type CampoFormulario<V> =
       buscar: (texto: string, valores: V) => ResultadoBusqueda
       /** Qué decir mientras falta el campo del que depende. */
       marcador?: string
+      /**
+       * Texto del valor inicial, para un formulario de edición: la ciudad
+       * actual del cliente (regla 15). Solo se muestra mientras el valor sigue
+       * siendo el de valoresIniciales.
+       */
+      etiquetaInicial?: string
     })
 
 interface Props<V extends FieldValues> {
@@ -147,21 +153,36 @@ export function FormularioDatos<V extends FieldValues>({
 
         let control
         if (campo.tipo === 'seleccion') {
+          // Controlado (Controller y no register): las opciones llegan de la API
+          // después de crear el formulario, y un <select> registrado fija su
+          // valor una sola vez, cuando todavía no existe la opción. En un
+          // formulario de edición, el país del cliente se vería vacío.
           control = (
-            <Select
-              id={id}
-              aria-invalid={invalido}
-              {...formulario.register(campo.nombre, {
-                onChange: () => vaciarDependientes(campo.nombre),
-              })}
-            >
-              <option value="">Elija una opción</option>
-              {campo.opciones.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.etiqueta}
-                </option>
-              ))}
-            </Select>
+            <Controller
+              control={formulario.control}
+              name={campo.nombre}
+              render={({ field }) => (
+                <Select
+                  id={id}
+                  aria-invalid={invalido}
+                  name={field.name}
+                  ref={field.ref}
+                  value={String(field.value ?? '')}
+                  onBlur={field.onBlur}
+                  onChange={(evento) => {
+                    field.onChange(evento.target.value)
+                    vaciarDependientes(campo.nombre)
+                  }}
+                >
+                  <option value="">Elija una opción</option>
+                  {campo.opciones.map((opcion) => (
+                    <option key={opcion.valor} value={opcion.valor}>
+                      {opcion.etiqueta}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            />
           )
         } else if (campo.tipo === 'relacion') {
           const falta = campo.dependeDe !== undefined && !valores[campo.dependeDe]
@@ -184,6 +205,13 @@ export function FormularioDatos<V extends FieldValues>({
                   deshabilitado={falta}
                   marcador={falta ? campo.marcador : undefined}
                   invalido={invalido}
+                  // Si el campo ya se vació (cambió el país), la etiqueta
+                  // inicial no corresponde: el campo empieza en blanco.
+                  etiquetaInicial={
+                    field.value === valoresIniciales[campo.nombre]
+                      ? campo.etiquetaInicial
+                      : undefined
+                  }
                 />
               )}
             />
