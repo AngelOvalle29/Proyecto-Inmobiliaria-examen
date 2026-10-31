@@ -189,7 +189,12 @@ Configuración común a todos los endpoints:
   fecha sin aviso.
 - Tokens: acceso de 30 minutos, refresco de 7 días, tomados de
   `JWT_ACCESS_TOKEN_MINUTES` y `JWT_REFRESH_TOKEN_DAYS`.
-- Límite de peticiones en `auth/login/` y `auth/refresh/`: 10 por minuto por IP.
+- Límite de peticiones por IP: `auth/login/` 30 por minuto y `auth/refresh/` 60
+  por minuto, cada uno con su propio contador. *Corregido el 2026-10-29* (antes
+  10 por minuto, compartido por los dos): en la defensa, los evaluadores entran
+  desde la misma IP pública de la universidad, y con 10 intentos compartidos se
+  habrían bloqueado entre sí. Además, renovar el token gastaba los intentos de
+  login. Lo señaló la revisión del rol B en DouGMV/Proyecto-Inmobiliaria#41.
 - CORS restringido a `CORS_ALLOWED_ORIGINS`.
 
 | Método | Ruta | Descripción | Permiso |
