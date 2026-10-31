@@ -129,6 +129,12 @@ cliente no cambia su país ni su ciudad, y se registra aquí.
 de un cliente no cambia su país ni su ciudad. Tampoco cambia su tipo, y el
 agente se cambia con Reasignar.
 
+**Agregado al implementar cotizaciones:** `FormularioDatos` tiene el tipo de
+campo `fecha`, que también usarán los formularios de firma, y solo pone junto
+a un campo los `detalles` de un 400 de validación: los de un 409 son datos del
+caso, y su mensaje va arriba (regla 5). El buscador de unidad filtra la primera
+página de `/propiedades/{id}/unidades/`, porque ese endpoint no tiene búsqueda.
+
 ## 7. Auditoría
 
 No aplica: el frontend no escribe en la bitácora. Cada acción llama a un

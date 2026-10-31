@@ -30,7 +30,7 @@ interface CampoBase<V> {
 
 /** Un campo del formulario, declarado por la pantalla (spec 010, §6). */
 export type CampoFormulario<V> =
-  | (CampoBase<V> & { tipo: 'texto' | 'numero' | 'area' })
+  | (CampoBase<V> & { tipo: 'texto' | 'numero' | 'fecha' | 'area' })
   | (CampoBase<V> & { tipo: 'booleano' })
   | (CampoBase<V> & { tipo: 'seleccion'; opciones: Opcion[] })
   | (CampoBase<V> & {
@@ -103,12 +103,15 @@ export function FormularioDatos<V extends FieldValues>({
 
   /**
    * Regla 8: cada error de `detalles` va junto a su campo; lo que no
-   * corresponde a ningún campo visible (un 409, un 403) va arriba.
+   * corresponde a ningún campo visible (un 409, un 403) va arriba. Solo un 400
+   * de validación trae mensajes por campo: los `detalles` de un 409 son datos
+   * del caso ({ propiedad: "A-201" }) y su mensaje es `mensaje`.
    */
   const mostrarErrorApi = (excepcion: unknown) => {
     const error = leerErrorApi(excepcion)
+    const detalles = error.codigo === 'VALIDACION' ? error.detalles : {}
     let quedoSinCampo = true
-    for (const [nombre, mensajes] of Object.entries(error.detalles)) {
+    for (const [nombre, mensajes] of Object.entries(detalles)) {
       const campo = visibles.find((visible) => visible.nombre === nombre)
       if (campo) {
         const mensaje = Array.isArray(mensajes) ? String(mensajes[0]) : String(mensajes)
@@ -205,6 +208,7 @@ export function FormularioDatos<V extends FieldValues>({
           control = (
             <Input
               id={id}
+              type={campo.tipo === 'fecha' ? 'date' : undefined}
               inputMode={campo.tipo === 'numero' ? 'decimal' : undefined}
               aria-invalid={invalido}
               {...formulario.register(campo.nombre)}

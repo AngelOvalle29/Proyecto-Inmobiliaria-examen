@@ -4,6 +4,7 @@ import { clienteApi } from '../cliente'
 import type { components, operations } from '../tipos.generados'
 
 export type Propiedad = components['schemas']['Propiedad']
+type PaginaUnidades = components['schemas']['PaginatedUnidadList']
 export type TipoPropiedad = components['schemas']['TipoPropiedad']
 export type EstadoPropiedad = components['schemas']['EstadoPropiedadEnum']
 type PaginaPropiedades = components['schemas']['PaginatedPropiedadList']
@@ -46,6 +47,17 @@ export function usePropiedades(filtros: FiltrosPropiedades) {
 }
 
 /** Tipos de propiedad activos. Son pocos (siete): caben en una página. */
+/** Las unidades de una propiedad; sin propiedad elegida no consulta nada. */
+export function useUnidadesDePropiedad(propiedad: number | undefined) {
+  return useQuery({
+    queryKey: ['catalogo', 'unidades', propiedad],
+    queryFn: async () =>
+      (await clienteApi.get<PaginaUnidades>(`/propiedades/${propiedad}/unidades/`)).data
+        .results,
+    enabled: propiedad !== undefined,
+  })
+}
+
 export function useTiposPropiedad() {
   return useQuery({
     queryKey: ['catalogo', 'tipos-propiedad'],

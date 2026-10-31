@@ -41,6 +41,7 @@ export const MENU: EntradaMenu[] = [
     roles: ESCRIBEN_CATALOGO,
   },
   { ruta: '/crm/clientes', etiqueta: 'Clientes' },
+  { ruta: '/crm/cotizaciones', etiqueta: 'Cotizaciones' },
   { ruta: '/crm/agentes', etiqueta: 'Agentes' },
 ]
 

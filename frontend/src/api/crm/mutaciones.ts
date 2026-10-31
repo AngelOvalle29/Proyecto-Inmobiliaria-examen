@@ -2,11 +2,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { clienteApi } from '../cliente'
 import type { components } from '../tipos.generados'
-import type { Agente, Cliente } from './consultas'
+import type { Agente, Cliente, Cotizacion } from './consultas'
 
 export type DatosCliente = components['schemas']['ClienteEntrada']
 export type DatosEditarCliente = components['schemas']['PatchedClienteEntrada']
 export type DatosEditarAgente = components['schemas']['PatchedAgenteEditar']
+export type DatosCotizacion = components['schemas']['CotizacionCrear']
 
 /**
  * Después de escribir se invalida todo lo de CRM: reasignar un cliente, por
@@ -76,5 +77,38 @@ export function useDesactivarAgente() {
       await clienteApi.delete(`/agentes/${id}/`)
     },
     onSuccess: invalidar,
+  })
+}
+
+/** POST /cotizaciones/: la cotización nace en borrador (spec 007, regla 4). */
+export function useCrearCotizacion() {
+  const invalidar = useInvalidarCrm()
+  return useMutation({
+    mutationFn: async (datos: DatosCotizacion) =>
+      (await clienteApi.post<Cotizacion>('/cotizaciones/', datos)).data,
+    onSuccess: invalidar,
+  })
+}
+
+/**
+ * POST /cotizaciones/{id}/enviar|aprobar|rechazar/. Aprobar y rechazar cambian
+ * el estado del bien (spec 007, regla 6), así que también se invalida el
+ * catálogo: la propiedad debe verse reservada o disponible sin recargar.
+ */
+export function useAccionCotizacion() {
+  const clienteConsultas = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      accion,
+    }: {
+      id: number
+      accion: 'enviar' | 'aprobar' | 'rechazar'
+    }) => (await clienteApi.post<Cotizacion>(`/cotizaciones/${id}/${accion}/`)).data,
+    onSuccess: () =>
+      Promise.all([
+        clienteConsultas.invalidateQueries({ queryKey: ['crm'] }),
+        clienteConsultas.invalidateQueries({ queryKey: ['catalogo'] }),
+      ]),
   })
 }

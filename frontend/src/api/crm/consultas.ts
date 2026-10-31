@@ -6,8 +6,11 @@ import type { components, operations } from '../tipos.generados'
 export type Cliente = components['schemas']['Cliente']
 export type Agente = components['schemas']['Agente']
 export type TipoCliente = components['schemas']['TipoEnum']
+export type Cotizacion = components['schemas']['Cotizacion']
+export type EstadoCotizacion = components['schemas']['EstadoCotizacionEnum']
 type PaginaClientes = components['schemas']['PaginatedClienteList']
 type PaginaAgentes = components['schemas']['PaginatedAgenteList']
+type PaginaCotizaciones = components['schemas']['PaginatedCotizacionList']
 
 /** Filtros que acepta GET /clientes/, tal como los documenta el esquema. */
 export type FiltrosClientes = NonNullable<
@@ -17,10 +20,21 @@ export type FiltrosAgentes = NonNullable<
   operations['v1_agentes_list']['parameters']['query']
 >
 
+export type FiltrosCotizaciones = NonNullable<
+  operations['v1_cotizaciones_list']['parameters']['query']
+>
+
 /** Record<TipoCliente, …> obliga a cubrir todos los tipos que tenga el backend. */
 export const ETIQUETAS_TIPO_CLIENTE: Record<TipoCliente, string> = {
   PERSONA: 'Persona',
   EMPRESA: 'Empresa',
+}
+
+export const ETIQUETAS_ESTADO_COTIZACION: Record<EstadoCotizacion, string> = {
+  BORRADOR: 'Borrador',
+  ENVIADA: 'Enviada',
+  APROBADA: 'Aprobada',
+  RECHAZADA: 'Rechazada',
 }
 
 /** Cómo se nombra a un cliente: persona o empresa (spec 004, regla 6). */
@@ -79,4 +93,27 @@ export function useOpcionesAgente(texto: string) {
     })),
     cargando: consulta.isFetching,
   }
+}
+
+/** Clientes visibles que coinciden con el texto, para CampoRelacion. */
+export function useOpcionesCliente(texto: string) {
+  const consulta = useClientes({ buscar: texto || undefined })
+  return {
+    opciones: (consulta.data?.results ?? []).map((cliente) => ({
+      valor: String(cliente.id),
+      etiqueta: `${cliente.codigo ?? ''} · ${nombreCliente(cliente)}`,
+    })),
+    cargando: consulta.isFetching,
+  }
+}
+
+/** Una página de cotizaciones; la API aplica la cartera del agente. */
+export function useCotizaciones(filtros: FiltrosCotizaciones) {
+  return useQuery({
+    queryKey: ['crm', 'cotizaciones', filtros],
+    queryFn: async () =>
+      (await clienteApi.get<PaginaCotizaciones>('/cotizaciones/', { params: filtros }))
+        .data,
+    placeholderData: keepPreviousData,
+  })
 }

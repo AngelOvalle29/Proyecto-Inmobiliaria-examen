@@ -10,6 +10,8 @@ import { NuevaPropiedad } from './paginas/catalogo/NuevaPropiedad'
 import { EditarCliente, NuevoCliente } from './paginas/crm/FormularioCliente'
 import { ListaAgentes } from './paginas/crm/ListaAgentes'
 import { ListaClientes } from './paginas/crm/ListaClientes'
+import { ListaCotizaciones } from './paginas/crm/ListaCotizaciones'
+import { NuevaCotizacion } from './paginas/crm/NuevaCotizacion'
 import { NoEncontrada } from './paginas/errores/NoEncontrada'
 import { Inicio } from './paginas/inicio/Inicio'
 
@@ -61,6 +63,15 @@ const enrutador = createBrowserRouter([
         ),
       },
       { path: '/crm/agentes', element: <ListaAgentes /> },
+      { path: '/crm/cotizaciones', element: <ListaCotizaciones /> },
+      {
+        path: '/crm/cotizaciones/nueva',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CRM}>
+            <NuevaCotizacion />
+          </RutaProtegida>
+        ),
+      },
       { path: '*', element: <NoEncontrada /> },
     ],
   },
