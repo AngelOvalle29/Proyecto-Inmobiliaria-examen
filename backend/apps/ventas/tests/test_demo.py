@@ -18,7 +18,7 @@ def test_seed_demo_carga_ventas_coherentes_y_no_duplica(monkeypatch):
     call_command("seed_demo")
 
     assert ContratoVenta.objects.count() == 2
-    assert Cotizacion.objects.count() == 2
+    assert Cotizacion.objects.count() == 1
 
     financiado = ContratoVenta.objects.get(modalidad="FINANCIADO")
     cuotas = list(financiado.cuotas.order_by("numero")[:3])

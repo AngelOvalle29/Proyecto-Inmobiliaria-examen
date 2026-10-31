@@ -239,6 +239,8 @@ SPECTACULAR_SETTINGS = {
         "EstadoCotizacionEnum": "apps.crm.enums.EstadoCotizacion",
         "EstadoContratoEnum": "apps.ventas.enums.EstadoContrato",
         "EstadoCuotaEnum": "apps.ventas.enums.EstadoCuota",
+        "EstadoArrendamientoEnum": "apps.arrendamientos.enums.EstadoArrendamiento",
+        "EstadoPagoRentaEnum": "apps.arrendamientos.enums.EstadoPagoRenta",
     },
 }
 

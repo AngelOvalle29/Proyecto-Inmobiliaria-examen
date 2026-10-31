@@ -9,7 +9,7 @@
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `arrendamientos`; usa `catalogo`, `crm` y `core` |
 | **Rama** | `feature/008-arrendamientos` |
-| **Pull request** | — |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#48 |
 | **Issue** | #19 |
 
 ---
@@ -167,6 +167,7 @@ del contrato. El estado `VENCIDO` se quita (regla 8) y se agrega `CANCELADO`
 | `FECHA_RESCISION_INVALIDA` | La fecha de rescisión es anterior al inicio o futura (regla 10) | 400 |
 | `PAGO_NO_PENDIENTE` | Se paga un pago ya pagado o cancelado | 409 |
 | `MONTO_INCORRECTO` | El monto no es renta más recargo; `detalles` dice el esperado (regla 7) | 400 |
+| `FECHA_PAGO_INVALIDA` | La fecha del pago es futura (§11). *Agregado al implementar* | 400 |
 
 ## 6. Servicios y selectores
 
@@ -202,27 +203,29 @@ pagos generados al firmar no se auditan uno por uno.
 
 ## 8. Criterios de aceptación
 
-- [ ] Firmar sobre una propiedad disponible la deja `ARRENDADA` y genera un
+*Verificados el 2026-10-30 con las pruebas de `apps/arrendamientos/tests/` y con la demostración de `seed_demo` (§11).*
+
+- [x] Firmar sobre una propiedad disponible la deja `ARRENDADA` y genera un
       pago por mes, con el día de cobro correcto y sin repetir período
-- [ ] No se arrienda una propiedad no disponible ni una propiedad con unidades
+- [x] No se arrienda una propiedad no disponible ni una propiedad con unidades
       completa (409)
-- [ ] Un pago dentro de la gracia no lleva recargo; uno después, sí
-- [ ] Un monto distinto de renta más recargo es 400 con el esperado; pagar dos
+- [x] Un pago dentro de la gracia no lleva recargo; uno después, sí
+- [x] Un monto distinto de renta más recargo es 400 con el esperado; pagar dos
       veces es 409
-- [ ] Renovar crea un contrato que empieza al día siguiente, deja el anterior
+- [x] Renovar crea un contrato que empieza al día siguiente, deja el anterior
       `RENOVADO` y la propiedad sigue `ARRENDADA`
-- [ ] Rescindir cancela los pagos futuros, conserva los vencidos y libera la
+- [x] Rescindir cancela los pagos futuros, conserva los vencidos y libera la
       propiedad
-- [ ] Una fecha de rescisión futura o anterior al inicio es 400
-- [ ] Renovar un contrato `VENCIDO` es 409
-- [ ] Rescindir la renovación que todavía no empieza cancela todos sus pagos y
+- [x] Una fecha de rescisión futura o anterior al inicio es 400
+- [x] Renovar un contrato `VENCIDO` es 409
+- [x] Rescindir la renovación que todavía no empieza cancela todos sus pagos y
       los pendientes futuros del contrato anterior
-- [ ] Finalizar antes del fin es 409; después, deja el contrato `VENCIDO` y
+- [x] Finalizar antes del fin es 409; después, deja el contrato `VENCIDO` y
       libera la propiedad
-- [ ] Un pago pendiente vencido aparece con `en_mora: true`
-- [ ] Matriz de permisos de las reglas 13 a 16, con 404 para lo ajeno
-- [ ] Toda escritura queda en la bitácora
-- [ ] `ruff`, `pytest`, `makemigrations --check` y el esquema OpenAPI pasan
+- [x] Un pago pendiente vencido aparece con `en_mora: true`
+- [x] Matriz de permisos de las reglas 13 a 16, con 404 para lo ajeno
+- [x] Toda escritura queda en la bitácora
+- [x] `ruff`, `pytest`, `makemigrations --check` y el esquema OpenAPI pasan
 
 ## 9. Pruebas
 
@@ -286,3 +289,39 @@ qué pagos cancela una rescisión (por fecha de vencimiento) y los límites de s
 fecha, la regla de fin de mes en la fecha de fin, qué pasa si el inquilino se
 va antes de que empiece la renovación (las dos últimas, decididas por B), y las
 fechas mensuales en `core/fechas.py`.
+
+**Implementación, 2026-10-30 (Claude Code, rol B).** El agente escribió el
+código con sus pruebas, en dos commits en #48, siguiendo el patrón de ventas
+(spec 007): estado del bien con `estado_requerido`, tasa al dólar, cartera y
+demo con los mismos servicios que la API.
+
+- **Funciones puras.** `calcular_fecha_fin`, `calcular_calendario` y
+  `calcular_recargo` se prueban sin base de datos: inicio antes y después del
+  día de cobro, fin de mes, cambio de año, último día de gracia y redondeo
+  `ROUND_HALF_UP` en un empate (333.33 · 1.5 % = 4.99995 → 5.00).
+- **Decisiones al implementar** (a validar en la revisión del PR):
+  - **La fecha de firma es hoy.** El modelo no tiene un campo de firma, así que
+    la tasa al dólar (regla 5) se toma de la fecha en que se registra el
+    contrato, también al renovar, aunque el inicio sea futuro.
+  - **La fecha de un pago no puede ser futura** (400 `FECHA_PAGO_INVALIDA`), por
+    la tasa al dólar, como en ventas (revisión de #44). Sí se permite pagar por
+    adelantado, antes del vencimiento, porque un inquilino puede pagar el
+    primer mes de una renovación antes de que empiece.
+  - **Los pagos de un contrato rescindido o vencido se pueden pagar**: son deuda
+    (reglas 10 y 11). Los cancelados, no.
+  - **La renovación copia** moneda, depósito, día de cobro, gracia y mora del
+    contrato anterior, y toma el agente actual del cliente (regla 2).
+  - **`obtener_dolar` se repite** en `arrendamientos/selectors.py` en lugar de
+    importarlo de `ventas`, para no crear una dependencia que §4 no prevé.
+  - **Los pagos cancelados** al rescindir se cambian todos juntos; la bitácora
+    del contrato guarda cuántos se cancelaron.
+- **Demostración.** El catálogo de demo solo deja libre el Restaurante Plaza
+  Central, así que se arrienda ese, y se quitó la cotización enviada que la
+  demo de ventas hacía sobre él. Queda con un mes pagado a tiempo, otro pagado
+  tarde con recargo y otro en mora. Si hacen falta más ejemplos, se piden más
+  propiedades de demo al catálogo (rol A).
+- **Pendiente:** el campo `documento` del contrato, acordado en la revisión de
+  la spec 011 (#42), cuando `DocumentoOficial` esté en `develop`.
+
+Resultado: 433 pruebas del proyecto, cobertura de
+`arrendamientos/services.py` del 96 %, esquema OpenAPI sin advertencias.

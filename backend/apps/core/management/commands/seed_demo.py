@@ -34,6 +34,7 @@ COMANDOS_DE_DEMO = [
     "cargar_demo_catalogo",
     "cargar_demo_crm",
     "cargar_demo_ventas",
+    "cargar_demo_arrendamientos",
 ]
 
 
