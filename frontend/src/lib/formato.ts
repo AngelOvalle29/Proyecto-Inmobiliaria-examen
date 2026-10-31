@@ -36,3 +36,11 @@ export function formatearFecha(valor: string): string {
     year: 'numeric',
   })
 }
+
+/** Hoy en la hora local, como aaaa-mm-dd: el valor de un campo de fecha. */
+export function fechaDeHoy(): string {
+  const hoy = new Date()
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0')
+  const dia = String(hoy.getDate()).padStart(2, '0')
+  return `${hoy.getFullYear()}-${mes}-${dia}`
+}
