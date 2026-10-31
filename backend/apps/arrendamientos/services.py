@@ -431,7 +431,12 @@ def _cancelar_pagos_posteriores(contrato, fecha: date, autor) -> int:
     """Regla 10: cancela los pagos pendientes que vencen después de la fecha."""
     return contrato.pagos.filter(
         estado=EstadoPagoRenta.PENDIENTE, fecha_vencimiento__gt=fecha
-    ).update(estado=EstadoPagoRenta.CANCELADO, actualizado_por=autor)
+    ).update(
+        estado=EstadoPagoRenta.CANCELADO,
+        actualizado_por=autor,
+        # auto_now solo actúa con save(); update() no pasa por ahí.
+        actualizado_en=timezone.now(),
+    )
 
 
 def _cambiar_estado_contrato(contrato, estado, accion, autor, ip, extra=None):

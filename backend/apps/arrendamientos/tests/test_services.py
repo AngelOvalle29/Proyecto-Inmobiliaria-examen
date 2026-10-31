@@ -347,3 +347,18 @@ def test_finalizar_lo_deja_vencido_conserva_la_deuda_y_libera(gerente):
     assert contrato.estado == EstadoArrendamiento.VENCIDO
     assert contrato.pagos.get().estado == EstadoPagoRenta.PENDIENTE
     assert contrato.propiedad.estado == EstadoPropiedad.DISPONIBLE
+
+
+def test_rescindir_actualiza_la_fecha_de_modificacion_de_los_pagos(gerente):
+    """auto_now solo actúa con save(): el update() debe poner la fecha."""
+    contrato = firmar(gerente)
+    hace_una_semana = timezone.now() - timedelta(days=7)
+    contrato.pagos.update(actualizado_en=hace_una_semana)
+
+    rescindir_arrendamiento(
+        contrato=contrato, fecha_rescision=HOY, autor=gerente, ip=IP
+    )
+
+    cancelado = contrato.pagos.filter(estado=EstadoPagoRenta.CANCELADO).first()
+    assert cancelado.actualizado_en > hace_una_semana
+    assert cancelado.actualizado_por == gerente
