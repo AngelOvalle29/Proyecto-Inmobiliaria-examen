@@ -58,6 +58,38 @@ export function useUnidadesDePropiedad(propiedad: number | undefined) {
   })
 }
 
+/**
+ * Propiedades para CampoRelacion. No se filtra por DISPONIBLE: un edificio con
+ * unidades disponibles puede tener otro estado. El estado se muestra en la
+ * opción, y si el bien no se puede cotizar o vender lo responde la API.
+ */
+export function useOpcionesPropiedad(texto: string) {
+  const consulta = usePropiedades({ buscar: texto || undefined })
+  return {
+    opciones: (consulta.data?.results ?? []).map((propiedad) => ({
+      valor: String(propiedad.id),
+      etiqueta: `${propiedad.codigo} · ${propiedad.nombre} (${ETIQUETAS_ESTADO[propiedad.estado]})`,
+    })),
+    cargando: consulta.isFetching,
+  }
+}
+
+/** La API no busca unidades: se filtra por texto lo que devuelve la propiedad. */
+export function useOpcionesUnidad(texto: string, valores: { propiedad: string }) {
+  const propiedad = valores.propiedad ? Number(valores.propiedad) : undefined
+  const consulta = useUnidadesDePropiedad(propiedad)
+  const buscado = texto.toLowerCase()
+  return {
+    opciones: (consulta.data ?? [])
+      .filter((unidad) => unidad.codigo.toLowerCase().includes(buscado))
+      .map((unidad) => ({
+        valor: String(unidad.id),
+        etiqueta: `${unidad.codigo} (${ETIQUETAS_ESTADO[unidad.estado]})`,
+      })),
+    cargando: consulta.isFetching,
+  }
+}
+
 export function useTiposPropiedad() {
   return useQuery({
     queryKey: ['catalogo', 'tipos-propiedad'],

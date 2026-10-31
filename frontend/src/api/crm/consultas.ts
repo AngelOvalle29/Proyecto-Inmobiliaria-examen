@@ -5,7 +5,7 @@ import type { components, operations } from '../tipos.generados'
 
 export type Cliente = components['schemas']['Cliente']
 export type Agente = components['schemas']['Agente']
-export type TipoCliente = components['schemas']['TipoEnum']
+export type TipoCliente = components['schemas']['TipoClienteEnum']
 export type Cotizacion = components['schemas']['Cotizacion']
 export type EstadoCotizacion = components['schemas']['EstadoCotizacionEnum']
 type PaginaClientes = components['schemas']['PaginatedClienteList']
@@ -115,5 +115,15 @@ export function useCotizaciones(filtros: FiltrosCotizaciones) {
       (await clienteApi.get<PaginaCotizaciones>('/cotizaciones/', { params: filtros }))
         .data,
     placeholderData: keepPreviousData,
+  })
+}
+
+/** Una cotización, para firmar desde ella (spec 012, regla 8). */
+export function useCotizacion(id: number | undefined) {
+  return useQuery({
+    queryKey: ['crm', 'cotizaciones', 'detalle', id],
+    queryFn: async () =>
+      (await clienteApi.get<Cotizacion>(`/cotizaciones/${id}/`)).data,
+    enabled: id !== undefined,
   })
 }

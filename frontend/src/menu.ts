@@ -31,6 +31,9 @@ export const ESCRIBEN_CATALOGO: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
 // su cartera, porque eso lo decide la API.
 export const ADMINISTRAN_CRM: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
 export const ESCRIBEN_CRM: Rol[] = [...ADMINISTRAN_CRM, ROLES.AGENTE]
+// Firman los mismos que escriben en CRM; anulan los que lo administran
+// (reglas 20 y 21 de la spec 007).
+export const REGISTRAN_PAGOS: Rol[] = [...ADMINISTRAN_CRM, ROLES.CONTABILIDAD]
 
 export const MENU: EntradaMenu[] = [
   { ruta: '/', etiqueta: 'Inicio' },
@@ -43,6 +46,7 @@ export const MENU: EntradaMenu[] = [
   { ruta: '/crm/clientes', etiqueta: 'Clientes' },
   { ruta: '/crm/cotizaciones', etiqueta: 'Cotizaciones' },
   { ruta: '/crm/agentes', etiqueta: 'Agentes' },
+  { ruta: '/ventas/contratos', etiqueta: 'Contratos de venta' },
 ]
 
 /** true si el rol puede abrir la entrada (o la ruta) que declara esos roles. */

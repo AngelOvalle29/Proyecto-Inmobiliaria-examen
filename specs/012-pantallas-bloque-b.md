@@ -135,6 +135,12 @@ a un campo los `detalles` de un 400 de validación: los de un 409 son datos del
 caso, y su mensaje va arriba (regla 5). El buscador de unidad filtra la primera
 página de `/propiedades/{id}/unidades/`, porque ese endpoint no tiene búsqueda.
 
+**Agregado al implementar ventas:** `CuotaPago.en_mora()` no mira el estado del
+contrato, así que el detalle solo marca la mora en un contrato vigente. Las
+opciones de propiedad y unidad viven en `api/catalogo/consultas.ts`, y
+`LayoutPrincipal` lleva `min-w-0` para que una tabla ancha haga scroll dentro de
+sí misma.
+
 ## 7. Auditoría
 
 No aplica: el frontend no escribe en la bitácora. Cada acción llama a un

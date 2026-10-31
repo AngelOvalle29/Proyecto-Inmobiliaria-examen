@@ -13,6 +13,9 @@ import { ListaClientes } from './paginas/crm/ListaClientes'
 import { ListaCotizaciones } from './paginas/crm/ListaCotizaciones'
 import { NuevaCotizacion } from './paginas/crm/NuevaCotizacion'
 import { NoEncontrada } from './paginas/errores/NoEncontrada'
+import { DetalleContratoVenta } from './paginas/ventas/DetalleContratoVenta'
+import { FirmarContratoVenta } from './paginas/ventas/FirmarContratoVenta'
+import { ListaContratosVenta } from './paginas/ventas/ListaContratosVenta'
 import { Inicio } from './paginas/inicio/Inicio'
 
 /**
@@ -72,6 +75,16 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
+      { path: '/ventas/contratos', element: <ListaContratosVenta /> },
+      {
+        path: '/ventas/contratos/nuevo',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CRM}>
+            <FirmarContratoVenta />
+          </RutaProtegida>
+        ),
+      },
+      { path: '/ventas/contratos/:id', element: <DetalleContratoVenta /> },
       { path: '*', element: <NoEncontrada /> },
     ],
   },

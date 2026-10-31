@@ -43,7 +43,7 @@ const COLUMNAS = [
       <>
         {ETIQUETAS_ESTADO_COTIZACION[row.original.estado ?? 'BORRADOR']}
         {row.original.vencida && (
-          <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700">
+          <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-red-700">
             Vencida
           </span>
         )}

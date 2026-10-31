@@ -114,6 +114,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/avaluos/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y DELETE /api/v1/avaluos/{id}/ — DELETE desactiva (regla 3). */
+        get: operations["v1_avaluos_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET y DELETE /api/v1/avaluos/{id}/ — DELETE desactiva (regla 3). */
+        delete: operations["v1_avaluos_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ciudades/": {
         parameters: {
             query?: never;
@@ -474,6 +492,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documentos/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/documentos/{id}/ — DELETE desactiva. */
+        get: operations["v1_documentos_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET, PATCH y DELETE /api/v1/documentos/{id}/ — DELETE desactiva. */
+        delete: operations["v1_documentos_destroy"];
+        options?: never;
+        head?: never;
+        /** @description GET, PATCH y DELETE /api/v1/documentos/{id}/ — DELETE desactiva. */
+        patch: operations["v1_documentos_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/documentos/{id}/descarga/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener la URL de descarga de un documento
+         * @description GET /api/v1/documentos/{id}/descarga/ — URL firmada por 5 minutos.
+         */
+        get: operations["v1_documentos_descarga_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/": {
         parameters: {
             query?: never;
@@ -589,6 +646,24 @@ export interface paths {
         patch: operations["v1_propiedades_partial_update"];
         trace?: never;
     };
+    "/api/v1/propiedades/{id}/avaluos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/propiedades/{id}/avaluos/ — el historial de plusvalía. */
+        get: operations["v1_propiedades_avaluos_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/propiedades/{id}/avaluos/ — el historial de plusvalía. */
+        post: operations["v1_propiedades_avaluos_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/propiedades/{id}/cambiar-estado/": {
         parameters: {
             query?: never;
@@ -603,6 +678,24 @@ export interface paths {
          * @description POST /api/v1/propiedades/{id}/cambiar-estado/
          */
         post: operations["v1_propiedades_cambiar_estado_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/documentos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/propiedades/{id}/documentos/ — POST multipart. */
+        get: operations["v1_propiedades_documentos_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/propiedades/{id}/documentos/ — POST multipart. */
+        post: operations["v1_propiedades_documentos_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -808,6 +901,21 @@ export interface components {
             contrato_anterior?: number | null;
             readonly pagos: components["schemas"]["PagoRenta"][];
         };
+        Avaluo: {
+            readonly id: number;
+            readonly propiedad: components["schemas"]["PropiedadResumen"];
+            /** Format: date */
+            fecha: string;
+            /** Format: decimal */
+            valor: string;
+            readonly moneda: components["schemas"]["MonedaResumen"];
+            moneda_id: number;
+            perito: string;
+            metodologia: string;
+            readonly documento: components["schemas"]["DocumentoOficialResumen"];
+            documento_id?: number | null;
+            observaciones?: string;
+        };
         /** @description Entrada de /propiedades/{id}/cambiar-estado/ y /unidades/{id}/cambiar-estado/. */
         CambiarEstado: {
             estado: components["schemas"]["EstadoPropiedadEnum"];
@@ -832,7 +940,7 @@ export interface components {
         Cliente: {
             readonly id: number;
             codigo?: string | null;
-            tipo: components["schemas"]["TipoEnum"];
+            tipo: components["schemas"]["TipoClienteEnum"];
             nombre?: string;
             apellidos?: string;
             razon_social?: string;
@@ -860,7 +968,7 @@ export interface components {
          *     (duplicados, ciudad del país, cartera) son del servicio.
          */
         ClienteEntrada: {
-            tipo: components["schemas"]["TipoEnum"];
+            tipo: components["schemas"]["TipoClienteEnum"];
             nombre?: string;
             apellidos?: string;
             documento_identidad?: string;
@@ -1003,6 +1111,43 @@ export interface components {
             referencia_ultimo_pago?: string;
             /** Format: decimal */
             tasa_a_usd_ultimo_pago?: string | null;
+        };
+        DescargaDocumento: {
+            url: string;
+            vence_en_segundos: number;
+        };
+        DocumentoOficial: {
+            readonly id: number;
+            readonly propiedad: components["schemas"]["PropiedadResumen"];
+            readonly tipo: components["schemas"]["TipoDocumentoEnum"];
+            nombre: string;
+            readonly nombre_original: string;
+            readonly tipo_contenido: string;
+            readonly tamano_bytes: number;
+            /** Format: date */
+            fecha_emision: string;
+            /** Format: date */
+            fecha_vencimiento?: string | null;
+            emisor: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+        };
+        DocumentoOficialResumen: {
+            id: number;
+            nombre: string;
+            tipo: string;
+        };
+        /** @description Entrada de la subida: multipart con el archivo y sus datos (regla 5). */
+        DocumentoSubir: {
+            /** Format: uri */
+            archivo: string;
+            tipo: components["schemas"]["TipoDocumentoEnum"];
+            nombre: string;
+            /** Format: date */
+            fecha_emision: string;
+            /** Format: date */
+            fecha_vencimiento?: string | null;
+            emisor: string;
         };
         /**
          * @description * `VIGENTE` - Vigente
@@ -1165,6 +1310,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Arrendamiento"][];
         };
+        PaginatedAvaluoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Avaluo"][];
+        };
         PaginatedCiudadList: {
             /** @example 123 */
             count: number;
@@ -1224,6 +1384,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Cotizacion"][];
+        };
+        PaginatedDocumentoOficialList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["DocumentoOficial"][];
         };
         PaginatedMonedaList: {
             /** @example 123 */
@@ -1369,7 +1544,7 @@ export interface components {
          *     (duplicados, ciudad del país, cartera) son del servicio.
          */
         PatchedClienteEntrada: {
-            tipo?: components["schemas"]["TipoEnum"];
+            tipo?: components["schemas"]["TipoClienteEnum"];
             nombre?: string;
             apellidos?: string;
             documento_identidad?: string;
@@ -1392,6 +1567,22 @@ export interface components {
             /** Format: date */
             fecha_vencimiento?: string;
             observaciones?: string;
+        };
+        PatchedDocumentoOficial: {
+            readonly id?: number;
+            readonly propiedad?: components["schemas"]["PropiedadResumen"];
+            readonly tipo?: components["schemas"]["TipoDocumentoEnum"];
+            nombre?: string;
+            readonly nombre_original?: string;
+            readonly tipo_contenido?: string;
+            readonly tamano_bytes?: number;
+            /** Format: date */
+            fecha_emision?: string;
+            /** Format: date */
+            fecha_vencimiento?: string | null;
+            emisor?: string;
+            /** Format: date-time */
+            readonly creado_en?: string;
         };
         PatchedPropiedad: {
             readonly id?: number;
@@ -1502,7 +1693,18 @@ export interface components {
          *     * `EMPRESA` - Empresa
          * @enum {string}
          */
-        TipoEnum: "PERSONA" | "EMPRESA";
+        TipoClienteEnum: "PERSONA" | "EMPRESA";
+        /**
+         * @description * `ESCRITURA` - Escritura
+         *     * `LICENCIA` - Licencia
+         *     * `PLANO` - Plano
+         *     * `CERTIFICACION` - Certificación
+         *     * `AVALUO` - Avalúo
+         *     * `CONTRATO` - Contrato
+         *     * `OTRO` - Otro
+         * @enum {string}
+         */
+        TipoDocumentoEnum: "ESCRITURA" | "LICENCIA" | "PLANO" | "CERTIFICACION" | "AVALUO" | "CONTRATO" | "OTRO";
         TipoPropiedad: {
             readonly id: number;
             nombre: string;
@@ -1754,6 +1956,47 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UsuarioActual"];
                 };
+            };
+        };
+    };
+    v1_avaluos_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Avaluo"];
+                };
+            };
+        };
+    };
+    v1_avaluos_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2381,6 +2624,95 @@ export interface operations {
             };
         };
     };
+    v1_documentos_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoOficial"];
+                };
+            };
+        };
+    };
+    v1_documentos_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_documentos_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDocumentoOficial"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDocumentoOficial"];
+                "multipart/form-data": components["schemas"]["PatchedDocumentoOficial"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoOficial"];
+                };
+            };
+        };
+    };
+    v1_documentos_descarga_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DescargaDocumento"];
+                };
+            };
+        };
+    };
     v1_health_retrieve: {
         parameters: {
             query?: never;
@@ -2613,6 +2945,57 @@ export interface operations {
             };
         };
     };
+    v1_propiedades_avaluos_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAvaluoList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_avaluos_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Avaluo"];
+                "application/x-www-form-urlencoded": components["schemas"]["Avaluo"];
+                "multipart/form-data": components["schemas"]["Avaluo"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Avaluo"];
+                };
+            };
+        };
+    };
     v1_propiedades_cambiar_estado_create: {
         parameters: {
             query?: never;
@@ -2636,6 +3019,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Propiedad"];
+                };
+            };
+        };
+    };
+    v1_propiedades_documentos_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /**
+                 * @description * `ESCRITURA` - Escritura
+                 *     * `LICENCIA` - Licencia
+                 *     * `PLANO` - Plano
+                 *     * `CERTIFICACION` - Certificación
+                 *     * `AVALUO` - Avalúo
+                 *     * `CONTRATO` - Contrato
+                 *     * `OTRO` - Otro
+                 */
+                tipo?: "AVALUO" | "CERTIFICACION" | "CONTRATO" | "ESCRITURA" | "LICENCIA" | "OTRO" | "PLANO";
+                vence_antes?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDocumentoOficialList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_documentos_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentoSubir"];
+                "application/x-www-form-urlencoded": components["schemas"]["DocumentoSubir"];
+                "multipart/form-data": components["schemas"]["DocumentoSubir"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoOficial"];
                 };
             };
         };
