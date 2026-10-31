@@ -41,6 +41,16 @@ def listar_usuarios_activos() -> QuerySet[Usuario]:
     Usuarios que pueden iniciar sesión (is_active es su borrado lógico).
 
     Lo usan otras apps para validar que un id de usuario recibido en la API
-    exista, por ejemplo al crear el perfil de agente (spec 004).
+    exista, por ejemplo al crear el perfil de agente (spec 004), y el listado
+    de /usuarios/ para elegir a quién crearle ese perfil (spec 013).
+
+    Rol y país vienen en la misma consulta, para que el listado no haga una
+    consulta más por usuario. El orden por nombre es el que se muestra al
+    elegir; el id desempata a dos personas con el mismo nombre, para que la
+    paginación sea estable.
     """
-    return Usuario.objects.filter(is_active=True).select_related("rol")
+    return (
+        Usuario.objects.filter(is_active=True)
+        .select_related("rol", "pais")
+        .order_by("nombre_completo", "id")
+    )

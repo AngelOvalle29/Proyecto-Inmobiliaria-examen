@@ -5,6 +5,7 @@ Sin reglas de negocio ni consultas directas a los modelos.
 """
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,7 +15,16 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.core.http import obtener_ip_cliente, obtener_user_agent
 
-from .serializers import LoginSerializer, TokensSerializer, UsuarioActualSerializer
+from .enums import NombreRol
+from .filters import UsuarioFilter
+from .permissions import TieneRol
+from .selectors import listar_usuarios_activos
+from .serializers import (
+    LoginSerializer,
+    TokensSerializer,
+    UsuarioActualSerializer,
+    UsuarioListadoSerializer,
+)
 from .services import iniciar_sesion
 
 
@@ -67,3 +77,22 @@ class UsuarioActualView(APIView):
     def get(self, request: Request) -> Response:
         # request.user ya lo cargó la autenticación JWT a partir del token.
         return Response(UsuarioActualSerializer(request.user).data)
+
+
+class ListarUsuariosView(ListAPIView):
+    """
+    GET /api/v1/usuarios/?rol=&buscar= — usuarios activos, para elegir el de un
+    agente nuevo (spec 013).
+
+    Solo administración y gerencia: son quienes crean agentes, y el listado
+    tiene correos y nombres de todo el personal. Como GET queda declarado en
+    roles_por_metodo, TieneRol ya no lo deja abierto a cualquier autenticado.
+    """
+
+    serializer_class = UsuarioListadoSerializer
+    filterset_class = UsuarioFilter
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"GET": [NombreRol.ADMINISTRADOR, NombreRol.GERENTE]}
+
+    def get_queryset(self):
+        return listar_usuarios_activos()
