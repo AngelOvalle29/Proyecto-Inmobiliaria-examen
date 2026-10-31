@@ -40,6 +40,7 @@ from .exceptions import (
     ContratoNoVigente,
     CotizacionNoAprobada,
     EngancheFueraDeRango,
+    FechaPagoInvalida,
     PagoExcedeSaldo,
 )
 from .models import ContratoVenta, CuotaPago
@@ -174,7 +175,10 @@ def firmar_contrato(*, datos: dict, autor: Usuario, ip: str | None) -> ContratoV
 
     fecha_firma = datos["fecha_firma"]
     tasa_a_usd = _tasa_a_dolar(moneda=moneda, fecha=fecha_firma)
-    agente = cliente.agente_asignado
+    # Regla 13: con cotización, la comisión es del agente que cotizó, aunque
+    # el cliente se haya reasignado después (decidido por B en la revisión
+    # de #44). Sin cotización, del agente asignado al cliente al firmar.
+    agente = cotizacion.agente if cotizacion is not None else cliente.agente_asignado
     codigo_bien = (propiedad or unidad).codigo
 
     _cambiar_estado_bien(
@@ -302,6 +306,8 @@ def registrar_pago_cuota(
     16 a 18).
 
     - Solo en un contrato VIGENTE, y nunca por más de lo que falta de la cuota.
+    - La fecha va de la firma a hoy: una fecha futura aplicaría una tasa al
+      dólar que todavía no está vigente.
     - La cuota queda PARCIAL hasta completar su total, y entonces PAGADA.
     - Guarda la tasa al dólar de la fecha del pago (regla 14).
     - Si con este pago todas las cuotas quedan pagadas, el contrato pasa a
@@ -315,6 +321,9 @@ def registrar_pago_cuota(
     cuota = CuotaPago.objects.select_for_update().get(pk=cuota.pk)
     if contrato.estado != EstadoContrato.VIGENTE:
         raise ContratoNoVigente(contrato=contrato.codigo, estado=contrato.estado)
+    hoy = timezone.localdate()
+    if not (contrato.fecha_firma <= fecha <= hoy):
+        raise FechaPagoInvalida(fecha=fecha, fecha_firma=contrato.fecha_firma, hoy=hoy)
     if monto > cuota.saldo:
         raise PagoExcedeSaldo(cuota=cuota.numero, saldo=cuota.saldo, monto=monto)
 

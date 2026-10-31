@@ -86,7 +86,10 @@ programada.
     diferencia, para que el capital sume exactamente el saldo.
 13. La comisión del agente se calcula al firmar (monto total · porcentaje del
     agente) y se guarda: si después cambia su porcentaje, la comisión de ese
-    contrato no cambia.
+    contrato no cambia. **Con cotización, la comisión es del agente que
+    cotizó**, aunque el cliente se haya reasignado después; sin cotización, del
+    agente asignado al cliente al firmar (decidido por B en la revisión de
+    #44).
 14. **Tasa de cambio aplicada** (observación de B en #1): el contrato guarda la
     tasa de su moneda al dólar en la fecha de firma y el monto total en
     dólares; cada pago de cuota guarda la tasa de la fecha de pago. Si no hay
@@ -99,7 +102,8 @@ programada.
 
 **Pagos de cuotas**
 
-16. Un pago se registra sobre una cuota de un contrato `VIGENTE`, en la moneda
+16. Un pago se registra sobre una cuota de un contrato `VIGENTE`, con fecha
+    entre la firma del contrato y hoy (400 `FECHA_PAGO_INVALIDA`), en la moneda
     del contrato; en un contrato `ANULADO` o `LIQUIDADO` no se registran pagos
     (409 `CONTRATO_NO_VIGENTE`). Puede ser parcial: la cuota queda `PARCIAL`
     hasta completar su total, y entonces `PAGADA`. Un pago no puede exceder lo
@@ -199,6 +203,7 @@ historia completa de pagos queda en la bitácora de auditoría.
 | `COTIZACION_YA_CONTRATADA` | La cotización ya tiene contrato: no da otro (regla 7) ni se rechaza (regla 6) | 409 |
 | `PROPIEDAD_CON_UNIDADES` | Se cotiza o vende completa una propiedad de un tipo con unidades (reglas 1 y 9) | 409 |
 | `CONTRATO_NO_VIGENTE` | Se paga o se anula un contrato que no está `VIGENTE` (reglas 15 y 16) | 409 |
+| `FECHA_PAGO_INVALIDA` | La fecha del pago es anterior a la firma o futura (regla 16). *Agregado en la revisión de #44* | 400 |
 | `COTIZACION_NO_APROBADA` | Se firma desde una cotización que no está `APROBADA` (regla 8). *Agregado al implementar* | 409 |
 | `CONTRATO_CON_PAGOS` | Se anula un contrato que ya tiene pagos (regla 15) | 409 |
 | `PAGO_EXCEDE_SALDO` | El pago supera lo que falta de la cuota (regla 16) | 400 |
@@ -388,3 +393,10 @@ código de cada paso con sus pruebas, en cinco commits en #44.
 
 Resultado: 387 pruebas del proyecto, cobertura de `ventas/services.py` del 96 %
 y de `crm/services.py` del 99 %, esquema OpenAPI sin advertencias.
+
+**Revisión de A del PR (#44), 2026-10-29.** Aprobó y dejó tres detalles para
+un PR siguiente: la spec 003 debe mencionar `estado_requerido` (lo agrega A);
+la fecha de un pago se debe limitar a entre la firma y hoy, porque una fecha
+futura aplicaría una tasa que todavía no es la vigente (regla 16); y la spec
+debía decir qué agente cobra la comisión si el cliente se reasignó después de
+cotizar. B decidió que la cobra el agente que cotizó (regla 13).
