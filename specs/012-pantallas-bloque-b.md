@@ -141,6 +141,13 @@ opciones de propiedad y unidad viven en `api/catalogo/consultas.ts`, y
 `LayoutPrincipal` lleva `min-w-0` para que una tabla ancha haga scroll dentro de
 sí misma.
 
+**Pendiente:** `/crm/agentes/nuevo` no está implementada: elegir el usuario
+necesita un endpoint que liste usuarios, y la API no lo tiene.
+
+**Agregado al verificar §8:** el `QueryClient` ya no reintenta los errores 4xx,
+porque un 404 de un contrato ajeno dejaba la pantalla unos 7 segundos en
+"Cargando…".
+
 **Agregado al implementar arrendamientos:** `DialogoPagarRenta` no usa
 `FormularioDatos`, porque el monto propuesto cambia con la fecha elegida. Un pago
 pendiente se puede pagar aunque el contrato haya terminado, porque se sigue
@@ -153,33 +160,33 @@ endpoint que ya audita (specs 004, 007 y 008).
 
 ## 8. Criterios de aceptación
 
-- [ ] Un agente ve solo sus clientes, cotizaciones y contratos; un gerente ve
+- [x] Un agente ve solo sus clientes, cotizaciones y contratos; un gerente ve
       todos
-- [ ] `CONSULTA` y `CONTABILIDAD` no ven los botones de crear, editar ni las
+- [x] `CONSULTA` y `CONTABILIDAD` no ven los botones de crear, editar ni las
       acciones que no les corresponden; y `CONTABILIDAD` sí ve Pagar
-- [ ] El formulario de cliente cambia entre persona y empresa, y no envía los
+- [x] El formulario de cliente cambia entre persona y empresa, y no envía los
       campos ocultos; un documento repetido muestra el 409 de la API
-- [ ] La ciudad se busca dentro del país elegido y se vacía al cambiarlo
-- [ ] Una cotización pasa de borrador a enviada y a aprobada desde su fila, y
+- [x] La ciudad se busca dentro del país elegido y se vacía al cambiarlo
+- [x] Una cotización pasa de borrador a enviada y a aprobada desde su fila, y
       su propiedad aparece como reservada en el catálogo
-- [ ] Firmar contrato desde una cotización aprobada llega al formulario con la
+- [x] Firmar contrato desde una cotización aprobada llega al formulario con la
       cotización elegida y crea el contrato
-- [ ] Un contrato financiado muestra sus cuotas; las vencidas se marcan en mora
-- [ ] Pagar una cuota a medias la deja parcial, y pagar de más muestra el error
+- [x] Un contrato financiado muestra sus cuotas; las vencidas se marcan en mora
+- [x] Pagar una cuota a medias la deja parcial, y pagar de más muestra el error
       de la API
-- [ ] Un arrendamiento muestra su calendario; pagar tarde propone el recargo y
+- [x] Un arrendamiento muestra su calendario; pagar tarde propone el recargo y
       un monto equivocado muestra el esperado
-- [ ] Renovar, rescindir y finalizar funcionan desde el detalle y muestran los
+- [x] Renovar, rescindir y finalizar funcionan desde el detalle y muestran los
       errores de la API (renovar uno vencido, rescindir con fecha futura…)
-- [ ] Montos con su moneda y fechas `dd/mm/aaaa`
-- [ ] `npm run lint`, `npm run typecheck` y `npm run build` pasan
+- [x] Montos con su moneda y fechas `dd/mm/aaaa`
+- [x] `npm run lint`, `npm run typecheck` y `npm run build` pasan
 
 ## 9. Pruebas
 
 | Nivel | Caso |
 |---|---|
 | Manual, local | Cada criterio de §8 con `seed_demo` y un usuario por rol |
-| Manual, producción | Un recorrido completo en Vercel: cotizar, aprobar, firmar y pagar |
+| Manual, producción | Un recorrido completo en Vercel: cotizar, aprobar, firmar y pagar. **Pendiente** hasta desplegar |
 | Estático | `typecheck` con los tipos generados |
 
 ## 10. Decisiones y alternativas descartadas
