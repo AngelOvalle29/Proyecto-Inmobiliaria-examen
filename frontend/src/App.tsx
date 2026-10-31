@@ -3,10 +3,13 @@ import { createBrowserRouter, RouterProvider } from 'react-router'
 import { RutaProtegida } from './componentes/comunes/RutaProtegida'
 import { LayoutAuth } from './layouts/LayoutAuth'
 import { LayoutPrincipal } from './layouts/LayoutPrincipal'
-import { ESCRIBEN_CATALOGO } from './menu'
+import { ESCRIBEN_CATALOGO, ESCRIBEN_CRM } from './menu'
 import { Login } from './paginas/auth/Login'
 import { ListaPropiedades } from './paginas/catalogo/ListaPropiedades'
 import { NuevaPropiedad } from './paginas/catalogo/NuevaPropiedad'
+import { EditarCliente, NuevoCliente } from './paginas/crm/FormularioCliente'
+import { ListaAgentes } from './paginas/crm/ListaAgentes'
+import { ListaClientes } from './paginas/crm/ListaClientes'
 import { NoEncontrada } from './paginas/errores/NoEncontrada'
 import { Inicio } from './paginas/inicio/Inicio'
 
@@ -40,6 +43,24 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
+      { path: '/crm/clientes', element: <ListaClientes /> },
+      {
+        path: '/crm/clientes/nuevo',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CRM}>
+            <NuevoCliente />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: '/crm/clientes/:id/editar',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CRM}>
+            <EditarCliente />
+          </RutaProtegida>
+        ),
+      },
+      { path: '/crm/agentes', element: <ListaAgentes /> },
       { path: '*', element: <NoEncontrada /> },
     ],
   },

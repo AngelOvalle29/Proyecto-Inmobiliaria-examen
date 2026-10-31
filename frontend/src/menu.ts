@@ -27,6 +27,11 @@ export interface EntradaMenu {
 // las rutas de App.tsx, para no repetir la lista.
 export const ESCRIBEN_CATALOGO: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
 
+// Quiénes escriben en CRM (reglas 11 y 12 de la spec 004): el agente, solo en
+// su cartera, porque eso lo decide la API.
+export const ADMINISTRAN_CRM: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
+export const ESCRIBEN_CRM: Rol[] = [...ADMINISTRAN_CRM, ROLES.AGENTE]
+
 export const MENU: EntradaMenu[] = [
   { ruta: '/', etiqueta: 'Inicio' },
   { ruta: '/catalogo/propiedades', etiqueta: 'Propiedades' },
@@ -35,6 +40,8 @@ export const MENU: EntradaMenu[] = [
     etiqueta: 'Nueva propiedad',
     roles: ESCRIBEN_CATALOGO,
   },
+  { ruta: '/crm/clientes', etiqueta: 'Clientes' },
+  { ruta: '/crm/agentes', etiqueta: 'Agentes' },
 ]
 
 /** true si el rol puede abrir la entrada (o la ruta) que declara esos roles. */

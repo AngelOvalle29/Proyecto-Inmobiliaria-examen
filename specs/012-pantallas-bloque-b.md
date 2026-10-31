@@ -125,6 +125,10 @@ que el formulario de edición de clientes muestre el país y la ciudad actuales
 (observación de B en la revisión de #46). Si no llega, la edición de un
 cliente no cambia su país ni su ciudad, y se registra aquí.
 
+**Estado al 2026-10-30:** la etiqueta inicial aún no existe, así que la edición
+de un cliente no cambia su país ni su ciudad. Tampoco cambia su tipo, y el
+agente se cambia con Reasignar.
+
 ## 7. Auditoría
 
 No aplica: el frontend no escribe en la bitácora. Cada acción llama a un
