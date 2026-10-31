@@ -60,18 +60,28 @@ Apartamentos o locales dentro de una propiedad tipo edificio.
 `metodologia` · `documento` (FK DocumentoOficial, opcional) · `observaciones`
 
 *Regla:* el historial de avalúos permite medir plusvalía en el tiempo. No se
-borran, se agregan.
+editan ni se borran: si uno tiene un error, se desactiva y se registra el
+correcto. La fecha no puede ser futura y el documento adjunto, si lo hay, debe
+ser de la misma propiedad.
 
 ### DocumentoOficial ★
-`id` · `propiedad` (FK, opcional) · `contrato_venta` (FK, opcional) ·
-`contrato_compra` (FK, opcional) · `tipo` (enum: ESCRITURA, LICENCIA, PLANO,
-CERTIFICACION, AVALUO, CONTRATO, OTRO) · `nombre` · `archivo_url` ·
-`fecha_emision` · `fecha_vencimiento` · `emisor` · `estado_indexacion` (enum:
-PENDIENTE, PROCESANDO, INDEXADO, ERROR) · `subido_por` (FK Usuario) ·
-`fecha_carga` · `activo`
+`id` · `propiedad` (FK) · `tipo` (enum: ESCRITURA, LICENCIA, PLANO,
+CERTIFICACION, AVALUO, CONTRATO, OTRO) · `nombre` · `archivo` (FileField) ·
+`nombre_original` · `tipo_contenido` · `tamano_bytes` · `fecha_emision` ·
+`fecha_vencimiento` (opcional) · `emisor` · `activo`
 
-*Regla:* al crear un documento se encola su procesamiento para el RAG. Los
-documentos con `fecha_vencimiento` próxima alimentan un reporte de alertas.
+*Regla:* el archivo se guarda como
+`documentos/<código de propiedad>/<uuid>.<extensión>`, en un bucket privado, y
+se descarga con una URL firmada de 5 minutos. Se aceptan PDF, JPG y PNG de
+hasta 10 MB, comprobados por el contenido. El archivo no se reemplaza: una
+versión nueva es otro documento y el anterior se desactiva. Los documentos con
+`fecha_vencimiento` próxima alimentan un reporte de alertas.
+
+*Cambios respecto de la versión original:* `archivo_url` pasa a `archivo`
+(se guarda la ruta, no la URL); `subido_por` y `fecha_carga` se reemplazan por
+`creado_por` y `creado_en` de `ModeloBase`; `estado_indexacion` se pospone con
+el RAG; y se quitan `contrato_venta` y `contrato_compra` porque la relación va
+al revés, desde el contrato.
 
 ### EventoPropiedad ★
 Línea de tiempo de cada propiedad. Es el "historial" que pide el enunciado.
