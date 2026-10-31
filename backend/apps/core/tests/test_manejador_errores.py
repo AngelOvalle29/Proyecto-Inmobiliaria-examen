@@ -59,6 +59,20 @@ def test_el_404_de_django_tambien_sale_en_el_formato_uniforme():
     assert respuesta.data["error"]["codigo"] == "NO_ENCONTRADO"
 
 
+def test_el_404_no_muestra_el_mensaje_de_django_ni_el_nombre_del_modelo():
+    """get_object_or_404 lanza Http404 con un texto en inglés que nombra el
+    modelo; la respuesta debe decir lo mismo para cualquier recurso."""
+    respuesta = manejar_excepcion(
+        Http404("No ContratoVenta matches the given query."), context={}
+    )
+
+    assert respuesta.data["error"] == {
+        "codigo": "NO_ENCONTRADO",
+        "mensaje": "No se encontró el recurso.",
+        "detalles": {},
+    }
+
+
 def test_el_limite_de_peticiones_indica_cuanto_esperar():
     respuesta = manejar_excepcion(exceptions.Throttled(wait=42), context={})
 

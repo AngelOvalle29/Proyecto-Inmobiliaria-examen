@@ -248,7 +248,7 @@ traduce tanto las excepciones de dominio como las de DRF:
 | `CREDENCIALES_INVALIDAS` | Login con correo o contraseña incorrectos, o usuario inactivo | 401 |
 | `NO_AUTENTICADO` | Falta el token, o es inválido o está vencido | 401 |
 | `SIN_PERMISO` | Autenticado pero sin permiso | 403 |
-| `NO_ENCONTRADO` | Recurso inexistente | 404 |
+| `NO_ENCONTRADO` | Recurso inexistente. El mensaje es siempre "No se encontró el recurso." (*corregido el 2026-10-31*: antes salía el texto en inglés de Django, con el nombre del modelo; lo notó B en DouGMV/Proyecto-Inmobiliaria#56) | 404 |
 | `DEMASIADAS_PETICIONES` | Se superó el límite de peticiones | 429 |
 | `TIPO_CAMBIO_NO_DISPONIBLE` | No hay tasa vigente para la fecha | 422 |
 
