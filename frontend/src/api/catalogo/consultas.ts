@@ -46,7 +46,6 @@ export function usePropiedades(filtros: FiltrosPropiedades) {
   })
 }
 
-/** Tipos de propiedad activos. Son pocos (siete): caben en una página. */
 /** Las unidades de una propiedad; sin propiedad elegida no consulta nada. */
 export function useUnidadesDePropiedad(propiedad: number | undefined) {
   return useQuery({
@@ -90,6 +89,7 @@ export function useOpcionesUnidad(texto: string, valores: { propiedad: string })
   }
 }
 
+/** Tipos de propiedad activos. Son pocos (siete): caben en una página. */
 export function useTiposPropiedad() {
   return useQuery({
     queryKey: ['catalogo', 'tipos-propiedad'],
