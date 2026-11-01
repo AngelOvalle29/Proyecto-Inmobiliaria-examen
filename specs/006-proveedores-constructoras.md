@@ -37,11 +37,11 @@ propiedades**, para que el rol C avance mientras `Propiedad` (spec 003) llega a
 
 **No incluye:**
 - `ContratoCompra`, `ProyectoConstruccion` y `PagoConstructora`: necesitan
-  `Propiedad`. Van en la spec 007 del rol C.
+  `Propiedad`. Van en la spec 017 del rol C.
 - Reglas de desactivación con contratos o proyectos abiertos: se agregan en la
-  spec 007, cuando esas entidades existan (§10).
-- Reactivar un registro desactivado vía API: se hace desde el panel, como en la
-  spec 004.
+  spec 017, cuando esas entidades existan (§10).
+- Reactivar un registro desactivado: ni por la API ni por el panel, que es de
+  solo lectura como en la spec 004 (§10).
 - Llamar a los comandos de demo desde `seed_demo`: lo ajusta A en `core`, como
   en la spec 004.
 - Pantallas: van sobre la base del frontend, con la lista y el formulario
@@ -295,10 +295,17 @@ dos apps independientes, que es lo que pide `docs/arquitectura.md` §3.
 (spec 004): son la foto inicial de la demostración, no operaciones del negocio.
 Si un país todavía no existe, el registro se omite en lugar de fallar.
 
-**Reglas de desactivación en la spec 007.** "No se desactiva un proveedor con un
+**Reglas de desactivación en la spec 017.** "No se desactiva un proveedor con un
 contrato `EN_PROCESO`" o "una constructora con un proyecto `EN_EJECUCION`" son
 reglas correctas, pero hablan de entidades que todavía no existen. Escribirlas
-aquí obligaría a adivinar los estados de la spec 007.
+aquí obligaría a adivinar los estados de la spec 017.
+
+**Panel de Django de solo lectura** (corregido en la revisión del PR #63). La
+primera versión dejaba el panel editable para reactivar registros, y la
+revisión mostró que así se saltaban las reglas: un proveedor creado desde el
+panel quedaba sin código y con el NIT sin normalizar, editar no se auditaba y
+borrar eliminaba el registro. Se usa el mismo `AdminSoloLectura` de `crm` y
+`catalogo`, una copia por app para que las apps no dependan entre sí.
 
 **`Constructora` sin ciudad.** `docs/modelo-datos.md` no la incluye y una
 constructora suele trabajar en varias ciudades de su país. Se mantiene el modelo
@@ -350,6 +357,12 @@ y el esquema de `drf-spectacular`.
 la suite completa con 583 pruebas (62 nuevas), `ruff` y `makemigrations --check`
 limpios; y los dos comandos de demostración (6 proveedores y 4 constructoras, y
 0 nuevos al correrlos otra vez).
+
+**Revisión de Marco (PR #63), 2026-10-31.** Señaló que el panel de Django
+permitía escribir sin reglas ni auditoría, que los serializadores debían usar
+`listar_paises()` y `listar_ciudades()` como `crm`, y que la spec mencionaba la
+007 en lugar de la 017. Se aceptaron los tres: el panel es de solo lectura (con
+una prueba por app) y los serializadores usan los selectores de `core`.
 
 **Pendiente para A (Douglas):** agregar `cargar_demo_compras` y
 `cargar_demo_construccion` a `COMANDOS_DE_DEMO` de `seed_demo`.

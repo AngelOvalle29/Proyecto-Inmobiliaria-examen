@@ -1,12 +1,12 @@
 """Serializadores de compras: validan el formato de entrada y arman la salida.
 
-Sin reglas de negocio ni acceso a la base de datos fuera de resolver los ids
-de país y ciudad.
+Sin reglas de negocio ni acceso a la base de datos: los ids de país y ciudad
+se resuelven con los selectores de core, como en crm.
 """
 
 from rest_framework import serializers
 
-from apps.core.models import Ciudad, Pais
+from apps.core.selectors import listar_ciudades, listar_paises
 from apps.core.serializers import PaisResumenSerializer
 
 from .enums import TipoProveedor
@@ -53,8 +53,8 @@ class ProveedorEntradaSerializer(serializers.Serializer):
     nit = serializers.CharField(max_length=30, allow_blank=True, default="")
     email = serializers.EmailField(allow_blank=True, default="")
     telefono = serializers.CharField(max_length=30, allow_blank=True, default="")
-    pais = serializers.PrimaryKeyRelatedField(queryset=Pais.objects.filter(activo=True))
+    pais = serializers.PrimaryKeyRelatedField(queryset=listar_paises())
     ciudad = serializers.PrimaryKeyRelatedField(
-        queryset=Ciudad.objects.filter(activo=True), allow_null=True, default=None
+        queryset=listar_ciudades(), allow_null=True, default=None
     )
     direccion = serializers.CharField(max_length=255, allow_blank=True, default="")

@@ -1,7 +1,6 @@
 """Registro de los modelos de compras en el panel de Django.
 
-Sin reglas de negocio. El panel sirve para consultar y para reactivar un
-proveedor desactivado (spec 006, §2); el código no se edita nunca.
+Sin reglas de negocio.
 """
 
 from django.contrib import admin
@@ -9,9 +8,29 @@ from django.contrib import admin
 from .models import Proveedor
 
 
+class AdminSoloLectura(admin.ModelAdmin):
+    """
+    El panel solo consulta proveedores; no crea, edita ni borra.
+
+    Toda escritura de compras pasa por los servicios de la API, que aplican las
+    reglas de la spec 006 (código generado, NIT normalizado, borrado lógico) y
+    registran la auditoría. El panel de Django no pasa por ellos: si permitiera
+    escribir, sería una puerta trasera sin reglas ni bitácora (mismo criterio
+    que crm y catalogo).
+    """
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Proveedor)
-class ProveedorAdmin(admin.ModelAdmin):
+class ProveedorAdmin(AdminSoloLectura):
     list_display = ("codigo", "nombre", "tipo", "nit", "pais", "activo")
     list_filter = ("tipo", "pais", "activo")
     search_fields = ("codigo", "nombre", "nit")
-    readonly_fields = ("codigo",)

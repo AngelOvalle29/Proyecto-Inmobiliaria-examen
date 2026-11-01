@@ -1,13 +1,13 @@
 """Serializadores de construcción: validan el formato de entrada y arman la
 salida.
 
-Sin reglas de negocio ni acceso a la base de datos fuera de resolver el id del
-país.
+Sin reglas de negocio ni acceso a la base de datos: el id del país se resuelve
+con el selector de core, como en crm.
 """
 
 from rest_framework import serializers
 
-from apps.core.models import Pais
+from apps.core.selectors import listar_paises
 from apps.core.serializers import PaisResumenSerializer
 
 from .models import Constructora
@@ -43,7 +43,7 @@ class ConstructoraEntradaSerializer(serializers.Serializer):
     contacto = serializers.CharField(max_length=150, allow_blank=True, default="")
     email = serializers.EmailField(allow_blank=True, default="")
     telefono = serializers.CharField(max_length=30, allow_blank=True, default="")
-    pais = serializers.PrimaryKeyRelatedField(queryset=Pais.objects.filter(activo=True))
+    pais = serializers.PrimaryKeyRelatedField(queryset=listar_paises())
     # Regla 6: de 1 a 5, u omitida mientras no haya trabajos que calificar.
     calificacion = serializers.IntegerField(
         min_value=1, max_value=5, allow_null=True, default=None
