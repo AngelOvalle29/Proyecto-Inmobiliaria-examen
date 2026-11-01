@@ -130,15 +130,27 @@ def test_los_documentos_inactivos_no_se_consultan(proveedor_falso, documento):
     assert responder_consulta_publica(pregunta=PREGUNTA).sin_informacion is True
 
 
-def test_si_el_modelo_no_devuelve_texto_no_queda_una_respuesta_vacia(
+def test_si_el_modelo_no_devuelve_texto_cuenta_como_sin_informacion(
     proveedor_falso, documento
 ):
     proveedor_falso.vectores[PREGUNTA] = vector_eje(0)
     proveedor_falso.texto_respuesta = "   "
 
-    assert responder_consulta_publica(pregunta=PREGUNTA).respuesta == (
-        MENSAJE_SIN_INFORMACION
-    )
+    resultado = responder_consulta_publica(pregunta=PREGUNTA)
+
+    assert resultado.respuesta == MENSAJE_SIN_INFORMACION
+    assert resultado.sin_informacion is True
+    assert resultado.citas == []
+
+
+def test_un_vector_de_pregunta_de_otro_tamano_no_esta_disponible(
+    proveedor_falso, documento
+):
+    """Antes llegaba a PostgreSQL y daba DataError (500)."""
+    proveedor_falso.vectores[PREGUNTA] = [0.1] * 3072
+
+    with pytest.raises(AgenteNoDisponible):
+        responder_consulta_publica(pregunta=PREGUNTA)
 
 
 def test_si_gemini_falla_el_agente_no_esta_disponible(proveedor_falso, documento):

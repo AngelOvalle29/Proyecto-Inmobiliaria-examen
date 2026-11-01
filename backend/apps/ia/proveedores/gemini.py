@@ -101,12 +101,14 @@ class ProveedorGemini(ProveedorIA):
             )
         )
 
+        # Sin usage_metadata, o sin alguno de sus conteos, el consumo es
+        # desconocido: se informa None y no 0 (spec 015).
         uso = respuesta.usage_metadata
         return RespuestaIA(
             texto=respuesta.text or "",
             modelo=self._modelo,
-            tokens_entrada=(uso.prompt_token_count or 0) if uso else 0,
-            tokens_salida=(uso.candidates_token_count or 0) if uso else 0,
+            tokens_entrada=uso.prompt_token_count if uso else None,
+            tokens_salida=uso.candidates_token_count if uso else None,
         )
 
     def generar_embedding(self, *, texto: str, tarea: TareaEmbedding) -> list[float]:
@@ -133,7 +135,7 @@ class ProveedorGemini(ProveedorIA):
                     config=configuracion,
                 )
             )
-            vectores.extend(list(e.values) for e in respuesta.embeddings)
+            vectores.extend(_vectores_de(respuesta, esperados=len(lote)))
         return vectores
 
     def _con_reintentos[T](self, operacion: Callable[[], T]) -> T:
@@ -150,10 +152,28 @@ class ProveedorGemini(ProveedorIA):
                         f"Gemini rechazó la petición (código {error.code})."
                     ) from error
                 ultimo_error = error
-            except httpx.TimeoutException as error:
+            except httpx.TransportError as error:
+                # Toda falla de red: tiempo agotado, conexión rechazada o
+                # cortada a la mitad. TimeoutException es un caso de esta.
                 ultimo_error = error
 
         raise ProveedorIANoDisponible(
             "Gemini no respondió después de "
             f"{len(ESPERAS_ENTRE_INTENTOS) + 1} intentos."
         ) from ultimo_error
+
+
+def _vectores_de(respuesta, *, esperados: int) -> list[list[float]]:
+    """Los vectores de una respuesta de embeddings, o error si está incompleta.
+
+    Una respuesta sin embeddings, con menos de los pedidos o con un vector
+    vacío no se puede usar: se trata como proveedor no disponible (503) en
+    lugar de dejar que reviente más adelante con un 500.
+    """
+    embeddings = respuesta.embeddings or []
+    vectores = [list(e.values or []) for e in embeddings]
+    if len(vectores) != esperados or any(not v for v in vectores):
+        raise ProveedorIANoDisponible(
+            f"Gemini devolvió {len(vectores)} vectores válidos de {esperados} pedidos."
+        )
+    return vectores

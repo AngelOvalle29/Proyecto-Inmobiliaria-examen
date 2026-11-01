@@ -228,6 +228,12 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
         vector = proveedor.generar_embedding(
             texto=pregunta, tarea=TareaEmbedding.CONSULTA
         )
+        if len(vector) != DIMENSION_EMBEDDINGS:
+            # Con otro tamaño la búsqueda en PostgreSQL fallaría con un 500.
+            raise ProveedorIANoDisponible(
+                f"El vector de la pregunta tiene {len(vector)} valores y no "
+                f"{DIMENSION_EMBEDDINGS}. Revise IA_DIMENSION_EMBEDDINGS."
+            )
         fragmentos = selectors.buscar_fragmentos_similares(
             embedding=vector,
             distancia_maxima=settings.IA_DISTANCIA_MAXIMA,
@@ -247,12 +253,19 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
                     ),
                 ]
             )
-            texto = respuesta_modelo.texto.strip() or MENSAJE_SIN_INFORMACION
-            resultado = RespuestaAgente(
-                respuesta=texto,
-                sin_informacion=False,
-                citas=_citas_usadas(texto, fragmentos),
-            )
+            texto = respuesta_modelo.texto.strip()
+            if not texto:
+                # El modelo no dijo nada: para el usuario es lo mismo que no
+                # tener información, y no hay respuesta que citar.
+                resultado = RespuestaAgente(
+                    respuesta=MENSAJE_SIN_INFORMACION, sin_informacion=True, citas=[]
+                )
+            else:
+                resultado = RespuestaAgente(
+                    respuesta=texto,
+                    sin_informacion=False,
+                    citas=_citas_usadas(texto, fragmentos),
+                )
     except ProveedorIANoDisponible as error:
         # Punto de llamada a la bitácora del agente (spec 015, rol D) con
         # exito=False y error=str(error).
@@ -262,7 +275,8 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
     # el PR #61: modo PUBLICO, pregunta, respuesta, documentos_recuperados
     # (fragmento_id, documento_id, documento, seccion y distancia de cada
     # fragmento), herramientas_invocadas vacía, tokens de respuesta_modelo (0 y
-    # 0 si no se llamó al modelo), duracion_ms medida con time.monotonic()
+    # 0 si no se llamó al modelo; None si el proveedor no los reportó),
+    # duracion_ms medida con time.monotonic()
     # desde el inicio de la función, y exito=True. Se conecta cuando la spec 015
     # esté en develop.
     return resultado

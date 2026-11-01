@@ -3,9 +3,8 @@
 ## Alcance
 
 Esta política aplica a todas las ventas y arrendamientos de propiedades que la
-agencia ofrece en Guatemala, El Salvador, Honduras, México y Costa Rica:
-apartamentos, casas, terrenos, locales comerciales, bodegas, hoteles,
-restaurantes y gasolineras.
+agencia ofrece en los países donde opera: apartamentos, casas, terrenos,
+locales comerciales, bodegas, hoteles, restaurantes y gasolineras.
 
 ## Reservas
 

@@ -196,6 +196,72 @@ def test_un_error_pasajero_se_reintenta_con_espera_creciente(codigo):
     assert esperas == [1, 2]
 
 
+@pytest.mark.parametrize(
+    "falla_de_red",
+    [
+        httpx.ConnectError("conexión rechazada"),
+        httpx.ReadError("conexión cortada"),
+        httpx.RemoteProtocolError("respuesta incompleta"),
+    ],
+)
+def test_una_falla_de_red_se_reintenta(falla_de_red):
+    """Observación de la revisión del PR #62: antes daban 500."""
+    proveedor, _, esperas = crear_proveedor([falla_de_red, respuesta_texto("Ya")])
+
+    resultado = proveedor.generar_respuesta(
+        mensajes=[Mensaje(RolMensaje.USUARIO, "Hola")]
+    )
+
+    assert resultado.texto == "Ya"
+    assert esperas == [1]
+
+
+def test_una_falla_de_red_que_no_se_recupera_no_esta_disponible():
+    proveedor, _, _ = crear_proveedor([httpx.ConnectError("sin red")] * 3)
+
+    with pytest.raises(ProveedorIANoDisponible):
+        proveedor.generar_respuesta(mensajes=[Mensaje(RolMensaje.USUARIO, "Hola")])
+
+
+def test_sin_metricas_los_tokens_son_desconocidos():
+    """None y no 0: el consumo no se conoce (contrato con la spec 015)."""
+    sin_uso = SimpleNamespace(text="Hola", usage_metadata=None)
+    proveedor, _, _ = crear_proveedor([sin_uso])
+
+    resultado = proveedor.generar_respuesta(
+        mensajes=[Mensaje(RolMensaje.USUARIO, "Hola")]
+    )
+
+    assert (resultado.tokens_entrada, resultado.tokens_salida) == (None, None)
+
+
+@pytest.mark.parametrize(
+    "embeddings",
+    [
+        None,
+        [],
+        [SimpleNamespace(values=None)],
+        [SimpleNamespace(values=[])],
+    ],
+)
+def test_una_respuesta_de_embeddings_incompleta_no_esta_disponible(embeddings):
+    """Antes daba IndexError o TypeError (500)."""
+    proveedor, _, _ = crear_proveedor([SimpleNamespace(embeddings=embeddings)])
+
+    with pytest.raises(ProveedorIANoDisponible):
+        proveedor.generar_embedding(texto="casa", tarea=TareaEmbedding.CONSULTA)
+
+
+def test_menos_vectores_que_textos_no_esta_disponible():
+    un_vector = SimpleNamespace(embeddings=[SimpleNamespace(values=[0.1] * DIMENSION)])
+    proveedor, _, _ = crear_proveedor([un_vector])
+
+    with pytest.raises(ProveedorIANoDisponible):
+        proveedor.generar_embeddings_lote(
+            textos=["uno", "dos"], tarea=TareaEmbedding.DOCUMENTO
+        )
+
+
 def test_un_tiempo_agotado_tambien_se_reintenta():
     proveedor, _, esperas = crear_proveedor(
         [httpx.ReadTimeout("sin respuesta"), respuesta_texto("Ya")]

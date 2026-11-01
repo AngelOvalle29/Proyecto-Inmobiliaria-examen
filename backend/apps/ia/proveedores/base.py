@@ -50,8 +50,10 @@ class Herramienta:
 class RespuestaIA:
     texto: str
     modelo: str
-    tokens_entrada: int
-    tokens_salida: int
+    # None cuando el proveedor no reporta el consumo: no es lo mismo que cero
+    # (contrato con la bitácora del agente, spec 015).
+    tokens_entrada: int | None
+    tokens_salida: int | None
 
 
 class ProveedorIANoDisponible(Exception):

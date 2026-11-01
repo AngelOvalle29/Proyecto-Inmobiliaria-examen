@@ -522,3 +522,10 @@ for q in ['pregunta relevante', 'pregunta ajena']:
         print(f'   {f.distancia:.3f}  {f.documento.titulo} · {f.seccion}')
 "
 ```
+**Revisión de Marco (PR #62), 2026-10-31.** Con un cliente simulado encontró
+casos que terminaban en 500, contra la regla 9: cortes de red que no eran
+tiempo agotado, respuestas de embeddings vacías o incompletas y un vector de
+pregunta de otro tamaño. Ahora todos terminan en 503 `AGENTE_NO_DISPONIBLE`.
+También pidió informar `None` y no `0` cuando Gemini no reporta tokens (spec
+015) y marcar como `sin_informacion` una respuesta vacía del modelo. Se
+aceptaron todos y cada caso tiene su prueba (11 nuevas, 600 en total).
