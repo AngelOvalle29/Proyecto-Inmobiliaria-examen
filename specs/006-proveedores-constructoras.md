@@ -3,11 +3,11 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 006 |
-| **Estado** | En revisión |
+| **Estado** | Implementada |
 | **Autor** | Angel Glicerio Ovalle Fernandez (rol C) |
 | **Revisor** | Por asignar |
 | **Fecha** | 2026-10-28 |
-| **Apps afectadas** | `compras` (incluido `cargar_demo_compras`), `construccion` (incluido `cargar_demo_construccion`) |
+| **Apps afectadas** | `compras` (incluido `cargar_demo_compras`), `construccion` (incluido `cargar_demo_construccion`), `config/urls.py` |
 | **Rama** | `feature/006-proveedores-constructoras` |
 | **Pull request** | — |
 
@@ -54,8 +54,8 @@ propiedades**, para que el rol C avance mientras `Propiedad` (spec 003) llega a
 1. Un proveedor tiene un tipo: `PROPIETARIO_PARTICULAR`, `INMOBILIARIA`,
    `BANCO`, `GOBIERNO` u `OTRO`.
 2. El NIT es obligatorio para todos los tipos **excepto**
-   `PROPIETARIO_PARTICULAR`, para quien es opcional. *Decisión a validar en la
-   revisión* (§10).
+   `PROPIETARIO_PARTICULAR`, para quien es opcional. *Validada en la revisión
+   del PR #39* (§10).
 3. No puede haber dos proveedores con el mismo NIT en el mismo país, aunque uno
    esté desactivado. El NIT se guarda normalizado, igual que en la spec 004:
    sin espacios ni guiones y en mayúsculas.
@@ -194,8 +194,9 @@ Configuración común de la spec 001. Permisos con `TieneRol` de la spec 004
 | `CONSTRUCTORA_DUPLICADA` | Ya existe una constructora con ese NIT en ese país (regla 5) | 409 |
 | `CIUDAD_FUERA_DEL_PAIS` | La ciudad no pertenece al país (regla 7) | 400 |
 
-Para la regla 7 se reutiliza el código que haya definido la spec 004, si ya
-existe, en lugar de crear uno nuevo.
+Para la regla 7 se reutiliza `CiudadFueraDelPais` de `core`, la misma excepción
+que usa `crm`. También hay un error `NIT_OBLIGATORIO` (400) para un NIT que falta
+o que queda vacío al normalizarlo, por ejemplo `"-"`.
 
 ## 6. Servicios y selectores
 
@@ -220,9 +221,14 @@ def listar_constructoras(*, filtros: dict) -> QuerySet[Constructora]
 def obtener_constructora(*, constructora_id: int) -> Constructora
 ```
 
-La normalización del NIT es la misma función que usa `crm`. Si la spec 004 la
-dejó en `crm`, se mueve a `core` para que la usen las tres apps sin depender
-entre sí (se coordina con B en el PR).
+La normalización del NIT es `normalizar_documento` de `core/normalizacion.py`, la
+misma que usa `crm`: el equipo ya la había movido a `core` en las revisiones de
+#35 y #39, así que esta spec no tuvo que tocarla.
+
+`obtener_proveedor` y `obtener_constructora` no se escribieron como funciones
+aparte: las vistas de detalle usan `get_object()` sobre `listar_proveedores()` y
+`listar_constructoras()`, igual que `crm`, y un registro inactivo o inexistente
+responde 404.
 
 ## 7. Auditoría
 
@@ -238,23 +244,23 @@ registra dentro de la transacción del servicio (spec 001).
 
 ## 8. Criterios de aceptación
 
-- [ ] Se puede crear, listar, ver, editar y desactivar proveedores y
+- [x] Se puede crear, listar, ver, editar y desactivar proveedores y
       constructoras por la API.
-- [ ] El código se genera solo (`PRV-0001`, `CST-0001`) y un `PATCH` no lo cambia.
-- [ ] Un banco sin NIT responde 400; un propietario particular sin NIT se crea.
-- [ ] Dos proveedores con el mismo NIT en el mismo país responden 409
+- [x] El código se genera solo (`PRV-0001`, `CST-0001`) y un `PATCH` no lo cambia.
+- [x] Un banco sin NIT responde 400; un propietario particular sin NIT se crea.
+- [x] Dos proveedores con el mismo NIT en el mismo país responden 409
       `PROVEEDOR_DUPLICADO`, aunque el primero esté desactivado y aunque uno se
       escriba con guiones y el otro sin ellos.
-- [ ] El mismo NIT en dos países distintos sí se permite.
-- [ ] Varios propietarios particulares sin NIT en el mismo país se permiten.
-- [ ] Una constructora con calificación 0 o 6 responde 400; sin calificación se crea.
-- [ ] Una ciudad de otro país responde 400.
-- [ ] Un usuario `AGENTE`, `CONTABILIDAD` o `CONSULTA` lee pero no escribe (403).
-- [ ] Un registro desactivado no aparece en los listados.
-- [ ] Toda escritura queda en la bitácora del sistema.
-- [ ] Los comandos de demo crean datos ficticios y, corridos dos veces, no
+- [x] El mismo NIT en dos países distintos sí se permite.
+- [x] Varios propietarios particulares sin NIT en el mismo país se permiten.
+- [x] Una constructora con calificación 0 o 6 responde 400; sin calificación se crea.
+- [x] Una ciudad de otro país responde 400.
+- [x] Un usuario `AGENTE`, `CONTABILIDAD` o `CONSULTA` lee pero no escribe (403).
+- [x] Un registro desactivado no aparece en los listados.
+- [x] Toda escritura queda en la bitácora del sistema.
+- [x] Los comandos de demo crean datos ficticios y, corridos dos veces, no
       duplican nada.
-- [ ] `ruff`, `makemigrations --check` y `pytest` pasan
+- [x] `ruff`, `makemigrations --check` y `pytest` pasan
       (`docs/convenciones.md` §1.1).
 
 ## 9. Pruebas
@@ -266,14 +272,28 @@ registra dentro de la transacción del servicio (spec 001).
 
 ## 10. Decisiones y alternativas descartadas
 
-**NIT opcional solo para el propietario particular (a validar).** Un banco, una
+**NIT opcional solo para el propietario particular (validada en el PR #39).** Un banco, una
 inmobiliaria o una entidad de gobierno siempre tienen NIT. Una persona que vende
 su casa puede no tenerlo registrado o no querer darlo en el primer contacto.
 Se descartó exigirlo a todos (frenaría el registro de particulares) y hacerlo
 opcional para todos (permitiría bancos duplicados sin forma de detectarlos).
 
 **Calificación opcional.** Obligarla al registrar forzaría un número inventado
-que después ensuciaría los reportes de constructoras.
+que después ensuciaría los reportes de constructoras. Por eso `?calificacion_min=`
+deja fuera a las que no tienen calificación.
+
+**Las reglas también en la base.** NIT obligatorio, NIT único por país y
+calificación de 1 a 5 son constraints de PostgreSQL además de validaciones del
+servicio: aunque alguien se salte el servicio, la base no acepta esos datos.
+
+**`NitObligatorio` en cada app.** `compras` y `construccion` tienen cada una la
+suya, con el mismo código. Ponerla en `core` habría tocado una app de A por un
+error que solo usan estas dos; repetir una clase de diez líneas mantiene a las
+dos apps independientes, que es lo que pide `docs/arquitectura.md` §3.
+
+**Datos de demostración sin auditoría.** Mismo criterio que `cargar_demo_crm`
+(spec 004): son la foto inicial de la demostración, no operaciones del negocio.
+Si un país todavía no existe, el registro se omite en lugar de fallar.
 
 **Reglas de desactivación en la spec 007.** "No se desactiva un proveedor con un
 contrato `EN_PROCESO`" o "una constructora con un proyecto `EN_EJECUCION`" son
@@ -310,5 +330,26 @@ opcional.
 4. API, filtros y permisos de las dos
 5. Comandos de demostración y cierre
 
-Por completar durante la implementación: qué se generó con el agente, qué se
-corrigió a mano y qué se descartó en cada incremento.
+**Implementación, 2026-10-31 (Claude, rol C).** Los cinco incrementos se
+agruparon en dos commits, uno por app:
+
+| Commit | Incrementos |
+|---|---|
+| `feat(compras): agregar proveedores con API, auditoría y datos de demostración` | 1, 2, 4 y 5 de `compras` |
+| `feat(construccion): agregar constructoras con API, auditoría y datos de demostración` | 1, 3, 4 y 5 de `construccion` |
+
+**Qué generó el agente.** El código de las dos apps, sus pruebas y los datos de
+demostración. Antes de escribirlo, el integrante C le mostró el código real de
+`crm`, `usuarios/permissions.py`, `core/normalizacion.py` y `core/exceptions.py`,
+para seguir los mismos patrones y nombres en lugar de suponerlos. El agente lo
+corrió en una réplica con PostgreSQL: pruebas, `ruff`, `makemigrations --check`
+y el esquema de `drf-spectacular`.
+
+**Qué verificó el integrante C en su máquina:** las migraciones
+`compras.0001_proveedores` y `construccion.0001_constructoras`, generadas ahí;
+la suite completa con 583 pruebas (62 nuevas), `ruff` y `makemigrations --check`
+limpios; y los dos comandos de demostración (6 proveedores y 4 constructoras, y
+0 nuevos al correrlos otra vez).
+
+**Pendiente para A (Douglas):** agregar `cargar_demo_compras` y
+`cargar_demo_construccion` a `COMANDOS_DE_DEMO` de `seed_demo`.
