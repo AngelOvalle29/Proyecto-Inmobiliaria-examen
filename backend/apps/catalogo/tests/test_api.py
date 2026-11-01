@@ -264,6 +264,15 @@ def test_unidades_de_una_propiedad_inexistente_responde_404(gerente):
     assert gerente.get(f"{PROPIEDADES}999999/unidades/").status_code == 404
 
 
+def test_una_propiedad_inexistente_responde_404_en_espanol(gerente):
+    """De punta a punta: sin el texto en inglés de Django ni el nombre del
+    modelo (manejador de errores de core)."""
+    respuesta = gerente.get(f"{PROPIEDADES}999999/")
+
+    assert respuesta.status_code == 404
+    assert respuesta.json()["error"]["mensaje"] == "No se encontró el recurso."
+
+
 # ---------- Filtros y consultas ----------
 
 

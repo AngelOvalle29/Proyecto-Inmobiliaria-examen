@@ -34,6 +34,8 @@ CODIGOS = [
     (exceptions.Throttled, "DEMASIADAS_PETICIONES"),
 ]
 
+MENSAJE_NO_ENCONTRADO = "No se encontró el recurso."
+
 
 def manejar_excepcion(exc: Exception, context: dict) -> Response | None:
     # 1. Reglas de negocio: la excepción ya trae todo lo necesario.
@@ -60,6 +62,13 @@ def manejar_excepcion(exc: Exception, context: dict) -> Response | None:
             detalles = respuesta.data
         else:
             detalles = {"errores": respuesta.data}
+    elif isinstance(exc, (exceptions.NotFound, Http404)):
+        # get_object_or_404 lanza Http404 con un mensaje de Django en inglés
+        # y con el nombre del modelo ("No ContratoVenta matches the given
+        # query."). Al usuario no le dice nada y expone cómo está hecho el
+        # sistema, así que todo 404 sale con el mismo mensaje.
+        mensaje = MENSAJE_NO_ENCONTRADO
+        detalles = {}
     else:
         mensaje = str(respuesta.data.get("detail", "Error en la solicitud."))
         detalles = {}
