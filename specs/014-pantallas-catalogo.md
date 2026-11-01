@@ -236,6 +236,7 @@ con la misma clave de caché (§6).
 gerente, un usuario de consulta y un administrador de prueba. Quedan dos
 criterios sin marcar:
 - **Descargar en una pestaña nueva:** el panel del navegador del agente
-  bloquea las ventanas nuevas. La URL firmada se comprobó aparte (devuelve el
-  PDF); falta probar el botón en un navegador normal.
+  bloquea las ventanas nuevas, así que usó el respaldo (abrir en la misma
+  pestaña) y el navegador ofreció descargar el PDF: A lo confirmó. Falta ver
+  la pestaña nueva en un navegador normal.
 - **Subir y descargar en producción**, contra Supabase.
