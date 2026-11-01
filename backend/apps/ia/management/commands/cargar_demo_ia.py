@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from apps.ia.datos_demo import cargar_demo_ia
+from apps.ia.exceptions import DocumentoModificadoDuranteIndexacion
 from apps.ia.proveedores.base import ProveedorIANoDisponible
 
 
@@ -30,6 +31,10 @@ class Command(BaseCommand):
             # contenedor debe levantar igual. Lo pendiente se indexa la próxima
             # vez que corra el comando.
             self.stderr.write(f"No se pudo indexar con Gemini: {error}")
+            return
+        except DocumentoModificadoDuranteIndexacion as error:
+            # Lo que quedó pendiente se indexa en la siguiente corrida.
+            self.stderr.write(f"No se indexó: {error}")
             return
 
         self.stdout.write(self.style.SUCCESS("Documentos del agente cargados."))

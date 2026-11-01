@@ -38,6 +38,9 @@ class ProveedorFalso(ProveedorIA):
         self.texto_respuesta = "Respuesta de prueba [1]."
         # Vector que se devuelve para un texto dado; los demás reciben uno fijo.
         self.vectores: dict[str, list[float]] = {}
+        # Función que se ejecuta mientras "llegan" los vectores: sirve para
+        # simular que alguien cambia el documento en ese momento.
+        self.mientras_genera = None
 
     def generar_respuesta(self, *, mensajes, herramientas=None) -> RespuestaIA:
         self.llamadas_respuesta.append({"mensajes": mensajes})
@@ -55,6 +58,9 @@ class ProveedorFalso(ProveedorIA):
 
     def generar_embeddings_lote(self, *, textos, tarea) -> list[list[float]]:
         self.llamadas_embeddings.append({"textos": list(textos), "tarea": tarea})
+        if self.mientras_genera is not None:
+            accion, self.mientras_genera = self.mientras_genera, None
+            accion()
         if self.falla:
             raise ProveedorIANoDisponible("falla simulada")
         return [self.vectores.get(t, [0.1] * self.dimension) for t in textos]

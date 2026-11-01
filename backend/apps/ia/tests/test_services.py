@@ -4,8 +4,12 @@ import pytest
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.models import LogAuditoria
-from apps.ia.exceptions import DocumentoRAGDuplicado, EmbeddingConDimensionIncorrecta
-from apps.ia.models import DIMENSION_EMBEDDINGS, FragmentoRAG
+from apps.ia.exceptions import (
+    DocumentoModificadoDuranteIndexacion,
+    DocumentoRAGDuplicado,
+    EmbeddingConDimensionIncorrecta,
+)
+from apps.ia.models import DIMENSION_EMBEDDINGS, DocumentoRAG, FragmentoRAG
 from apps.ia.proveedores.base import ProveedorIANoDisponible, TareaEmbedding
 from apps.ia.services import (
     ENTIDAD_DOCUMENTO,
@@ -155,3 +159,36 @@ def test_un_documento_sin_texto_no_llama_al_proveedor(proveedor_falso):
 
     assert indexar_documento(documento_id=documento.id) == 0
     assert proveedor_falso.llamadas_embeddings == []
+
+
+def test_si_el_texto_cambia_mientras_se_indexa_no_guarda_fragmentos_viejos(
+    proveedor_falso,
+):
+    """Reproducción de la revisión del PR #62: la reserva pasa de 15 a 30 días
+    mientras se generan los vectores del texto de 15."""
+    documento = crear(contenido="## Reservas\nLa reserva dura 15 días.")
+    indexar_documento(documento_id=documento.id)
+
+    def cambiar_a_30_dias():
+        actualizar_contenido_documento(
+            documento=DocumentoRAG.objects.get(pk=documento.id),
+            contenido_fuente="## Reservas\nLa reserva dura 30 días.",
+        )
+
+    actualizar_contenido_documento(
+        documento=documento, contenido_fuente="## Reservas\nLa reserva dura 15 días!"
+    )
+    proveedor_falso.mientras_genera = cambiar_a_30_dias
+
+    with pytest.raises(DocumentoModificadoDuranteIndexacion):
+        indexar_documento(documento_id=documento.id)
+
+    documento.refresh_from_db()
+    assert documento.version == 3
+    # Sigue pendiente: no quedó marcado como indexado con el texto viejo.
+    assert documento.fecha_indexacion is None
+    # Y la siguiente indexación toma el texto actual.
+    indexar_documento(documento_id=documento.id)
+    assert list(documento.fragmentos.values_list("contenido", flat=True)) == [
+        "La reserva dura 30 días."
+    ]

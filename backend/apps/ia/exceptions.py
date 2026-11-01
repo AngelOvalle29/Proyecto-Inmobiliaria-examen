@@ -29,6 +29,17 @@ class EmbeddingConDimensionIncorrecta(Exception):
     """
 
 
+class DocumentoModificadoDuranteIndexacion(Exception):
+    """El texto del documento cambió mientras se generaban sus vectores.
+
+    Los vectores que llegaron son del texto anterior: guardarlos dejaría el
+    documento marcado como indexado con fragmentos viejos (revisión del PR #62).
+    No se guarda nada; el documento queda pendiente y se indexa de nuevo con su
+    texto actual (la tarea de la cola reintenta, y cargar_demo_ia lo toma en la
+    siguiente corrida).
+    """
+
+
 class AgenteNoDisponible(ErrorDominio):
     """Gemini no respondió tras los reintentos, o falta la llave (regla 9).
 

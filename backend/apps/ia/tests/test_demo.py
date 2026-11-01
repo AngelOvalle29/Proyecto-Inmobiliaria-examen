@@ -7,6 +7,7 @@ from django.core.management import call_command
 
 from apps.ia.datos_demo import DOCUMENTOS_DEMO
 from apps.ia.models import DocumentoRAG, FragmentoRAG
+from apps.ia.services import actualizar_contenido_documento
 
 pytestmark = pytest.mark.django_db
 
@@ -82,3 +83,25 @@ def test_si_gemini_falla_el_comando_termina_sin_error(settings, proveedor_falso)
     # Lo que quedó sin indexar se indexa la próxima vez.
     proveedor_falso.falla = False
     assert "indexados: 4" in correr_comando()
+
+
+def test_si_un_documento_cambia_mientras_se_indexa_el_comando_no_falla(
+    settings, proveedor_falso
+):
+    settings.IA_API_KEY = "clave-de-prueba"
+    correr_comando()
+    documento = DocumentoRAG.objects.get(titulo="Manual de procesos de venta")
+    documento.contenido_fuente = "## Texto viejo\nX"
+    documento.save()
+
+    def otro_cambio():
+        actualizar_contenido_documento(
+            documento=DocumentoRAG.objects.get(pk=documento.pk),
+            contenido_fuente="## Cambio concurrente\nY",
+        )
+
+    proveedor_falso.mientras_genera = otro_cambio
+
+    salida = correr_comando()
+
+    assert "No se indexó" in salida

@@ -20,6 +20,7 @@ from . import selectors
 from .enums import TipoDocumentoRAG
 from .exceptions import (
     AgenteNoDisponible,
+    DocumentoModificadoDuranteIndexacion,
     DocumentoRAGDuplicado,
     EmbeddingConDimensionIncorrecta,
 )
@@ -118,6 +119,9 @@ def actualizar_contenido_documento(
         return documento
 
     with transaction.atomic():
+        # Bloquea la fila: si una indexación está guardando en este momento,
+        # espera a que termine y sube la versión después (revisión del PR #62).
+        DocumentoRAG.objects.select_for_update().filter(pk=documento.pk).first()
         version_anterior = documento.version
         documento.contenido_fuente = contenido_fuente
         documento.version = version_anterior + 1
@@ -153,8 +157,14 @@ def indexar_documento(*, documento_id: int) -> int:
     que puede tardar segundos y no debe mantener filas bloqueadas. Si el
     proveedor falla, se lanza ProveedorIANoDisponible y los fragmentos
     anteriores quedan intactos (regla 7).
+
+    Como los vectores se piden fuera de la transacción, el texto puede cambiar
+    mientras llegan. Por eso se anota la versión leída y, ya con la fila
+    bloqueada, se compara con la actual: si cambió, no se guarda nada y se
+    lanza DocumentoModificadoDuranteIndexacion (revisión del PR #62).
     """
     documento = selectors.obtener_documento(documento_id=documento_id)
+    version_leida = documento.version
     trozos = trocear_markdown(documento.contenido_fuente)
 
     vectores: list[list[float]] = []
@@ -172,6 +182,11 @@ def indexar_documento(*, documento_id: int) -> int:
 
     with transaction.atomic():
         documento = DocumentoRAG.objects.select_for_update().get(pk=documento_id)
+        if documento.version != version_leida:
+            raise DocumentoModificadoDuranteIndexacion(
+                f"El documento {documento.titulo!r} pasó de la versión "
+                f"{version_leida} a la {documento.version} mientras se indexaba."
+            )
         fragmentos_anteriores = documento.fragmentos.count()
         documento.fragmentos.all().delete()
         FragmentoRAG.objects.bulk_create(
