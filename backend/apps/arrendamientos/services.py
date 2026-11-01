@@ -15,6 +15,7 @@ from django.utils import timezone
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
 from apps.catalogo.enums import EstadoPropiedad
+from apps.catalogo.exceptions import DocumentoDeOtraPropiedad
 from apps.catalogo.selectors import listar_propiedades, listar_unidades
 from apps.catalogo.services import cambiar_estado_propiedad, cambiar_estado_unidad
 from apps.core.exceptions import ErrorDominio, TipoCambioNoDisponible
@@ -57,6 +58,7 @@ CAMPOS_AUDITADOS = [
     "porcentaje_mora",
     "estado",
     "contrato_anterior",
+    "documento",
 ]
 
 
@@ -124,6 +126,7 @@ def firmar_arrendamiento(
     - La fecha de fin se calcula y se generan todos los pagos de renta, uno por
       mes, sin prorrateo (reglas 3 y 4).
     - Guarda la tasa al dólar de la fecha de firma, que es hoy (regla 5).
+    - El documento, si se indica, debe ser de la misma propiedad (regla 17).
 
     datos ya viene validado: cliente visible para el autor (cartera) y los
     rangos de la regla 3.
@@ -131,6 +134,9 @@ def firmar_arrendamiento(
     propiedad, unidad = datos.get("propiedad"), datos.get("unidad")
     if propiedad is not None and propiedad.tipo.requiere_unidades:
         raise SeArriendaPorUnidades(propiedad=propiedad.codigo)
+
+    if datos.get("documento") is not None:
+        _validar_documento(datos["documento"], propiedad=propiedad, unidad=unidad)
 
     cliente = datos["cliente"]
     _cambiar_estado_bien(
@@ -389,6 +395,7 @@ def _crear_contrato(*, datos: dict, autor, anterior=None) -> ContratoArrendamien
         dias_gracia=datos["dias_gracia"],
         porcentaje_mora=datos["porcentaje_mora"],
         contrato_anterior=anterior,
+        documento=datos.get("documento"),
         creado_por=autor,
         actualizado_por=autor,
     )
@@ -410,6 +417,48 @@ def _crear_contrato(*, datos: dict, autor, anterior=None) -> ContratoArrendamien
         )
     )
     return contrato
+
+
+@transaction.atomic
+def vincular_documento(
+    *, contrato: ContratoArrendamiento, documento, autor: Usuario | None, ip: str | None
+) -> ContratoArrendamiento:
+    """
+    Regla 18: vincula o cambia el documento de un contrato ya firmado, en
+    cualquier estado: los contratos no se anulan, y uno terminado sigue siendo
+    el respaldo de lo que se cobró. Debe ser de la misma propiedad (regla 17).
+    Si es el mismo documento, no se guarda ni se audita.
+    """
+    contrato = ContratoArrendamiento.objects.select_for_update().get(pk=contrato.pk)
+    _validar_documento(documento, propiedad=contrato.propiedad, unidad=contrato.unidad)
+    if contrato.documento_id == documento.pk:
+        return contrato
+
+    anterior = contrato.documento_id
+    contrato.documento = documento
+    contrato.actualizado_por = autor
+    contrato.save(update_fields=["documento", "actualizado_por", "actualizado_en"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ContratoArrendamiento._meta.db_table,
+        entidad_id=contrato.pk,
+        accion=AccionAuditoria.ACTUALIZAR,
+        valores_anteriores={"documento": anterior},
+        valores_nuevos={"documento": documento.pk},
+        ip=ip,
+    )
+    return contrato
+
+
+def _validar_documento(documento, *, propiedad, unidad) -> None:
+    """Regla 17: de la misma propiedad; si el bien es una unidad, de su edificio."""
+    duena = propiedad if propiedad is not None else unidad.propiedad
+    if documento.propiedad_id != duena.pk:
+        raise DocumentoDeOtraPropiedad(
+            documento=documento.nombre,
+            propiedad=duena.codigo,
+            propiedad_documento=documento.propiedad.codigo,
+        )
 
 
 def _auditar_creacion(contrato, *, autor, ip) -> None:

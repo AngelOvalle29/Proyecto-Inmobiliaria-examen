@@ -5,6 +5,7 @@ from django.urls import path
 from .views import (
     ArrendamientoDetalleView,
     ArrendamientosView,
+    DocumentoArrendamientoView,
     FinalizarArrendamientoView,
     PagarRentaView,
     RenovarArrendamientoView,
@@ -34,6 +35,11 @@ urlpatterns = [
         f"{BASE}<int:pk>/finalizar/",
         FinalizarArrendamientoView.as_view(),
         name="arrendamiento-finalizar",
+    ),
+    path(
+        f"{BASE}<int:pk>/documento/",
+        DocumentoArrendamientoView.as_view(),
+        name="arrendamiento-documento",
     ),
     path("pagos-renta/<int:pk>/pagar/", PagarRentaView.as_view(), name="renta-pagar"),
 ]

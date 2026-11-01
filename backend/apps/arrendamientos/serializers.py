@@ -9,8 +9,15 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.catalogo.selectors import listar_propiedades, listar_unidades
-from apps.catalogo.serializers import PropiedadResumenSerializer
+from apps.catalogo.selectors import (
+    listar_documentos,
+    listar_propiedades,
+    listar_unidades,
+)
+from apps.catalogo.serializers import (
+    DocumentoOficialResumenSerializer,
+    PropiedadResumenSerializer,
+)
 from apps.core.selectors import listar_monedas
 from apps.core.serializers import MonedaResumenSerializer
 from apps.crm.models import Cliente
@@ -56,6 +63,7 @@ class ArrendamientoSerializer(serializers.ModelSerializer):
     propiedad = PropiedadResumenSerializer(allow_null=True)
     unidad = UnidadResumenSerializer(allow_null=True)
     moneda = MonedaResumenSerializer()
+    documento = DocumentoOficialResumenSerializer(allow_null=True)
 
     class Meta:
         model = ContratoArrendamiento
@@ -79,6 +87,7 @@ class ArrendamientoSerializer(serializers.ModelSerializer):
             "estado",
             "fecha_rescision",
             "contrato_anterior",
+            "documento",
         ]
 
 
@@ -115,6 +124,9 @@ class FirmarArrendamientoSerializer(serializers.Serializer):
     porcentaje_mora = serializers.DecimalField(
         max_digits=5, decimal_places=2, min_value=0, max_value=100
     )
+    documento = serializers.PrimaryKeyRelatedField(
+        queryset=listar_documentos(), required=False
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -128,6 +140,12 @@ class FirmarArrendamientoSerializer(serializers.Serializer):
                 {"propiedad": ["Indique una propiedad o una unidad."]}
             )
         return datos
+
+
+class VincularDocumentoSerializer(serializers.Serializer):
+    """Vincula o cambia el documento; no acepta null: no se quita (regla 18)."""
+
+    documento = serializers.PrimaryKeyRelatedField(queryset=listar_documentos())
 
 
 class RenovarArrendamientoSerializer(serializers.Serializer):

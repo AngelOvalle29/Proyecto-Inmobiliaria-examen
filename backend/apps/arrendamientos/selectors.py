@@ -32,6 +32,7 @@ def listar_arrendamientos_visibles(
             "unidad__propiedad",
             "moneda",
             "contrato_anterior",
+            "documento",
         )
         .prefetch_related("pagos")
         .order_by("-fecha_inicio", "-id")
