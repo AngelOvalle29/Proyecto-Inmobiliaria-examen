@@ -323,3 +323,15 @@ CELERY_WORKER_SEND_TASK_EVENTS = False
 # Si RabbitMQ no está listo cuando arranca el worker, reintenta en lugar de
 # terminar: en Render, el contenedor puede despertar antes que la conexión.
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# ---------- Agente de IA (spec 005) ----------
+
+# La llave es opcional: sin ella el agente responde 503 y el resto del sistema
+# funciona igual. Así nadie necesita una llave de Gemini para correr las
+# pruebas, que usan un proveedor falso.
+IA_PROVEEDOR = env("IA_PROVEEDOR", default="gemini")
+IA_API_KEY = env("IA_API_KEY", default="")
+IA_MODELO = env("IA_MODELO", default="gemini-3.5-flash-lite")
+IA_MODELO_EMBEDDINGS = env("IA_MODELO_EMBEDDINGS", default="gemini-embedding-001")
+# Debe coincidir con DIMENSION_EMBEDDINGS de apps/ia/models.py.
+IA_DIMENSION_EMBEDDINGS = env.int("IA_DIMENSION_EMBEDDINGS", default=768)
+IA_MAX_TOKENS_RESPUESTA = env.int("IA_MAX_TOKENS_RESPUESTA", default=1024)
