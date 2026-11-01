@@ -35,7 +35,8 @@ este incremento **no cierra #24** ni cumple por sí solo el mínimo de 15.
 
 ## 3. Reglas de negocio
 
-Todas las reglas nuevas son propuestas para revisión, no acuerdos ya aprobados.
+Reglas del incremento aprobado en el PR #61; su cumplimiento se comprobará
+durante la implementación.
 
 1. Cada reporte declara slug, título, columnas, filtros y roles. Un slug
    desconocido devuelve 404. El catálogo solo muestra reportes autorizados y
@@ -52,7 +53,7 @@ Todas las reglas nuevas son propuestas para revisión, no acuerdos ya aprobados.
    de una unidad con el mismo identificador. Se pagina antes de materializar
    filas: no se carga todo el inventario para mostrar 25 registros.
 5. Excel y PDF usan los mismos filtros, columnas, filas y totales. No usan la
-   página visible como fuente. Límite síncrono propuesto: 5,000 filas; si se
+   página visible como fuente. Límite síncrono: 5,000 filas; si se
    supera, ambas descargas devuelven 400 `REPORTE_DEMASIADO_GRANDE` y piden
    acotar filtros. Nunca se trunca silenciosamente.
 6. Dinero con `Decimal`, dos decimales y código de moneda. R05 conserva moneda
@@ -110,7 +111,7 @@ y nombre `R05_inventario_disponible_AAAA-MM-DD.xlsx` (análogo para PDF).
 
 ## 6. Servicios y selectores
 
-Firmas propuestas, implementadas con anotaciones y docstrings:
+Firmas previstas para la implementación, con anotaciones y docstrings:
 
 - `listar_reportes(*, usuario: AbstractBaseUser) -> list[dict]`: catálogo autorizado.
 - `seleccionar_inventario(*, filtros: FiltrosInventario) -> QuerySet[dict]`:
@@ -189,8 +190,8 @@ consultar R17. No crea copias de las bitácoras en una tabla nueva.
 
 - Tres reportes existentes validan la infraestructura sin esperar compras o IA.
 - Se conserva el contrato genérico para evitar un exportador y pantalla por reporte.
-- Los límites y la separación por moneda hacen explícitas las limitaciones;
-  deben aprobarse antes de implementar porque acotan el diseño de `docs/reportes.md`.
+- Los límites y la separación por moneda acotan el primer incremento de
+  `docs/reportes.md`; se incluyeron en la revisión y aprobación del PR #61.
 - Elegir R16/R17 usa el margen del catálogo de 18 reportes. La selección final
   de al menos 15 se acuerda con el equipo, sin descartar reportes unilateralmente.
 
@@ -205,4 +206,4 @@ Las correcciones precisan el doble conteo de propiedades/unidades, los totales
 por moneda y los permisos. También separan el resumen SQL y la selección de
 25 filas para JSON del resultado completo para Excel/PDF, con límite de 5,000.
 La entrega contiene especificación, sin implementación ni pruebas de aplicación.
-La revisión técnica y aprobación se tramitan en el PR #61.
+AngelOvalle29 aprobó el PR #61 sobre `dc258e5`; la implementación sigue pendiente.

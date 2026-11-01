@@ -46,7 +46,7 @@ un incremento posterior y no forma parte de la spec 016.
 **Filtros comunes a casi todos:** rango de fechas, país, ciudad, moneda de
 presentación (con conversión por tipo de cambio) y agente.
 
-### Primer incremento propuesto (spec 016, PR #61)
+### Primer incremento aprobado (spec 016, PR #61)
 
 La [spec 016](../specs/016-capa-generica-reportes.md), aprobada en el PR #61
 por AngelOvalle29 sobre `dc258e5` y pendiente de implementación,

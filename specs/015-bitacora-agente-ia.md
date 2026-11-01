@@ -45,7 +45,7 @@ El registro efectivo desde IA se integra con C cuando su servicio exista.
    contabiliza como una consulta con consumo cero.
 5. `exito=False` conserva un diagnóstico controlado, sin credenciales ni
    respuestas HTTP completas del proveedor. No se guarda una excepción cruda.
-   Propuesta: exige `error` no vacío; con `exito=True`, `error` queda vacío.
+   Exige `error` no vacío; con `exito=True`, `error` queda vacío.
 6. No se abre una transacción alrededor de la llamada de red. C registra el
    fallo fuera de cualquier transacción de negocio que se haya revertido.
    `registrar_consulta_agente` no abre un bloque `transaction.atomic()` propio:
@@ -93,7 +93,7 @@ el servicio no depende de HTTP. Esta spec no publica endpoints.
 
 ## 6. Servicios y selectores
 
-Firma propuesta de `registrar_consulta_agente`, con argumentos solo por nombre:
+Firma de `registrar_consulta_agente`, con argumentos solo por nombre:
 
 | Argumento | Tipo |
 |---|---|
