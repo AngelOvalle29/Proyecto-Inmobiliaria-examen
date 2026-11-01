@@ -7,7 +7,7 @@
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
 | **Revisor** | Por asignar |
 | **Fecha** | 2026-10-31 |
-| **Apps afectadas** | `frontend/` (`paginas/catalogo` y `api/catalogo`). Sin cambios en el backend |
+| **Apps afectadas** | `frontend/` (`paginas/catalogo` y `api/catalogo`); en el backend, solo la búsqueda de unidades en `catalogo` |
 | **Rama** | `feature/014-pantallas-catalogo` |
 | **Pull request** | — |
 
@@ -30,6 +30,8 @@ de avalúos y sus documentos; editarla; y administrar los tipos de propiedad.
 - **Avalúos:** registrar y desactivar. No se editan (spec 011, regla 3).
 - **Documentos:** subir, descargar, editar sus datos y desactivar.
 - **Tipos de propiedad:** lista, crear, editar y desactivar.
+- **Backend:** `GET /propiedades/{id}/unidades/` acepta `?buscar=` por código
+  (regla 11). Es el único cambio en el backend.
 
 Todo con los componentes de la spec 010, y siguiendo `ListaPropiedades`,
 `NuevaPropiedad` y `DialogoCambiarEstado` como ejemplo.
@@ -37,7 +39,7 @@ Todo con los componentes de la spec 010, y siguiendo `ListaPropiedades`,
 **No incluye:**
 - Mapa, línea de tiempo (`EventoPropiedad`) y gráficas: siguen en "solo si
   sobra tiempo" del plan.
-- Cambios en el backend: todos los endpoints existen.
+- Otros cambios en el backend: los demás endpoints ya existen.
 - Pruebas automáticas del frontend (spec 010, §10).
 
 ## 3. Reglas
@@ -64,8 +66,12 @@ Todo con los componentes de la spec 010, y siguiendo `ListaPropiedades`,
    (`tipo: 'archivo'`), que envía el formulario como `multipart/form-data`.
    - El navegador revisa la extensión y el tamaño (hasta 10 MB) para avisar
      antes de subir.
+   - Esa revisión del navegador es la que aparece **junto al campo**.
    - La regla de verdad es la de la API, que revisa el contenido (spec 011,
-     regla 6): su error 400 `ARCHIVO_NO_PERMITIDO` aparece junto al campo.
+     regla 6). Su error, 400 `ARCHIVO_NO_PERMITIDO`, aparece **arriba del
+     formulario**. Es un error de dominio con su propio código, y desde #56
+     `FormularioDatos` solo pone junto a un campo los errores `VALIDACION`
+     (observación de B en la revisión).
 6. **Descargar** pide la URL firmada en el momento del clic y la abre en una
    pestaña nueva.
    - La URL vence a los 5 minutos (spec 011, regla 10), así que **nunca se
@@ -84,6 +90,11 @@ Todo con los componentes de la spec 010, y siguiendo `ListaPropiedades`,
     - un 409 (`PROPIEDAD_CON_UNIDADES`, `DOCUMENTO_EN_USO`,
       `UNIDAD_DUPLICADA`…) arriba de la tabla o del formulario;
     - un 400 de validación, junto a su campo.
+11. **Búsqueda de unidades en la API** (pedida por B en #56).
+    `GET /propiedades/{id}/unidades/?buscar=` filtra por código, sin
+    distinguir mayúsculas. Así `useOpcionesUnidad` (spec 012) busca en la API y
+    no solo en la primera página. Es un filtro en `catalogo/filters.py`, como
+    el de las propiedades.
 
 ## 4. Modelo de datos
 
@@ -107,7 +118,9 @@ propiedad" pasa al botón de la lista, como en la spec 012.
 ## 6. Componentes y módulos
 
 ```
-src/api/catalogo/consultas.ts    + usePropiedad, useUnidades, useAvaluos, useDocumentos
+src/api/catalogo/consultas.ts    + usePropiedad, useAvaluos, useDocumentos; useUnidadesDePropiedad
+                                   (ya existe, de #56) se amplía con página y búsqueda,
+                                   en vez de crear otro hook con la misma clave de caché
 src/api/catalogo/mutaciones.ts   + editar propiedad; crear, editar y desactivar unidad;
                                    registrar y desactivar avalúo; subir, editar, desactivar
                                    y descargar documento; crear, editar y desactivar tipo
@@ -138,8 +151,13 @@ No aplica: cada acción llama a un endpoint que ya audita (specs 003 y 011).
 - [ ] Registrar un avalúo lo pone primero en el historial; uno con fecha futura
       muestra el error junto al campo
 - [ ] Subir un PDF lo agrega a la lista, y Descargar lo abre en una pestaña nueva
-- [ ] Un archivo que no es PDF, JPG ni PNG, o de más de 10 MB, muestra el error
-      junto al campo
+- [ ] Un archivo de otra extensión, o de más de 10 MB, muestra el error del
+      navegador junto al campo, sin subirlo
+- [ ] Un archivo cuyo contenido no es PDF, JPG ni PNG (un `.exe` renombrado)
+      muestra arriba del formulario el 400 `ARCHIVO_NO_PERMITIDO` de la API
+- [ ] `?buscar=` en las unidades de una propiedad filtra por código, y la
+      búsqueda de unidades de la spec 012 encuentra las que no están en la
+      primera página
 - [ ] Un documento vencido se ve en rojo y uno por vencer en ámbar
 - [ ] Desactivar un documento que respalda un avalúo muestra el 409 de la API
 - [ ] Editar una propiedad muestra su ciudad actual y guarda los cambios
@@ -180,10 +198,19 @@ partir de:
 - las rutas del catálogo en `backend/apps/catalogo/urls.py`, para confirmar que
   no hace falta tocar el backend.
 
+**Revisión de B en #57.** Pidió dos ajustes antes de aprobar, ya aplicados:
+- **La búsqueda de unidades:** A la había prometido en #56, pero la spec decía
+  "sin cambios en el backend". Se incluye aquí (regla 11 y criterio de §8).
+- **El error de contenido de un archivo** sale arriba del formulario, no junto
+  al campo (regla 5 y criterios de §8).
+
+También sugirió ampliar `useUnidadesDePropiedad` en vez de crear `useUnidades`
+con la misma clave de caché (§6).
+
 **Plan de implementación:**
 1. La ficha con sus pestañas, la pestaña Datos y Editar propiedad, que depende
    de `etiquetaInicial` (#52).
-2. Unidades.
+2. Unidades, con la búsqueda `?buscar=` en la API (backend) y su prueba.
 3. Avalúos y documentos, con el campo de archivo y la descarga.
 4. Tipos de propiedad, el menú y la verificación de §8 en local y en
    producción.
