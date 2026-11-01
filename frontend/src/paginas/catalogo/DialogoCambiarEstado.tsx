@@ -1,11 +1,7 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
-import {
-  ETIQUETAS_ESTADO,
-  type EstadoPropiedad,
-  type Propiedad,
-} from '../../api/catalogo/consultas'
-import { useCambiarEstadoPropiedad } from '../../api/catalogo/mutaciones'
+import { ETIQUETAS_ESTADO, type EstadoPropiedad } from '../../api/catalogo/consultas'
+import { useCambiarEstado } from '../../api/catalogo/mutaciones'
 import { leerErrorApi } from '../../api/errores'
 import { Dialogo } from '../../componentes/comunes/Dialogo'
 import { Button } from '../../componentes/ui/button'
@@ -13,9 +9,18 @@ import { Input } from '../../componentes/ui/input'
 import { Label } from '../../componentes/ui/label'
 import { Select } from '../../componentes/ui/select'
 
+/** Lo que el diálogo necesita de una propiedad o de una unidad. */
+interface ConEstado {
+  id: number
+  codigo: string | null
+  estado: EstadoPropiedad
+}
+
 interface Props {
-  /** La propiedad a cambiar; null cierra el diálogo. */
-  propiedad: Propiedad | null
+  /** Qué se cambia: una propiedad o una unidad (spec 014, regla 4). */
+  recurso: 'propiedades' | 'unidades'
+  /** El elemento a cambiar; null cierra el diálogo. */
+  elemento: ConEstado | null
   alCerrar: () => void
 }
 
@@ -24,8 +29,11 @@ interface Props {
  * motivo es obligatorio porque queda en la bitácora (spec 003, §7). Es la
  * confirmación de esta acción (spec 010, regla 13).
  */
-export function DialogoCambiarEstado({ propiedad, alCerrar }: Props) {
-  const cambiar = useCambiarEstadoPropiedad()
+export function DialogoCambiarEstado({ recurso, elemento, alCerrar }: Props) {
+  const cambiar = useCambiarEstado(recurso)
+  // La ficha dibuja dos de estos diálogos (propiedad y unidad): useId evita
+  // ids repetidos, que harían que cada etiqueta apunte al campo del otro.
+  const id = useId()
   const [estado, setEstado] = useState<EstadoPropiedad | ''>('')
   const [motivo, setMotivo] = useState('')
 
@@ -37,20 +45,20 @@ export function DialogoCambiarEstado({ propiedad, alCerrar }: Props) {
   }
 
   const confirmar = () => {
-    if (!propiedad || estado === '') {
+    if (!elemento || estado === '') {
       return
     }
-    cambiar.mutate({ id: propiedad.id, estado, motivo }, { onSuccess: cerrar })
+    cambiar.mutate({ id: elemento.id, estado, motivo }, { onSuccess: cerrar })
   }
 
   return (
     <Dialogo
-      abierto={propiedad !== null}
-      titulo={`Cambiar el estado de ${propiedad?.codigo ?? ''}`}
+      abierto={elemento !== null}
+      titulo={`Cambiar el estado de ${elemento?.codigo ?? ''}`}
       alCerrar={cerrar}
     >
       <p className="text-sm text-slate-600">
-        Estado actual: {propiedad && ETIQUETAS_ESTADO[propiedad.estado]}
+        Estado actual: {elemento && ETIQUETAS_ESTADO[elemento.estado]}
       </p>
       {cambiar.isError && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
@@ -58,9 +66,9 @@ export function DialogoCambiarEstado({ propiedad, alCerrar }: Props) {
         </p>
       )}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="estado-nuevo">Estado nuevo</Label>
+        <Label htmlFor={`${id}-estado`}>Estado nuevo</Label>
         <Select
-          id="estado-nuevo"
+          id={`${id}-estado`}
           value={estado}
           onChange={(evento) => setEstado(evento.target.value as EstadoPropiedad)}
         >
@@ -73,9 +81,9 @@ export function DialogoCambiarEstado({ propiedad, alCerrar }: Props) {
         </Select>
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="motivo">Motivo</Label>
+        <Label htmlFor={`${id}-motivo`}>Motivo</Label>
         <Input
-          id="motivo"
+          id={`${id}-motivo`}
           value={motivo}
           maxLength={255}
           onChange={(evento) => setMotivo(evento.target.value)}
