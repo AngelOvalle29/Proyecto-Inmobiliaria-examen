@@ -1,8 +1,5 @@
 # Política comercial de la agencia
 
-Documento de demostración del proyecto. Las condiciones son ficticias y no
-corresponden a ninguna empresa real.
-
 ## Alcance
 
 Esta política aplica a todas las ventas y arrendamientos de propiedades que la

@@ -1,7 +1,5 @@
 # Manual de procesos de venta
 
-Documento de demostración del proyecto. Describe un proceso ficticio.
-
 ## Primer contacto
 
 Todo cliente interesado se registra en el sistema con sus datos de contacto y

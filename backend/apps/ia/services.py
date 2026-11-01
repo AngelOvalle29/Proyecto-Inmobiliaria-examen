@@ -4,6 +4,7 @@ auditoría.
 No conocen request ni hablan HTTP.
 """
 
+import re
 from dataclasses import dataclass
 
 from django.conf import settings
@@ -45,6 +46,9 @@ FRAGMENTOS_POR_CONSULTA = 5
 
 # Largo del extracto de cada cita, para que la pantalla muestre la fuente.
 LARGO_EXTRACTO = 200
+
+# Marcadores de cita en la respuesta del modelo: [1], [2]...
+_MARCADOR_CITA = re.compile(r"\[(\d+)\]")
 
 
 @dataclass(frozen=True)
@@ -214,7 +218,7 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
     2. Si ninguno pasa el umbral, responde que no tiene información SIN llamar
        al modelo (regla 3): no gasta cuota ni le da ocasión de inventar.
     3. Si hay fragmentos, se los entrega numerados al modelo con la orden de
-       citar [n], y devuelve como citas esos mismos fragmentos.
+       citar [n], y devuelve como citas los fragmentos que el modelo citó.
 
     Va en services y no en selectors porque escribirá la bitácora del agente
     (spec 015) en cuanto exista. Si Gemini falla, lanza AgenteNoDisponible.
@@ -243,13 +247,11 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
                     ),
                 ]
             )
+            texto = respuesta_modelo.texto.strip() or MENSAJE_SIN_INFORMACION
             resultado = RespuestaAgente(
-                respuesta=respuesta_modelo.texto.strip() or MENSAJE_SIN_INFORMACION,
+                respuesta=texto,
                 sin_informacion=False,
-                citas=[
-                    _cita(numero, fragmento)
-                    for numero, fragmento in enumerate(fragmentos, start=1)
-                ],
+                citas=_citas_usadas(texto, fragmentos),
             )
     except ProveedorIANoDisponible as error:
         # Punto de llamada a la bitácora del agente (spec 015, rol D) con
@@ -264,6 +266,20 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
     # desde el inicio de la función, y exito=True. Se conecta cuando la spec 015
     # esté en develop.
     return resultado
+
+
+def _citas_usadas(texto: str, fragmentos: list[FragmentoRAG]) -> list[Cita]:
+    """Las fuentes que el modelo citó con [n], con su mismo número.
+
+    Si no citó ninguna, se devuelven todas las que recibió: el usuario siempre
+    ve de dónde pudo salir la respuesta (regla 2). Se decidió tras la prueba
+    real del 2026-10-31, donde devolver siempre las cinco mostraba fuentes que
+    nada tenían que ver con la respuesta.
+    """
+    citadas = {int(n) for n in _MARCADOR_CITA.findall(texto)}
+    numerados = list(enumerate(fragmentos, start=1))
+    usados = [(n, f) for n, f in numerados if n in citadas] or numerados
+    return [_cita(numero, fragmento) for numero, fragmento in usados]
 
 
 def _cita(numero: int, fragmento: FragmentoRAG) -> Cita:

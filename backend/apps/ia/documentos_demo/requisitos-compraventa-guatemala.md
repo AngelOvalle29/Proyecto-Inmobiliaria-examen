@@ -1,8 +1,5 @@
 # Requisitos legales de compraventa – Guatemala
 
-Documento de demostración del proyecto. Es un resumen general con fines
-educativos y no sustituye la asesoría de un notario o abogado.
-
 ## Documentos del comprador
 
 El comprador presenta su Documento Personal de Identificación (DPI) vigente.

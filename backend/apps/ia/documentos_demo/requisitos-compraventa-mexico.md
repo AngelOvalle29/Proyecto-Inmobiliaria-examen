@@ -1,8 +1,5 @@
 # Requisitos legales de compraventa – México
 
-Documento de demostración del proyecto. Es un resumen general con fines
-educativos y no sustituye la asesoría de un notario público.
-
 ## Documentos del comprador
 
 El comprador presenta una identificación oficial vigente, como la credencial

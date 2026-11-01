@@ -340,4 +340,6 @@ IA_MODELO_EMBEDDINGS = env("IA_MODELO_EMBEDDINGS", default="gemini-embedding-001
 IA_DIMENSION_EMBEDDINGS = env.int("IA_DIMENSION_EMBEDDINGS", default=768)
 IA_MAX_TOKENS_RESPUESTA = env.int("IA_MAX_TOKENS_RESPUESTA", default=1024)
 # Distancia de coseno máxima para usar un fragmento (0 = mismo significado).
-IA_DISTANCIA_MAXIMA = env.float("IA_DISTANCIA_MAXIMA", default=0.6)
+# 0.42: en la prueba real del 2026-10-31 las preguntas relevantes quedaron
+# entre 0.19 y 0.38 y las ajenas desde 0.47.
+IA_DISTANCIA_MAXIMA = env.float("IA_DISTANCIA_MAXIMA", default=0.42)

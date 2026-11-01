@@ -48,7 +48,6 @@ def test_con_fragmentos_responde_con_el_modelo_y_cita_las_fuentes(
 
     assert resultado.sin_informacion is False
     assert resultado.respuesta == "Respuesta de prueba [1]."
-    assert [c.numero for c in resultado.citas] == [1, 2]
     cita = resultado.citas[0]
     assert cita.documento == "Requisitos – Guatemala"
     assert cita.seccion == "Documentos del comprador"
@@ -56,10 +55,40 @@ def test_con_fragmentos_responde_con_el_modelo_y_cita_las_fuentes(
     assert cita.extracto == "El comprador presenta su DPI vigente."
 
 
-def test_el_extracto_de_un_fragmento_largo_se_recorta(proveedor_falso, documento):
+def test_solo_se_devuelven_las_fuentes_que_el_modelo_cito(proveedor_falso, documento):
     proveedor_falso.vectores[PREGUNTA] = vector_eje(0)
 
-    cita_larga = responder_consulta_publica(pregunta=PREGUNTA).citas[1]
+    resultado = responder_consulta_publica(pregunta=PREGUNTA)
+
+    # El modelo recibió dos fragmentos y solo citó el [1].
+    assert [c.numero for c in resultado.citas] == [1]
+
+
+def test_una_fuente_citada_conserva_su_numero(proveedor_falso, documento):
+    proveedor_falso.vectores[PREGUNTA] = vector_eje(0)
+    proveedor_falso.texto_respuesta = "Solo el segundo dato [2]."
+
+    resultado = responder_consulta_publica(pregunta=PREGUNTA)
+
+    assert [(c.numero, c.seccion) for c in resultado.citas] == [(2, "Impuestos")]
+
+
+def test_si_el_modelo_no_cita_se_devuelven_todas_las_fuentes(
+    proveedor_falso, documento
+):
+    proveedor_falso.vectores[PREGUNTA] = vector_eje(0)
+    proveedor_falso.texto_respuesta = "Respuesta sin marcadores."
+
+    resultado = responder_consulta_publica(pregunta=PREGUNTA)
+
+    assert [c.numero for c in resultado.citas] == [1, 2]
+
+
+def test_el_extracto_de_un_fragmento_largo_se_recorta(proveedor_falso, documento):
+    proveedor_falso.vectores[PREGUNTA] = vector_eje(0)
+    proveedor_falso.texto_respuesta = "Dato [2]."
+
+    cita_larga = responder_consulta_publica(pregunta=PREGUNTA).citas[0]
 
     assert len(cita_larga.extracto) <= 201
     assert cita_larga.extracto.endswith("…")
