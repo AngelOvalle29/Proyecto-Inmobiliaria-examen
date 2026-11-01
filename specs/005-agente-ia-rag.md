@@ -9,7 +9,7 @@
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `ia` (incluido su comando `cargar_demo_ia`), `config/settings` (variables de IA y límite de peticiones), `config/urls.py` |
 | **Rama** | `feature/005-agente-ia-rag` |
-| **Pull request** | — |
+| **Pull request** | #62 |
 
 ---
 
