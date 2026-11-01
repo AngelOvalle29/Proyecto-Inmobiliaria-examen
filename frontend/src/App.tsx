@@ -3,7 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router'
 import { RutaProtegida } from './componentes/comunes/RutaProtegida'
 import { LayoutAuth } from './layouts/LayoutAuth'
 import { LayoutPrincipal } from './layouts/LayoutPrincipal'
-import { ESCRIBEN_CATALOGO, ESCRIBEN_CRM } from './menu'
+import { ADMINISTRAN_CRM, ESCRIBEN_CATALOGO, ESCRIBEN_CRM } from './menu'
 import { DetalleArrendamiento } from './paginas/arrendamientos/DetalleArrendamiento'
 import { FirmarArrendamiento } from './paginas/arrendamientos/FirmarArrendamiento'
 import { ListaArrendamientos } from './paginas/arrendamientos/ListaArrendamientos'
@@ -15,6 +15,7 @@ import { ListaAgentes } from './paginas/crm/ListaAgentes'
 import { ListaClientes } from './paginas/crm/ListaClientes'
 import { ListaCotizaciones } from './paginas/crm/ListaCotizaciones'
 import { NuevaCotizacion } from './paginas/crm/NuevaCotizacion'
+import { NuevoAgente } from './paginas/crm/NuevoAgente'
 import { NoEncontrada } from './paginas/errores/NoEncontrada'
 import { DetalleContratoVenta } from './paginas/ventas/DetalleContratoVenta'
 import { FirmarContratoVenta } from './paginas/ventas/FirmarContratoVenta'
@@ -69,6 +70,14 @@ const enrutador = createBrowserRouter([
         ),
       },
       { path: '/crm/agentes', element: <ListaAgentes /> },
+      {
+        path: '/crm/agentes/nuevo',
+        element: (
+          <RutaProtegida roles={ADMINISTRAN_CRM}>
+            <NuevoAgente />
+          </RutaProtegida>
+        ),
+      },
       { path: '/crm/cotizaciones', element: <ListaCotizaciones /> },
       {
         path: '/crm/cotizaciones/nueva',

@@ -4,6 +4,7 @@ import { clienteApi } from '../cliente'
 import type { components } from '../tipos.generados'
 
 export type UsuarioActual = components['schemas']['UsuarioActual']
+type PaginaUsuarios = components['schemas']['PaginatedUsuarioListadoList']
 
 export const CLAVE_USUARIO_ACTUAL = ['usuarios', 'yo'] as const
 
@@ -22,4 +23,27 @@ export function useUsuarioActual(habilitada: boolean) {
     retry: false,
     staleTime: Infinity,
   })
+}
+
+/**
+ * Usuarios con rol de agente, para CampoRelacion. El filtro no es opcional:
+ * crear_agente rechaza cualquier otro rol (spec 013, §2).
+ */
+export function useOpcionesUsuarioAgente(texto: string) {
+  const consulta = useQuery({
+    queryKey: ['usuarios', 'agentes', texto],
+    queryFn: async () =>
+      (
+        await clienteApi.get<PaginaUsuarios>('/usuarios/', {
+          params: { rol: 'AGENTE', buscar: texto || undefined },
+        })
+      ).data.results,
+  })
+  return {
+    opciones: (consulta.data ?? []).map((usuario) => ({
+      valor: String(usuario.id),
+      etiqueta: `${usuario.nombre_completo} · ${usuario.email}`,
+    })),
+    cargando: consulta.isFetching,
+  }
 }
