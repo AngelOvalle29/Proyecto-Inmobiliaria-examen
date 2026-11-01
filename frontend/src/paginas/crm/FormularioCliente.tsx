@@ -78,9 +78,9 @@ interface PropsFormulario {
 }
 
 /**
- * Formulario de cliente (spec 012, §5). Al editar no se cambian el tipo, el
- * país, la ciudad ni el agente: el agente se cambia con Reasignar, y país y
- * ciudad esperan la etiqueta inicial de CampoRelacion (spec 012, §6).
+ * Formulario de cliente (spec 012, §5). Al editar no se cambian el tipo ni el
+ * agente: el agente se cambia con Reasignar. País y ciudad sí, y la ciudad
+ * muestra la actual con su etiqueta inicial (spec 010, regla 15).
  */
 function Formulario({ cliente }: PropsFormulario) {
   const navegar = useNavigate()
@@ -121,6 +121,7 @@ function Formulario({ cliente }: PropsFormulario) {
       marcador: 'Primero elija el país',
       ayuda: 'Opcional.',
       buscar: useOpcionesCiudad,
+      etiquetaInicial: cliente?.ciudad?.nombre,
     },
   ]
   // A un agente la API lo asigna a sí mismo (spec 004, regla 12).
@@ -160,7 +161,7 @@ function Formulario({ cliente }: PropsFormulario) {
     },
     { nombre: 'email', etiqueta: 'Correo', tipo: 'texto', ayuda: 'Opcional.' },
     { nombre: 'telefono', etiqueta: 'Teléfono', tipo: 'texto', ayuda: 'Opcional.' },
-    ...(editando ? [] : ubicacion),
+    ...ubicacion,
     { nombre: 'direccion', etiqueta: 'Dirección', tipo: 'texto', ayuda: 'Opcional.' },
     ...(editando ? [] : agente),
     { nombre: 'notas', etiqueta: 'Notas', tipo: 'area', ayuda: 'Opcional.' },
@@ -172,6 +173,8 @@ function Formulario({ cliente }: PropsFormulario) {
       nit: datos.nit,
       email: datos.email,
       telefono: datos.telefono,
+      pais: Number(datos.pais),
+      ciudad: datos.ciudad ? Number(datos.ciudad) : null,
       direccion: datos.direccion,
       notas: datos.notas,
     }
@@ -193,8 +196,6 @@ function Formulario({ cliente }: PropsFormulario) {
       ...comunes,
       ...propios,
       tipo: datos.tipo,
-      pais: Number(datos.pais),
-      ciudad: datos.ciudad ? Number(datos.ciudad) : null,
       agente_asignado: datos.agente_asignado
         ? Number(datos.agente_asignado)
         : undefined,
