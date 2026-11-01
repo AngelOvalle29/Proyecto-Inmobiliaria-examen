@@ -7,6 +7,7 @@ import type { Agente, Cliente, Cotizacion } from './consultas'
 export type DatosCliente = components['schemas']['ClienteEntrada']
 export type DatosEditarCliente = components['schemas']['PatchedClienteEntrada']
 export type DatosEditarAgente = components['schemas']['PatchedAgenteEditar']
+export type DatosAgente = components['schemas']['AgenteCrear']
 export type DatosCotizacion = components['schemas']['CotizacionCrear']
 
 /**
@@ -55,6 +56,16 @@ export function useReasignarCliente() {
   return useMutation({
     mutationFn: async ({ id, agente }: { id: number; agente: number }) =>
       (await clienteApi.post<Cliente>(`/clientes/${id}/reasignar/`, { agente })).data,
+    onSuccess: invalidar,
+  })
+}
+
+/** POST /agentes/: el backend asigna el código AGT-NNN (spec 004, regla 10). */
+export function useCrearAgente() {
+  const invalidar = useInvalidarCrm()
+  return useMutation({
+    mutationFn: async (datos: DatosAgente) =>
+      (await clienteApi.post<Agente>('/agentes/', datos)).data,
     onSuccess: invalidar,
   })
 }
