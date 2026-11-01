@@ -21,6 +21,22 @@ class TokensSerializer(serializers.Serializer):
     refresh = serializers.CharField()
 
 
+class UsuarioListadoSerializer(serializers.ModelSerializer):
+    """
+    Un usuario en el listado de /usuarios/ (spec 013, regla 3). Solo lo mínimo
+    para elegirlo: sin teléfono, último acceso ni permisos, porque es un
+    listado de todo el personal.
+    """
+
+    rol = serializers.CharField(source="rol.nombre")
+    # Nulo si el usuario no tiene país (por ejemplo, el administrador inicial).
+    pais = PaisResumenSerializer(allow_null=True)
+
+    class Meta:
+        model = Usuario
+        fields = ["id", "email", "nombre_completo", "rol", "pais"]
+
+
 class UsuarioActualSerializer(serializers.ModelSerializer):
     """Respuesta de /auth/yo/ (spec 001, §5)."""
 

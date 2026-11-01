@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 013 |
-| **Estado** | En revisión |
+| **Estado** | Implementada, en revisión |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-31 |
 | **Apps afectadas** | `usuarios` |
 | **Rama** | `feature/013-listado-usuarios` |
-| **Pull request** | — |
+| **Pull request** | — (spec aprobada en DouGMV/Proyecto-Inmobiliaria#54) |
 
 ---
 
@@ -35,6 +35,11 @@ agente nuevo no se podría crear desde la aplicación.
 - **Filtrar "usuarios que todavía no son agentes".** `usuarios` no puede
   importar `crm` (`docs/arquitectura.md` §3). Si se elige un usuario que ya es
   agente, la API de agentes responde 409 `USUARIO_YA_ES_AGENTE` (spec 004).
+
+**La pantalla "Nuevo agente" debe pedir `?rol=AGENTE`** (observación de B en la
+revisión). No es opcional: `crear_agente` rechaza a un usuario con otro rol
+(`USUARIO_NO_ES_AGENTE`, spec 004, regla 1). Con el filtro, la pantalla solo
+ofrece usuarios que la API puede aceptar.
 - La pantalla "Nuevo agente": es de la spec 012 (rol B).
 
 ## 3. Reglas
@@ -75,10 +80,20 @@ Sin cambios.
       "nombre_completo": "Agente Demo Uno",
       "rol": "AGENTE",
       "pais": { "id": 1, "nombre": "Guatemala" }
+    },
+    {
+      "id": 9,
+      "email": "agente4@demo.test",
+      "nombre_completo": "Agente Demo Cuatro",
+      "rol": "AGENTE",
+      "pais": null
     }
   ]
 }
 ```
+
+`pais` es `null` si el usuario no tiene país (observación de B): el tipo
+generado lo marca como opcional, y la pantalla debe tenerlo en cuenta.
 
 **Errores:** los comunes. 401 sin sesión, 403 con otro rol, y 400 `VALIDACION`
 con un rol que no existe en `?rol=`.
@@ -105,22 +120,24 @@ No aplica: es una lectura.
 
 ## 8. Criterios de aceptación
 
-- [ ] Un administrador y un gerente reciben la lista paginada
-- [ ] Agente, contabilidad y consulta reciben 403; sin sesión, 401
-- [ ] Un usuario desactivado no aparece
-- [ ] `?rol=AGENTE` trae solo agentes; `?buscar=` filtra por nombre o correo, sin
+- [x] Un administrador y un gerente reciben la lista paginada
+- [x] Agente, contabilidad y consulta reciben 403; sin sesión, 401
+- [x] Un usuario desactivado no aparece
+- [x] `?rol=AGENTE` trae solo agentes; `?buscar=` filtra por nombre o correo, sin
       distinguir mayúsculas
-- [ ] La respuesta no incluye contraseña, teléfono ni último acceso
-- [ ] El listado no hace una consulta por usuario (rol y país en la misma
+- [x] Un rol que no existe en `?rol=` responde 400 `VALIDACION` (agregado por B)
+- [x] `pais` puede venir `null`, y el tipo generado lo refleja (agregado por B)
+- [x] La respuesta no incluye contraseña, teléfono ni último acceso
+- [x] El listado no hace una consulta por usuario (rol y país en la misma
       consulta)
-- [ ] `ruff`, `pytest`, `makemigrations --check` y el esquema OpenAPI pasan
+- [x] `ruff`, `pytest`, `makemigrations --check` y el esquema OpenAPI pasan
 
 ## 9. Pruebas
 
 | Nivel | Caso |
 |---|---|
 | API | Matriz de permisos por rol, y 401 sin sesión |
-| API | Filtro por rol, búsqueda, omite desactivados, campos de la respuesta |
+| API | Filtro por rol, rol inexistente (400), búsqueda, orden, omite desactivados, campos de la respuesta, país nulo |
 | API | Número de consultas constante con 1 y con 5 usuarios |
 
 ## 10. Decisiones y alternativas descartadas
@@ -132,8 +149,9 @@ No aplica: es una lectura.
 - **Restringido a administración y gerencia**, y no abierto a todos los
   autenticados: el listado expone datos personales del personal.
 - **Sin el filtro "sin perfil de agente"**, para no romper la regla de
-  dependencias. La pantalla puede mostrar `?rol=AGENTE`, y la API de agentes
-  rechaza un duplicado con un mensaje claro.
+  dependencias. La pantalla debe usar `?rol=AGENTE` (§2). Si aun así se elige
+  a alguien que ya es agente, la API de agentes lo rechaza con un mensaje
+  claro (`USUARIO_YA_ES_AGENTE`).
 
 ## 11. Trabajo con agentes de IA
 
@@ -144,3 +162,20 @@ lectura y propuso el endpoint. A lo eligió.
 
 **Plan de implementación:** un solo incremento, con el filtro, el
 serializador, la vista y la ruta, más sus pruebas.
+
+**Revisión de B en #54 (aprobada en una ronda).** Tres observaciones,
+aplicadas al implementar:
+- la pantalla debe filtrar por `?rol=AGENTE`, por `USUARIO_NO_ES_AGENTE`;
+- `pais` puede venir `null`;
+- faltaba el criterio del rol inexistente.
+
+**Sesión 2026-10-31, implementación (Claude Code, rol A).**
+- **`listar_usuarios_activos`:** ahora carga rol y país en la misma consulta y
+  ordena por nombre, con el id como desempate para que la paginación sea
+  estable. Lo usa también la API de agentes de `crm`, para validar el id
+  recibido; sus pruebas siguen pasando.
+- **`?rol=` es un `ChoiceFilter`**, no un texto libre: un rol mal escrito
+  (`AGENT`) responde 400 en vez de una lista vacía que parecería correcta.
+- **13 pruebas nuevas**, una o más por criterio. La suite completa da 519.
+- Se regeneraron los tipos del frontend (`UsuarioListado`), para que B haga
+  la pantalla sobre ellos.

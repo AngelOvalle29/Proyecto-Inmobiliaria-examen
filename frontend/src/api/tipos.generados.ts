@@ -813,6 +813,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/usuarios/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/usuarios/?rol=&buscar= — usuarios activos, para elegir el de un
+         *     agente nuevo (spec 013).
+         *
+         *     Solo administración y gerencia: son quienes crean agentes, y el listado
+         *     tiene correos y nombres de todo el personal. Como GET queda declarado en
+         *     roles_por_metodo, TieneRol ya no lo deja abierto a cualquier autenticado.
+         */
+        get: operations["v1_usuarios_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1490,6 +1514,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Unidad"][];
         };
+        PaginatedUsuarioListadoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["UsuarioListado"][];
+        };
         PagoCuota: {
             /** Format: decimal */
             monto: string;
@@ -1757,6 +1796,22 @@ export interface components {
             telefono?: string;
             /** Format: date-time */
             ultimo_acceso: string | null;
+        };
+        /**
+         * @description Un usuario en el listado de /usuarios/ (spec 013, regla 3). Solo lo mínimo
+         *     para elegirlo: sin teléfono, último acceso ni permisos, porque es un
+         *     listado de todo el personal.
+         */
+        UsuarioListado: {
+            readonly id: number;
+            /**
+             * Correo electrónico
+             * Format: email
+             */
+            email: string;
+            nombre_completo: string;
+            rol: string;
+            pais: components["schemas"]["PaisResumen"] | null;
         };
         UsuarioResumen: {
             id: number;
@@ -3369,6 +3424,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
+    v1_usuarios_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /**
+                 * @description * `ADMINISTRADOR` - Administrador
+                 *     * `GERENTE` - Gerente
+                 *     * `AGENTE` - Agente de ventas
+                 *     * `CONTABILIDAD` - Contabilidad
+                 *     * `CONSULTA` - Consulta
+                 */
+                rol?: "ADMINISTRADOR" | "AGENTE" | "CONSULTA" | "CONTABILIDAD" | "GERENTE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUsuarioListadoList"];
                 };
             };
         };
