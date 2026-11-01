@@ -21,6 +21,7 @@ from .permissions import TieneRol
 from .selectors import listar_usuarios_activos
 from .serializers import (
     LoginSerializer,
+    RenovarTokenSerializer,
     TokensSerializer,
     UsuarioActualSerializer,
     UsuarioListadoSerializer,
@@ -60,12 +61,15 @@ class RenovarTokenView(TokenRefreshView):
     """
     POST /api/v1/auth/refresh/ — nuevo token de acceso a cambio del de refresco.
 
-    Es la vista de SimpleJWT sin cambios, salvo el límite de peticiones. Tiene
-    uno propio y más alto que el login: el token de refresco es una firma que
-    no se puede adivinar, así que el límite solo frena abusos, no ataques a
-    contraseñas.
+    Es la vista de SimpleJWT con dos cambios:
+    - Un límite de peticiones propio y más alto que el login: el token de
+      refresco es una firma que no se puede adivinar, así que el límite solo
+      frena abusos, no ataques a contraseñas.
+    - RenovarTokenSerializer, que responde 401 y no 500 si el usuario del token
+      ya no existe.
     """
 
+    serializer_class = RenovarTokenSerializer
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "renovacion"
 
