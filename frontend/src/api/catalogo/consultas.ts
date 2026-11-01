@@ -46,6 +46,17 @@ export function usePropiedades(filtros: FiltrosPropiedades) {
   })
 }
 
+/**
+ * Una propiedad (GET /propiedades/{id}/), para su ficha y su edición. La clave
+ * empieza igual que la de la lista: al guardar se invalidan las dos.
+ */
+export function usePropiedad(id: number) {
+  return useQuery({
+    queryKey: ['catalogo', 'propiedades', 'detalle', id],
+    queryFn: async () => (await clienteApi.get<Propiedad>(`/propiedades/${id}/`)).data,
+  })
+}
+
 /** Las unidades de una propiedad; sin propiedad elegida no consulta nada. */
 export function useUnidadesDePropiedad(propiedad: number | undefined) {
   return useQuery({

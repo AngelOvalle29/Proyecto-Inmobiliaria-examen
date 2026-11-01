@@ -8,6 +8,8 @@ import { DetalleArrendamiento } from './paginas/arrendamientos/DetalleArrendamie
 import { FirmarArrendamiento } from './paginas/arrendamientos/FirmarArrendamiento'
 import { ListaArrendamientos } from './paginas/arrendamientos/ListaArrendamientos'
 import { Login } from './paginas/auth/Login'
+import { EditarPropiedad } from './paginas/catalogo/EditarPropiedad'
+import { FichaPropiedad } from './paginas/catalogo/FichaPropiedad'
 import { ListaPropiedades } from './paginas/catalogo/ListaPropiedades'
 import { NuevaPropiedad } from './paginas/catalogo/NuevaPropiedad'
 import { EditarCliente, NuevoCliente } from './paginas/crm/FormularioCliente'
@@ -48,6 +50,15 @@ const enrutador = createBrowserRouter([
         element: (
           <RutaProtegida roles={ESCRIBEN_CATALOGO}>
             <NuevaPropiedad />
+          </RutaProtegida>
+        ),
+      },
+      { path: '/catalogo/propiedades/:id', element: <FichaPropiedad /> },
+      {
+        path: '/catalogo/propiedades/:id/editar',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CATALOGO}>
+            <EditarPropiedad />
           </RutaProtegida>
         ),
       },

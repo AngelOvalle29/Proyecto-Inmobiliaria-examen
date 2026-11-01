@@ -44,6 +44,19 @@ export function useCrearPropiedad() {
   })
 }
 
+/**
+ * PATCH /propiedades/{id}/. El estado no va aquí: tiene su propia acción
+ * (spec 003, regla 7).
+ */
+export function useActualizarPropiedad() {
+  const invalidar = useInvalidarPropiedades()
+  return useMutation({
+    mutationFn: async ({ id, ...datos }: DatosNuevaPropiedad & { id: number }) =>
+      (await clienteApi.patch<Propiedad>(`/propiedades/${id}/`, datos)).data,
+    onSuccess: invalidar,
+  })
+}
+
 /** POST /propiedades/{id}/cambiar-estado/ con el estado nuevo y el motivo. */
 export function useCambiarEstadoPropiedad() {
   const invalidar = useInvalidarPropiedades()
