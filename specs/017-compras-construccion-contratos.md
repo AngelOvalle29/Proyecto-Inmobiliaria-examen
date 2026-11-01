@@ -29,7 +29,9 @@ completa el ciclo de vida de una propiedad del lado de la agencia:
 EN_NEGOCIACION ──completar compra──► ADQUIRIDA ──iniciar obra──► EN_CONSTRUCCION ──finalizar obra──► DISPONIBLE
 ```
 
-Desde `DISPONIBLE`, las specs 007 y 008 ya la venden o la arriendan.
+Desde `DISPONIBLE`, las specs 007 y 008 ya la venden o la arriendan. Una
+propiedad que se compra para revender tal como está, sin obra, pasa de
+`ADQUIRIDA` a `DISPONIBLE` con `/cambiar-estado/` del catálogo (regla 25).
 
 ## 2. Alcance
 
@@ -93,15 +95,22 @@ Desde `DISPONIBLE`, las specs 007 y 008 ya la venden o la arriendan.
     nunca baja. Cada avance queda en la bitácora con su descripción.
 14. **Suspender** (de `EN_EJECUCION`, con motivo) y **reanudar** (de
     `SUSPENDIDO`). No cambian el estado de la propiedad.
-15. **Finalizar** solo en `EN_EJECUCION` y con avance 100. Guarda la fecha de fin
-    real y pasa la propiedad de `EN_CONSTRUCCION` a `DISPONIBLE`.
+15. **Finalizar** solo en `EN_EJECUCION` y con avance 100. La fecha de fin real
+    es la de hoy. Pasa la propiedad de `EN_CONSTRUCCION` a `DISPONIBLE` y, si la
+    propiedad tiene unidades, también sus unidades activas que estén en
+    `EN_NEGOCIACION` (con `cambiar_estado_unidad`), porque en un edificio lo que
+    se cotiza y se vende son las unidades. Si la propiedad ya no está
+    `EN_CONSTRUCCION`, no se finaliza (regla 26).
 16. **Cancelar** desde `PLANIFICADO`, `EN_EJECUCION` o `SUSPENDIDO`, con motivo.
-    Si la obra ya había empezado, la propiedad vuelve de `EN_CONSTRUCCION` a
-    `ADQUIRIDA`. Los pagos programados del proyecto se anulan con él.
+    Si la propiedad está `EN_CONSTRUCCION`, vuelve a `ADQUIRIDA`; si alguien ya
+    la movió a mano a otro estado, se cancela el proyecto sin tocar la propiedad
+    y la bitácora lo anota (regla 26). Los pagos programados del proyecto se
+    anulan con él.
 17. Se puede editar el nombre, la fecha de fin estimada y el presupuesto de un
-    proyecto activo. El presupuesto nunca queda por debajo de lo ya programado y
-    pagado (regla 19). Subirlo es la autorización explícita para pagar más
-    (§10).
+    proyecto activo; de un proyecto `FINALIZADO`, solo el presupuesto, para poder
+    pagar un finiquito que no cabía. El presupuesto nunca queda por debajo de lo
+    ya programado y pagado (regla 19). Subirlo es la autorización explícita para
+    pagar más (§10).
 18. El código lo genera el sistema y no cambia: `PC-00001`.
 
 **Pagos a constructoras**
@@ -113,14 +122,28 @@ Desde `DISPONIBLE`, las specs 007 y 008 ya la venden o la arriendan.
     Si lleva documento, debe ser un documento oficial activo de la misma
     propiedad.
 21. **Pagar** pasa el pago de `PROGRAMADO` a `PAGADO` con fecha de pago (no futura
-    ni anterior al inicio del proyecto) y referencia, y guarda la tasa al dólar
-    de esa fecha. **Anular** solo es posible en `PROGRAMADO` y exige motivo. Un
+    ni anterior al inicio del proyecto, salvo un `ANTICIPO`, que se paga antes de
+    empezar la obra) y referencia, y guarda la tasa al dólar de esa fecha. **Anular** solo es posible en `PROGRAMADO` y exige motivo. Un
     pago pagado no se anula. El código: `PG-00001`.
 
 **Desactivación (reglas que la spec 006 dejó para aquí)**
 
 22. Un proveedor con un contrato `EN_PROCESO` no se puede desactivar.
 23. Una constructora con un proyecto activo no se puede desactivar.
+
+**Propiedades sin obra y cambios manuales de estado**
+
+25. Una propiedad `ADQUIRIDA` que no necesita obra se publica con
+    `/cambiar-estado/` del catálogo (spec 003), que ya audita el cambio con su
+    motivo. Sus unidades, si tiene, se publican igual, una por una. No hace falta
+    una acción nueva.
+26. `/cambiar-estado/` no conoce los proyectos: alguien podría mover a mano una
+    propiedad en obra. Para que un proyecto nunca quede atascado, **cancelar
+    siempre es posible** (regla 16) y **finalizar** responde 409 con el estado
+    actual de la propiedad y la salida: devolverla a `EN_CONSTRUCCION` con
+    `/cambiar-estado/` y volver a finalizar. Se acordará con A si
+    `/cambiar-estado/` debe rechazar las propiedades con un proyecto activo
+    (§10).
 
 **Permisos**
 
@@ -338,7 +361,14 @@ referencia del pago. El cambio de estado de la propiedad lo audita
       motivo responde 400.
 - [ ] Un proyecto sobre una propiedad que no está `ADQUIRIDA` responde 409.
 - [ ] Iniciar deja la propiedad `EN_CONSTRUCCION`; finalizar con avance 100 la
-      deja `DISPONIBLE`; finalizar con avance menor responde 400.
+      deja `DISPONIBLE`, junto con sus unidades en negociación, y guarda la
+      fecha de hoy; finalizar con avance menor responde 400.
+- [ ] Un `ANTICIPO` se paga con fecha anterior al inicio de la obra; otro tipo de
+      pago con esa fecha responde 400.
+- [ ] En un proyecto finalizado se puede subir el presupuesto y pagar el
+      finiquito.
+- [ ] Si la propiedad se movió a mano durante la obra, cancelar el proyecto
+      funciona y finalizar responde 409 con el estado actual.
 - [ ] Un avance menor que el anterior, o mayor que 100, responde 400.
 - [ ] Cancelar una obra iniciada devuelve la propiedad a `ADQUIRIDA` y anula sus
       pagos programados.
@@ -392,6 +422,17 @@ falta recalcular costo, tasa y conversión al editar.
 
 **Tasa al dólar guardada, como en ventas.** Los reportes en dólares no deben
 cambiar el pasado cuando se corrige o se agrega una tasa (spec 007, regla 14).
+
+**Revisión de Marco (PR #64), cinco decisiones.** (1) La reventa sin obra usa
+`/cambiar-estado/` y no una acción nueva: ya audita con motivo y evita duplicar
+una herramienta de A (regla 25). (2) Finalizar publica también las unidades en
+negociación: sin eso, un edificio terminado quedaría sin nada que cotizar
+(regla 15). (3) El anticipo se puede pagar antes del inicio, porque es justo su
+razón de ser (regla 21). (4) El presupuesto de un proyecto finalizado se puede
+subir, para no dejar un finiquito sin forma de pagarse (regla 17). (5) Ante un
+cambio manual de estado, cancelar siempre funciona y finalizar explica cómo
+salir; si `/cambiar-estado/` debe bloquear las propiedades en obra se decide
+con A, porque es su servicio (regla 26).
 
 **Bloqueo de filas en cada acción.** Sin `select_for_update()`, dos pagos
 simultáneos podrían pasar juntos el presupuesto, o dos peticiones completar el
