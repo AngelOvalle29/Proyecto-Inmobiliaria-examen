@@ -66,8 +66,10 @@ lo ocurrido; **no existe una excepción aprobada por el equipo** a
 `docs/convenciones.md` §5. La política de commits queda para discusión conjunta,
 sin modificarla mediante este PR.
 
-La revisión solicita confirmar con Angel el contrato de la bitácora y completar
-la revisión personal de Nathaly en §11. Ambos puntos siguen pendientes de las
-respuestas correspondientes. Los permisos y la separación entre paginación y
+Nathaly compartió el aporte de Angel sobre la llamada desde IA, fuentes y
+tokens, incorporado en la spec 015. Se aclaró que el servicio no abre un
+`atomic()` propio; queda confirmar con C qué enviará ante un fallo sin métricas
+de consumo. Las secciones 11 recogen la participación de Nathaly y el apoyo de
+Codex de forma resumida. Los permisos y la separación entre paginación y
 exportación se ajustaron en la spec 016 y en `docs/reportes.md`. No se
-implementó código y no se consideran aprobadas las specs.
+implementó código y la aprobación formal sigue pendiente en el PR.

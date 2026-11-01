@@ -196,20 +196,13 @@ consultar R17. No crea copias de las bitácoras en una tabla nueva.
 
 ## 11. Trabajo con agentes de IA
 
-Sesión 2026-10-31: Codex comparó el catálogo, modelos y convenciones con el
-issue #24 y redactó este borrador. No se implementó ni probó código.
-La revisión personal de Nathaly sigue pendiente de confirmación. El resumen
-para su revisión es: JSON consulta solo una página; Excel/PDF consultan el
-resultado completo hasta el límite; los totales incluyen todo el filtro y
-separan monedas. Este resumen es de Codex y no acredita comprensión personal.
+Se utilizó Codex para contrastar el catálogo de reportes, los modelos y las
+convenciones con el issue #24 y redactar el borrador. Nathaly explicó que esta
+etapa define lo que se hará antes de implementar y trasladó los comentarios
+del equipo para corregir la propuesta.
 
-Revisión técnica posterior de Codex, solicitada por Nathaly: se precisaron la
-identidad de filas mixtas, la paginación antes de cargar filas, el origen de
-montos/áreas y la moneda exigida para comparar precios. Nathaly autorizó al
-agente a ejecutar el commit de documentación; la aprobación del equipo sigue
-pendiente.
-
-Tras la revisión del PR #61, Nathaly pidió corregir los comentarios con apoyo
-de Codex. Se abrieron R05/R16 a todos los roles autenticados y se separaron
-resumen SQL, selección limitada y construcción del reporte. El equipo no ha
-aprobado una excepción sobre quién ejecuta los commits.
+Las correcciones precisan el doble conteo de propiedades/unidades, los totales
+por moneda y los permisos. También separan el resumen SQL y la selección de
+25 filas para JSON del resultado completo para Excel/PDF, con límite de 5,000.
+La entrega contiene especificación, sin implementación ni pruebas de aplicación.
+La revisión técnica y aprobación se tramitan en el PR #61.

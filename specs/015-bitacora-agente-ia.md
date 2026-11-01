@@ -38,13 +38,19 @@ El registro efectivo desde IA se integra con C cuando su servicio exista.
    impedir cambios de un administrador con acceso SQL directo.
 4. Tokens y duración no pueden ser negativos. Las listas vacías son válidas
    cuando no se invocaron herramientas o no se recuperaron documentos.
-   Propuesta a acordar con C: tokens nulos cuando el proveedor no los informa;
-   cero solo cuando se conoce que no hubo consumo.
+   C enviará los tokens de la respuesta del modelo, sin contar embeddings.
+   Si no hay fragmentos y no se llama al modelo, enviará `0` y `0`.
+   El servicio admite nulos para consumo desconocido; confirmar con C este
+   caso de fallo sin métricas, sin sustituir consumo desconocido por cero.
 5. `exito=False` conserva un diagnóstico controlado, sin credenciales ni
    respuestas HTTP completas del proveedor. No se guarda una excepción cruda.
    Propuesta: exige `error` no vacío; con `exito=True`, `error` queda vacío.
 6. No se abre una transacción alrededor de la llamada de red. C registra el
    fallo fuera de cualquier transacción de negocio que se haya revertido.
+   `registrar_consulta_agente` no abre un bloque `transaction.atomic()` propio:
+   valida y hace una única inserción, confirmada por autocommit en el flujo
+   público actual. Si el llamador abre una transacción, la inserción pertenece
+   a ella y puede revertirse; el servicio no crea una transacción independiente.
 7. `auditoria` no importa otras apps: usuario mediante `AUTH_USER_MODEL` y
    anotación `AbstractBaseUser`, fuentes y herramientas como JSON.
 
@@ -60,15 +66,16 @@ El registro efectivo desde IA se integra con C cuando su servicio exista.
 | `modo` | CharField(10), choices `PUBLICO`, `INTERNO` |
 | `pregunta`, `respuesta` | TextField; respuesta vacía permitida ante fallo |
 | `herramientas_invocadas` | JSONField, `default=list`; elementos con `nombre` y `argumentos` |
-| `documentos_recuperados` | JSONField, `default=list`; elementos con `documento_id`, `fragmento_id`, `seccion` y `distancia` de coseno |
+| `documentos_recuperados` | JSONField, `default=list`; elementos con `documento_id`, `fragmento_id`, `documento` (título), `seccion` y `distancia` de coseno |
 | `tokens_entrada`, `tokens_salida` | PositiveIntegerField, nulos si el dato es desconocido |
 | `duracion_ms` | PositiveIntegerField |
 | `exito` | BooleanField, obligatorio |
 | `error` | TextField, vacío por defecto |
 | `fecha` | DateTimeField, `auto_now_add=True` |
 
-Orden `-fecha, -id`; índice por fecha. La forma del JSON y la disponibilidad
-del consumo de tokens quedan pendientes de confirmación con C antes de aprobar.
+Orden `-fecha, -id`; índice por fecha. Se incorpora el contrato comunicado por
+Angel a Nathaly y reproducido en §6. Queda por confirmar el caso de tokens
+desconocidos ante fallo sin métricas; la aprobación formal sigue en el PR #61.
 
 ## 5. API
 
@@ -104,7 +111,7 @@ La validación se ejecuta explícitamente: `objects.create()` no llama a
 Python los considere enteros.
 No requiere selector público en este incremento.
 
-**Contrato propuesto a C, pendiente de confirmación en el PR #61:**
+**Contrato de integración, con el aporte de C compartido por Nathaly:**
 
 ```python
 def registrar_consulta_agente(
@@ -127,16 +134,28 @@ Ejemplo de las listas JSON con datos ficticios:
 
 ```json
 {
-  "herramientas_invocadas": [{"nombre": "buscar_propiedades", "argumentos": {"pais_id": 1}}],
-  "documentos_recuperados": [{"documento_id": 1, "fragmento_id": 2, "seccion": "Requisitos", "distancia": 0.24}]
+  "herramientas_invocadas": [],
+  "documentos_recuperados": [{"fragmento_id": 12, "documento_id": 3, "documento": "Manual de procesos de venta", "seccion": "Compras con financiamiento", "distancia": 0.23}]
 }
 ```
 
 `distancia` es distancia de coseno, no similitud: menor significa más cercano.
-Ambas listas pueden estar vacías. Tokens `None` significa consumo desconocido;
-`0` solo se usa si se conoce que no hubo consumo. Angel debe confirmar firma,
-claves JSON y manejo de tokens en el PR; hasta entonces no se da por resuelta
-la coordinación ni por aprobada esta spec.
+Ambas listas pueden estar vacías. Cuando existan herramientas, sus elementos
+tendrán `nombre` y `argumentos`; por ahora C enviará `[]`.
+
+Según el mensaje de Angel compartido por Nathaly, llama
+`responder_consulta_publica` en `apps/ia/services.py` exactamente una vez al
+terminar cada pregunta, con éxito o fallo. Envía usuario `None`, modo `PUBLICO`,
+pregunta de 3 a 500 caracteres y, si falla, respuesta vacía, `exito=False` y
+error controlado; el usuario recibe 503. `ia` importa el servicio de `auditoria`,
+sin dependencia inversa. Los tokens son los de la respuesta de Gemini; los
+embeddings no se cuentan. Sin fragmentos ni llamada al modelo usa `0`/`0`.
+
+El servicio conserva soporte para `None` cuando el consumo es desconocido.
+El mensaje de C describe contadores enteros, pero no especifica qué enviará
+ante un fallo sin métricas: confirmar ese caso en el PR. La respuesta a su
+pregunta sobre transacciones es la regla 6: una inserción sin `atomic()` propio.
+El aporte comunicado no equivale a aprobación formal del PR.
 
 ## 7. Auditoría
 
@@ -151,7 +170,8 @@ La inserción es la evidencia de la consulta; no genera otra entrada en
 - [ ] Se distingue consumo desconocido de consumo cero.
 - [ ] Actualizar o borrar por el modelo falla; admin no permite altas ni cambios.
 - [ ] Contadores negativos y modos inválidos son rechazados.
-- [ ] C confirma la firma y el formato JSON para integrarlos en la spec 005.
+- [ ] C confirma en el PR la integración, incluido el caso de fallo sin métricas,
+      y refleja el mismo contrato en la spec 005.
 - [ ] Pasan ruff, comprobación de migraciones y pruebas contra PostgreSQL.
 
 ## 9. Pruebas
@@ -173,20 +193,13 @@ La inserción es la evidencia de la consulta; no genera otra entrada en
 
 ## 11. Trabajo con agentes de IA
 
-Sesión 2026-10-31: Codex inspeccionó el modelo y servicio de auditoría, la spec
-005 y el issue #23, y redactó este borrador. No se implementó código ni se
-afirma aprobación, ejecución de pruebas o revisión personal de la estudiante.
-La revisión personal de Nathaly sigue pendiente de confirmación. El resumen
-para su revisión es: la bitácora solo admite inserciones; guardar fuentes como
-JSON evita depender de modelos de IA; tokens nulos no significan cero consumo.
-Este resumen fue redactado por Codex y no acredita que la estudiante ya lo
-haya leído o pueda explicarlo.
+Se utilizó Codex para revisar arquitectura §5, la app `auditoria`, la spec 005
+y el issue #23, y preparar el borrador. Nathaly revisó el propósito de esta
+etapa y explicó que primero se define lo que se hará, antes de implementar.
 
-Revisión técnica posterior de Codex, solicitada por Nathaly: se aclaró la
-validación explícita antes de insertar y la coherencia entre `exito` y `error`.
-Nathaly autorizó al agente a ejecutar el commit de documentación; esto no
-equivale a la aprobación de otro integrante ni acredita su revisión personal.
-
-Tras la revisión del PR #61, Nathaly pidió resolver los comentarios con apoyo
-de Codex. Se explicitó la excepción de Django y el contrato propuesto a C.
-No se afirma que el equipo haya aprobado una excepción sobre commits.
+A partir de la revisión del PR #61 se precisaron la validación de Django y el
+contrato del servicio. Nathaly aportó el mensaje de Angel para ajustar el JSON,
+el alcance del conteo de tokens y el punto de llamada desde IA; se documentó
+también la respuesta sobre transacciones. La entrega contiene especificación,
+sin implementación ni pruebas de aplicación. La revisión técnica del equipo
+y los acuerdos restantes se registran en el PR.
