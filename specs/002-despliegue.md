@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 002 |
-| **Estado** | Implementada (2026-10-29). Quedan dos criterios abiertos, explicados en §8 |
+| **Estado** | Implementada (2026-10-29). Quedan dos criterios abiertos, explicados en la nota de cierre de la §11 |
 | **Autor** | Equipo |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-08 (actualizada el 2026-10-21) |
@@ -629,5 +629,5 @@ a las demás specs:
 - **GitHub Actions** sigue sin ejecutarse (#14). Mientras tanto se verifica a
   mano, según la regla 5 de `docs/convenciones.md` §1.1.
 
-Por completar durante la implementación: qué se generó con el agente, qué se
-corrigió a mano y qué se descartó en cada incremento.
+**Revisión manual de cada integrante (#27).** Cada integrante anota aquí qué
+revisó de esta spec y qué entendió, para la defensa individual.
