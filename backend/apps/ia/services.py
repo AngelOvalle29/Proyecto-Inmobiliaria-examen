@@ -114,37 +114,45 @@ def actualizar_contenido_documento(
     No reindexa: quien llama decide cuándo, porque indexar llama a la red.
     Sí borra la fecha de indexación: los fragmentos ya no corresponden al
     texto, y así se sabe que el documento está pendiente de reindexar.
-    """
-    if documento.contenido_fuente == contenido_fuente:
-        return documento
 
+    Compara y calcula la versión sobre la fila recién bloqueada, no sobre el
+    objeto recibido: si ese objeto es antiguo, su versión ya no es la de la
+    base y repetiría un número que la indexación usa para detectar cambios
+    (revisión del PR #62). El objeto recibido se actualiza con el resultado.
+    """
     with transaction.atomic():
         # Bloquea la fila: si una indexación está guardando en este momento,
-        # espera a que termine y sube la versión después (revisión del PR #62).
-        DocumentoRAG.objects.select_for_update().filter(pk=documento.pk).first()
-        version_anterior = documento.version
-        documento.contenido_fuente = contenido_fuente
-        documento.version = version_anterior + 1
-        documento.fecha_indexacion = None
-        documento.actualizado_por = autor
-        documento.save(
-            update_fields=[
-                "contenido_fuente",
-                "version",
-                "fecha_indexacion",
-                "actualizado_por",
-                "actualizado_en",
-            ]
-        )
-        registrar_auditoria(
-            usuario=autor,
-            entidad=ENTIDAD_DOCUMENTO,
-            entidad_id=documento.id,
-            accion=AccionAuditoria.ACTUALIZAR,
-            valores_anteriores={"version": version_anterior},
-            valores_nuevos={"version": documento.version},
-        )
-    return documento
+        # espera a que termine y lee la versión que dejó.
+        actual = DocumentoRAG.objects.select_for_update().get(pk=documento.pk)
+        if actual.contenido_fuente != contenido_fuente:
+            version_anterior = actual.version
+            actual.contenido_fuente = contenido_fuente
+            actual.version = version_anterior + 1
+            actual.fecha_indexacion = None
+            actual.actualizado_por = autor
+            actual.save(
+                update_fields=[
+                    "contenido_fuente",
+                    "version",
+                    "fecha_indexacion",
+                    "actualizado_por",
+                    "actualizado_en",
+                ]
+            )
+            registrar_auditoria(
+                usuario=autor,
+                entidad=ENTIDAD_DOCUMENTO,
+                entidad_id=actual.id,
+                accion=AccionAuditoria.ACTUALIZAR,
+                valores_anteriores={"version": version_anterior},
+                valores_nuevos={"version": actual.version},
+            )
+
+    # Quien llamó sigue usando su objeto (cargar_demo_ia revisa después su
+    # fecha de indexación): se deja igual a la fila guardada.
+    for campo in ("contenido_fuente", "version", "fecha_indexacion"):
+        setattr(documento, campo, getattr(actual, campo))
+    return actual
 
 
 def indexar_documento(*, documento_id: int) -> int:

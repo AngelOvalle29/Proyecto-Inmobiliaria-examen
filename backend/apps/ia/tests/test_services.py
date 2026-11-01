@@ -192,3 +192,49 @@ def test_si_el_texto_cambia_mientras_se_indexa_no_guarda_fragmentos_viejos(
     assert list(documento.fragmentos.values_list("contenido", flat=True)) == [
         "La reserva dura 30 días."
     ]
+
+
+def test_con_una_instancia_antigua_la_version_sigue_subiendo(proveedor_falso):
+    """Revisión del PR #62: dos objetos del mismo documento; el segundo quedó
+    con la versión 1 aunque la base ya va en la 2."""
+    documento = crear(contenido="## A\nUno")
+    antiguo = DocumentoRAG.objects.get(pk=documento.pk)
+    actualizar_contenido_documento(documento=documento, contenido_fuente="## A\nDos")
+
+    actualizar_contenido_documento(documento=antiguo, contenido_fuente="## A\nTres")
+
+    documento.refresh_from_db()
+    assert documento.version == 3
+    assert antiguo.version == 3
+    assert documento.contenido_fuente == "## A\nTres"
+
+
+def test_con_una_instancia_antigua_se_detecta_el_cambio_durante_la_indexacion(
+    proveedor_falso,
+):
+    """El cambio hecho con un objeto antiguo también interrumpe la indexación."""
+    documento = crear(contenido="## A\nUno")
+    antiguo = DocumentoRAG.objects.get(pk=documento.pk)
+    actualizar_contenido_documento(documento=documento, contenido_fuente="## A\nDos")
+    proveedor_falso.mientras_genera = lambda: actualizar_contenido_documento(
+        documento=antiguo, contenido_fuente="## A\nTres"
+    )
+
+    with pytest.raises(DocumentoModificadoDuranteIndexacion):
+        indexar_documento(documento_id=documento.pk)
+
+    documento.refresh_from_db()
+    assert documento.version == 3
+    assert documento.fecha_indexacion is None
+
+
+def test_el_mismo_texto_con_una_instancia_antigua_no_cambia_nada(proveedor_falso):
+    documento = crear(contenido="## A\nUno")
+    antiguo = DocumentoRAG.objects.get(pk=documento.pk)
+    actualizar_contenido_documento(documento=documento, contenido_fuente="## A\nDos")
+
+    actualizar_contenido_documento(documento=antiguo, contenido_fuente="## A\nDos")
+
+    documento.refresh_from_db()
+    assert documento.version == 2
+    assert registros_del(documento).count() == 2
