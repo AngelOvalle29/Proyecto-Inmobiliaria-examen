@@ -14,7 +14,9 @@ import { cn } from '../../lib/utils'
 import { ESCRIBEN_CATALOGO, rolPermitido } from '../../menu'
 import { useSesion } from '../../sesion/useSesion'
 import { DialogoCambiarEstado } from './DialogoCambiarEstado'
+import { PestanaAvaluos } from './PestanaAvaluos'
 import { PestanaDatos } from './PestanaDatos'
+import { PestanaDocumentos } from './PestanaDocumentos'
 import { PestanaUnidades } from './PestanaUnidades'
 
 type Pestana = 'datos' | 'unidades' | 'avaluos' | 'documentos'
@@ -75,11 +77,13 @@ function Ficha({ propiedad }: { propiedad: Propiedad }) {
     contenido = (
       <PestanaUnidades propiedad={propiedad.id} puedeEscribir={puedeEscribir} />
     )
+  } else if (abierta === 'avaluos') {
+    contenido = (
+      <PestanaAvaluos propiedad={propiedad.id} puedeEscribir={puedeEscribir} />
+    )
   } else {
     contenido = (
-      <p className="text-sm text-slate-500">
-        Esta pestaña se completa en el siguiente incremento de la spec 014.
-      </p>
+      <PestanaDocumentos propiedad={propiedad.id} puedeEscribir={puedeEscribir} />
     )
   }
 

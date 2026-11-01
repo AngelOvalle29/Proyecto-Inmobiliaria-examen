@@ -11,6 +11,16 @@ type PaginaUnidades = components['schemas']['PaginatedUnidadList']
 export type FiltrosUnidades = NonNullable<
   operations['v1_propiedades_unidades_list']['parameters']['query']
 >
+export type Avaluo = components['schemas']['Avaluo']
+export type DocumentoOficial = components['schemas']['DocumentoOficial']
+export type TipoDocumento = components['schemas']['TipoDocumentoEnum']
+type PaginaAvaluos = components['schemas']['PaginatedAvaluoList']
+type PaginaDocumentos = components['schemas']['PaginatedDocumentoOficialList']
+
+/** Filtros de GET /propiedades/{id}/documentos/: página y tipo. */
+export type FiltrosDocumentos = NonNullable<
+  operations['v1_propiedades_documentos_list']['parameters']['query']
+>
 export type TipoPropiedad = components['schemas']['TipoPropiedad']
 export type EstadoPropiedad = components['schemas']['EstadoPropiedadEnum']
 type PaginaPropiedades = components['schemas']['PaginatedPropiedadList']
@@ -35,6 +45,17 @@ export const ETIQUETAS_ESTADO: Record<EstadoPropiedad, string> = {
   VENDIDA: 'Vendida',
   ARRENDADA: 'Arrendada',
   BAJA: 'Baja',
+}
+
+/** Etiqueta de cada tipo de documento (spec 011); como ETIQUETAS_ESTADO. */
+export const ETIQUETAS_TIPO_DOCUMENTO: Record<TipoDocumento, string> = {
+  ESCRITURA: 'Escritura',
+  LICENCIA: 'Licencia',
+  PLANO: 'Plano',
+  CERTIFICACION: 'Certificación',
+  AVALUO: 'Avalúo',
+  CONTRATO: 'Contrato',
+  OTRO: 'Otro',
 }
 
 /**
@@ -116,6 +137,40 @@ export function useOpcionesUnidad(texto: string, valores: { propiedad: string })
     })),
     cargando: consulta.isFetching,
   }
+}
+
+/**
+ * Los avalúos de una propiedad, del más reciente al más antiguo: el backend
+ * ya los ordena así (spec 011). Solo se piden al abrir la pestaña (regla 1).
+ */
+export function useAvaluos(propiedad: number, pagina: number) {
+  return useQuery({
+    queryKey: ['catalogo', 'avaluos', propiedad, pagina],
+    queryFn: async () =>
+      (
+        await clienteApi.get<PaginaAvaluos>(`/propiedades/${propiedad}/avaluos/`, {
+          params: { page: pagina },
+        })
+      ).data,
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** Los documentos de una propiedad, con filtro por tipo. */
+export function useDocumentos(propiedad: number, filtros: FiltrosDocumentos = {}) {
+  return useQuery({
+    queryKey: ['catalogo', 'documentos', propiedad, filtros],
+    queryFn: async () =>
+      (
+        await clienteApi.get<PaginaDocumentos>(
+          `/propiedades/${propiedad}/documentos/`,
+          {
+            params: filtros,
+          },
+        )
+      ).data,
+    placeholderData: keepPreviousData,
+  })
 }
 
 /** Tipos de propiedad activos. Son pocos (siete): caben en una página. */

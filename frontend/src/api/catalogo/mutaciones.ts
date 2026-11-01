@@ -2,9 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { clienteApi } from '../cliente'
 import type { components } from '../tipos.generados'
-import type { Propiedad, Unidad } from './consultas'
+import type { Avaluo, DocumentoOficial, Propiedad, Unidad } from './consultas'
 
 type CambiarEstado = components['schemas']['CambiarEstado']
+type DescargaDocumento = components['schemas']['DescargaDocumento']
 
 /**
  * Lo que se envía para crear una propiedad: los campos escribibles del esquema.
@@ -130,5 +131,144 @@ export function useDesactivarUnidad() {
       await clienteApi.delete(`/unidades/${id}/`)
     },
     onSuccess: invalidar,
+  })
+}
+
+/** Lo que se envía para registrar un avalúo; el documento es opcional. */
+export type DatosAvaluo = Pick<
+  Avaluo,
+  'fecha' | 'valor' | 'moneda_id' | 'perito' | 'metodologia' | 'observaciones'
+> & { documento_id?: number | null }
+
+/**
+ * Invalida las consultas del catálogo con esas claves. Los avalúos invalidan
+ * también los documentos: un documento que respalda un avalúo ya no se puede
+ * desactivar.
+ */
+function useInvalidar(...claves: string[]) {
+  const clienteConsultas = useQueryClient()
+  return () =>
+    Promise.all(
+      claves.map((clave) =>
+        clienteConsultas.invalidateQueries({ queryKey: ['catalogo', clave] }),
+      ),
+    )
+}
+
+/** POST /propiedades/{id}/avaluos/. Un avalúo no se edita (spec 011, regla 3). */
+export function useRegistrarAvaluo(propiedad: number) {
+  const invalidar = useInvalidar('avaluos', 'documentos')
+  return useMutation({
+    mutationFn: async (datos: DatosAvaluo) =>
+      (await clienteApi.post<Avaluo>(`/propiedades/${propiedad}/avaluos/`, datos)).data,
+    onSuccess: invalidar,
+  })
+}
+
+/** DELETE /avaluos/{id}/: borrado lógico. */
+export function useDesactivarAvaluo() {
+  const invalidar = useInvalidar('avaluos', 'documentos')
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await clienteApi.delete(`/avaluos/${id}/`)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+/** Los datos de un documento que se pueden editar después de subirlo. */
+export type DatosDocumento = Pick<
+  DocumentoOficial,
+  'nombre' | 'fecha_emision' | 'fecha_vencimiento' | 'emisor'
+>
+
+/** Lo que se sube: el archivo, su tipo y sus datos. */
+export type DatosSubirDocumento = DatosDocumento & {
+  archivo: File
+  tipo: DocumentoOficial['tipo']
+}
+
+/**
+ * POST /propiedades/{id}/documentos/ como multipart/form-data (spec 014,
+ * regla 5): un archivo no viaja en JSON. Con FormData, axios pone el
+ * Content-Type y el separador de las partes por su cuenta.
+ */
+export function useSubirDocumento(propiedad: number) {
+  const invalidar = useInvalidar('documentos')
+  return useMutation({
+    mutationFn: async (datos: DatosSubirDocumento) => {
+      const formulario = new FormData()
+      formulario.append('archivo', datos.archivo)
+      formulario.append('tipo', datos.tipo)
+      formulario.append('nombre', datos.nombre)
+      formulario.append('fecha_emision', datos.fecha_emision)
+      // Sin vencimiento, la parte no se envía: la API lo guarda vacío.
+      if (datos.fecha_vencimiento) {
+        formulario.append('fecha_vencimiento', datos.fecha_vencimiento)
+      }
+      formulario.append('emisor', datos.emisor)
+      return (
+        await clienteApi.post<DocumentoOficial>(
+          `/propiedades/${propiedad}/documentos/`,
+          formulario,
+        )
+      ).data
+    },
+    onSuccess: invalidar,
+  })
+}
+
+/** PATCH /documentos/{id}/. El archivo y el tipo no se cambian (spec 011, regla 7). */
+export function useActualizarDocumento() {
+  const invalidar = useInvalidar('documentos')
+  return useMutation({
+    mutationFn: async ({ id, ...datos }: DatosDocumento & { id: number }) =>
+      (await clienteApi.patch<DocumentoOficial>(`/documentos/${id}/`, datos)).data,
+    onSuccess: invalidar,
+  })
+}
+
+/** DELETE /documentos/{id}/. Si respalda un avalúo activo, la API responde 409. */
+export function useDesactivarDocumento() {
+  const invalidar = useInvalidar('documentos')
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await clienteApi.delete(`/documentos/${id}/`)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+/**
+ * Descargar un documento (spec 014, regla 6). Es una mutación y no una
+ * consulta a propósito: la URL firmada vence a los 5 minutos, así que se pide
+ * en cada clic y nunca se guarda en la caché.
+ *
+ * La pestaña se abre antes de pedir la URL: el navegador solo deja abrir
+ * ventanas durante el clic, y después de esperar a la API ya no lo considera
+ * parte del clic.
+ */
+export function useDescargarDocumento() {
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const ventana = window.open('', '_blank')
+      try {
+        const { url } = (
+          await clienteApi.get<DescargaDocumento>(`/documentos/${id}/descarga/`)
+        ).data
+        if (ventana) {
+          // La pestaña nueva no debe poder controlar a esta.
+          ventana.opener = null
+          ventana.location.href = url
+        } else {
+          // El navegador bloqueó la pestaña nueva: se abre en esta, y con
+          // Atrás se vuelve a la ficha.
+          window.location.assign(url)
+        }
+      } catch (error) {
+        ventana?.close()
+        throw error
+      }
+    },
   })
 }

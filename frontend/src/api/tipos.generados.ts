@@ -936,7 +936,7 @@ export interface components {
             moneda_id: number;
             perito: string;
             metodologia: string;
-            readonly documento: components["schemas"]["DocumentoOficialResumen"];
+            readonly documento: components["schemas"]["DocumentoOficialResumen"] | null;
             documento_id?: number | null;
             observaciones?: string;
         };

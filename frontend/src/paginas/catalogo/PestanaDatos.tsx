@@ -1,8 +1,18 @@
-import { ETIQUETAS_ESTADO, type Propiedad } from '../../api/catalogo/consultas'
+import {
+  ETIQUETAS_ESTADO,
+  useAvaluos,
+  type Propiedad,
+} from '../../api/catalogo/consultas'
 import { formatearFecha, formatearMoneda } from '../../lib/formato'
 
-/** Pestaña Datos de la ficha: los datos generales de la propiedad. */
+/**
+ * Pestaña Datos de la ficha: los datos generales de la propiedad y su último
+ * avalúo (spec 014, §5). El avalúo es la primera fila del historial, la misma
+ * consulta que usa la pestaña Avalúos.
+ */
 export function PestanaDatos({ propiedad }: { propiedad: Propiedad }) {
+  const avaluos = useAvaluos(propiedad.id, 1)
+  const ultimo = avaluos.data?.results[0]
   const filas: [string, string][] = [
     ['Tipo', propiedad.tipo.nombre],
     ['Estado', ETIQUETAS_ESTADO[propiedad.estado]],
@@ -16,6 +26,14 @@ export function PestanaDatos({ propiedad }: { propiedad: Propiedad }) {
     [
       'Precio de lista',
       formatearMoneda(propiedad.precio_lista, propiedad.moneda.codigo),
+    ],
+    [
+      'Último avalúo',
+      ultimo
+        ? `${formatearMoneda(ultimo.valor, ultimo.moneda.codigo)} (${formatearFecha(ultimo.fecha)})`
+        : avaluos.isPending
+          ? 'Cargando…'
+          : 'Sin avalúos',
     ],
     ['Consulta pública', propiedad.es_publica ? 'Sí' : 'No'],
     ['Registrada', formatearFecha(propiedad.creado_en)],

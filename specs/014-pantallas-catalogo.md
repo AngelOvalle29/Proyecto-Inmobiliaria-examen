@@ -214,3 +214,20 @@ con la misma clave de caché (§6).
 3. Avalúos y documentos, con el campo de archivo y la descarga.
 4. Tipos de propiedad, el menú y la verificación de §8 en local y en
    producción.
+
+**Ajustes durante la implementación (incremento 3, 2026-10-31):**
+- **Quién arma el `multipart/form-data`.** El campo `'archivo'` de
+  `FormularioDatos` solo guarda el `File` elegido; el `FormData` lo arma la
+  mutación `useSubirDocumento`. Así `FormularioDatos` no sabe nada de cómo se
+  envía cada entidad, igual que con las demás. La revisión de extensión y
+  tamaño va en el esquema de Zod de la pantalla, y su error sale junto al
+  campo (regla 5).
+- **Un cambio de una línea en el backend**, además de la regla 11:
+  `AvaluoSerializer.documento` lleva `allow_null=True`. No cambia lo que
+  responde la API; corrige el esquema, que decía que el documento siempre
+  viene, y con él el tipo generado del frontend.
+- **Descargar con la ventana bloqueada.** El navegador solo deja abrir una
+  pestaña durante el clic, así que se abre antes de pedir la URL. Si el
+  navegador la bloquea igual, el documento se abre en la misma pestaña.
+- **La pestaña Datos muestra el último avalúo** (§5) con la misma consulta que
+  la pestaña Avalúos.
