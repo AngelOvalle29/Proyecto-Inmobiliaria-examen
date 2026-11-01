@@ -55,11 +55,15 @@ export const MENU: EntradaMenu[] = [
     roles: ESCRIBEN_CATALOGO,
     grupo: 'Catálogo',
   },
-  { ruta: '/crm/clientes', etiqueta: 'Clientes' },
-  { ruta: '/crm/cotizaciones', etiqueta: 'Cotizaciones' },
-  { ruta: '/crm/agentes', etiqueta: 'Agentes' },
-  { ruta: '/ventas/contratos', etiqueta: 'Contratos de venta' },
-  { ruta: '/arrendamientos/contratos', etiqueta: 'Contratos de arrendamiento' },
+  { ruta: '/crm/clientes', etiqueta: 'Clientes', grupo: 'CRM' },
+  { ruta: '/crm/cotizaciones', etiqueta: 'Cotizaciones', grupo: 'CRM' },
+  { ruta: '/crm/agentes', etiqueta: 'Agentes', grupo: 'CRM' },
+  { ruta: '/ventas/contratos', etiqueta: 'Contratos de venta', grupo: 'Ventas' },
+  {
+    ruta: '/arrendamientos/contratos',
+    etiqueta: 'Contratos de arrendamiento',
+    grupo: 'Arrendamientos',
+  },
 ]
 
 /**
