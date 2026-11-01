@@ -3,9 +3,9 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 016 |
-| **Estado** | Borrador |
+| **Estado** | Aprobada; pendiente de implementación |
 | **Autor** | Nathaly Saraí Reyes Cifuentes (rol D), con apoyo de Codex |
-| **Revisor** | Por asignar |
+| **Revisor** | AngelOvalle29 (rol C), aprobación del PR #61 sobre `dc258e5` |
 | **Fecha** | 2026-10-31 |
 | **Apps afectadas** | `reportes`; lecturas de `catalogo`, `core` y `auditoria`; frontend |
 | **Rama** | Documentación: `docs/015-016-bloque-d`; implementación propuesta: `feature/016-capa-generica-reportes` |

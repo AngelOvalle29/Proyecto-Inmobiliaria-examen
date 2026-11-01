@@ -3,9 +3,9 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 015 |
-| **Estado** | Borrador |
+| **Estado** | Aprobada; pendiente de implementación |
 | **Autor** | Nathaly Saraí Reyes Cifuentes (rol D), con apoyo de Codex |
-| **Revisor** | Por asignar; coordinar el contrato con AngelOvalle29 (rol C) |
+| **Revisor** | AngelOvalle29 (rol C), aprobación del PR #61 sobre `dc258e5` |
 | **Fecha** | 2026-10-31 |
 | **Apps afectadas** | `auditoria` |
 | **Rama** | Documentación: `docs/015-016-bloque-d`; implementación propuesta: `feature/015-bitacora-agente-ia` |
@@ -40,8 +40,9 @@ El registro efectivo desde IA se integra con C cuando su servicio exista.
    cuando no se invocaron herramientas o no se recuperaron documentos.
    C enviará los tokens de la respuesta del modelo, sin contar embeddings.
    Si no hay fragmentos y no se llama al modelo, enviará `0` y `0`.
-   El servicio admite nulos para consumo desconocido; confirmar con C este
-   caso de fallo sin métricas, sin sustituir consumo desconocido por cero.
+   Si Gemini falla sin reportar métricas, enviará `None` en ambos contadores,
+   según la confirmación de C en el PR #61. Un fallo sin métricas no se
+   contabiliza como una consulta con consumo cero.
 5. `exito=False` conserva un diagnóstico controlado, sin credenciales ni
    respuestas HTTP completas del proveedor. No se guarda una excepción cruda.
    Propuesta: exige `error` no vacío; con `exito=True`, `error` queda vacío.
@@ -73,9 +74,9 @@ El registro efectivo desde IA se integra con C cuando su servicio exista.
 | `error` | TextField, vacío por defecto |
 | `fecha` | DateTimeField, `auto_now_add=True` |
 
-Orden `-fecha, -id`; índice por fecha. Se incorpora el contrato comunicado por
-Angel a Nathaly y reproducido en §6. Queda por confirmar el caso de tokens
-desconocidos ante fallo sin métricas; la aprobación formal sigue en el PR #61.
+Orden `-fecha, -id`; índice por fecha. Contrato confirmado directamente por
+Angel en el [comentario del PR #61](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/61#issuecomment-6552947911),
+incluido el caso de fallo sin métricas.
 
 ## 5. API
 
@@ -111,7 +112,7 @@ La validación se ejecuta explícitamente: `objects.create()` no llama a
 Python los considere enteros.
 No requiere selector público en este incremento.
 
-**Contrato de integración, con el aporte de C compartido por Nathaly:**
+**Contrato de integración confirmado por C en el PR #61:**
 
 ```python
 def registrar_consulta_agente(
@@ -151,11 +152,11 @@ error controlado; el usuario recibe 503. `ia` importa el servicio de `auditoria`
 sin dependencia inversa. Los tokens son los de la respuesta de Gemini; los
 embeddings no se cuentan. Sin fragmentos ni llamada al modelo usa `0`/`0`.
 
-El servicio conserva soporte para `None` cuando el consumo es desconocido.
-El mensaje de C describe contadores enteros, pero no especifica qué enviará
-ante un fallo sin métricas: confirmar ese caso en el PR. La respuesta a su
-pregunta sobre transacciones es la regla 6: una inserción sin `atomic()` propio.
-El aporte comunicado no equivale a aprobación formal del PR.
+Angel confirmó en el PR que ante un fallo sin métricas enviará `None` en
+ambos contadores. También aceptó el manejo de transacciones de la regla 6:
+una inserción sin `atomic()` propio. El punto de llamada está marcado en su
+rama `feature/005-agente-ia-rag` y se conectará cuando esta implementación
+esté en `develop`; la integración aún no está ejecutada ni probada.
 
 ## 7. Auditoría
 
@@ -170,8 +171,8 @@ La inserción es la evidencia de la consulta; no genera otra entrada en
 - [ ] Se distingue consumo desconocido de consumo cero.
 - [ ] Actualizar o borrar por el modelo falla; admin no permite altas ni cambios.
 - [ ] Contadores negativos y modos inválidos son rechazados.
-- [ ] C confirma en el PR la integración, incluido el caso de fallo sin métricas,
-      y refleja el mismo contrato en la spec 005.
+- [x] C confirma en el PR el contrato, incluido el caso de fallo sin métricas.
+- [ ] Se verifica el mismo contrato en la spec 005 y la integración al implementar.
 - [ ] Pasan ruff, comprobación de migraciones y pruebas contra PostgreSQL.
 
 ## 9. Pruebas
@@ -203,3 +204,7 @@ el alcance del conteo de tokens y el punto de llamada desde IA; se documentó
 también la respuesta sobre transacciones. La entrega contiene especificación,
 sin implementación ni pruebas de aplicación. La revisión técnica del equipo
 y los acuerdos restantes se registran en el PR.
+
+Angel confirmó directamente el contrato y los tokens desconocidos en el PR
+#61 y registró su aprobación sobre `dc258e5`. Esta actualización incorpora esa
+confirmación; no acredita implementación ni pruebas de integración.

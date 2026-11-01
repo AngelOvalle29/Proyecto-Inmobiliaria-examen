@@ -48,7 +48,8 @@ presentación (con conversión por tipo de cambio) y agente.
 
 ### Primer incremento propuesto (spec 016, PR #61)
 
-La [spec 016](../specs/016-capa-generica-reportes.md), pendiente de aprobación,
+La [spec 016](../specs/016-capa-generica-reportes.md), aprobada en el PR #61
+por AngelOvalle29 sobre `dc258e5` y pendiente de implementación,
 cubre R05, R16 y R17, con exportaciones síncronas de hasta 5,000 filas. Si se
 supera el límite, se rechaza la descarga antes de cargar detalles y se pide
 acotar filtros; no se encola ni se trunca el archivo.
