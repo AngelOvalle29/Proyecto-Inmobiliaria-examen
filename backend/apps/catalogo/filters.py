@@ -10,7 +10,7 @@ import django_filters
 from django.db.models import Q, QuerySet
 
 from .enums import EstadoPropiedad, TipoDocumento
-from .models import DocumentoOficial, Propiedad
+from .models import DocumentoOficial, Propiedad, Unidad
 
 
 class PropiedadFilter(django_filters.FilterSet):
@@ -57,3 +57,13 @@ class DocumentoFilter(django_filters.FilterSet):
     class Meta:
         model = DocumentoOficial
         fields = ["tipo"]
+
+
+class UnidadFilter(django_filters.FilterSet):
+    # Spec 014, regla 11: para buscar una unidad mientras se escribe (cotizar,
+    # vender o arrendar un apartamento) sin quedarse en la primera página.
+    buscar = django_filters.CharFilter(field_name="codigo", lookup_expr="icontains")
+
+    class Meta:
+        model = Unidad
+        fields = ["buscar"]

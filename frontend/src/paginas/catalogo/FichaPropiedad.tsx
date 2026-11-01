@@ -15,6 +15,7 @@ import { ESCRIBEN_CATALOGO, rolPermitido } from '../../menu'
 import { useSesion } from '../../sesion/useSesion'
 import { DialogoCambiarEstado } from './DialogoCambiarEstado'
 import { PestanaDatos } from './PestanaDatos'
+import { PestanaUnidades } from './PestanaUnidades'
 
 type Pestana = 'datos' | 'unidades' | 'avaluos' | 'documentos'
 
@@ -70,6 +71,10 @@ function Ficha({ propiedad }: { propiedad: Propiedad }) {
   let contenido: ReactNode
   if (abierta === 'datos') {
     contenido = <PestanaDatos propiedad={propiedad} />
+  } else if (abierta === 'unidades') {
+    contenido = (
+      <PestanaUnidades propiedad={propiedad.id} puedeEscribir={puedeEscribir} />
+    )
   } else {
     contenido = (
       <p className="text-sm text-slate-500">
@@ -126,7 +131,8 @@ function Ficha({ propiedad }: { propiedad: Propiedad }) {
       </Card>
 
       <DialogoCambiarEstado
-        propiedad={cambiandoEstado ? propiedad : null}
+        recurso="propiedades"
+        elemento={cambiandoEstado ? propiedad : null}
         alCerrar={() => setCambiandoEstado(false)}
       />
     </div>

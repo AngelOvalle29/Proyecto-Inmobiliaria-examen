@@ -182,7 +182,8 @@ export function ListaPropiedades() {
       />
 
       <DialogoCambiarEstado
-        propiedad={paraCambiarEstado}
+        recurso="propiedades"
+        elemento={paraCambiarEstado}
         alCerrar={() => setParaCambiarEstado(null)}
       />
     </div>

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { clienteApi } from '../cliente'
 import type { components } from '../tipos.generados'
-import type { Propiedad } from './consultas'
+import type { Propiedad, Unidad } from './consultas'
 
 type CambiarEstado = components['schemas']['CambiarEstado']
 
@@ -57,14 +57,18 @@ export function useActualizarPropiedad() {
   })
 }
 
-/** POST /propiedades/{id}/cambiar-estado/ con el estado nuevo y el motivo. */
-export function useCambiarEstadoPropiedad() {
-  const invalidar = useInvalidarPropiedades()
+/**
+ * POST /{recurso}/{id}/cambiar-estado/ con el estado nuevo y el motivo. La
+ * propiedad y la unidad tienen la misma acción con la misma entrada (spec 003),
+ * así que un solo hook sirve para las dos (spec 014, regla 4). Se invalida
+ * todo el catálogo: la lista, la ficha y las unidades.
+ */
+export function useCambiarEstado(recurso: 'propiedades' | 'unidades') {
+  const clienteConsultas = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...datos }: CambiarEstado & { id: number }) =>
-      (await clienteApi.post<Propiedad>(`/propiedades/${id}/cambiar-estado/`, datos))
-        .data,
-    onSuccess: invalidar,
+      (await clienteApi.post(`/${recurso}/${id}/cambiar-estado/`, datos)).data,
+    onSuccess: () => clienteConsultas.invalidateQueries({ queryKey: ['catalogo'] }),
   })
 }
 
@@ -74,6 +78,56 @@ export function useDesactivarPropiedad() {
   return useMutation({
     mutationFn: async (id: number) => {
       await clienteApi.delete(`/propiedades/${id}/`)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+/** Los campos escribibles de una unidad; la propiedad sale de la URL. */
+export type DatosUnidad = Pick<
+  Unidad,
+  | 'codigo'
+  | 'nivel'
+  | 'area_m2'
+  | 'habitaciones'
+  | 'banos'
+  | 'precio_lista'
+  | 'moneda_id'
+>
+
+function useInvalidarUnidades() {
+  const clienteConsultas = useQueryClient()
+  return () =>
+    clienteConsultas.invalidateQueries({ queryKey: ['catalogo', 'unidades'] })
+}
+
+/** POST /propiedades/{id}/unidades/. Un código repetido en la propiedad da 409. */
+export function useCrearUnidad(propiedad: number) {
+  const invalidar = useInvalidarUnidades()
+  return useMutation({
+    mutationFn: async (datos: DatosUnidad) =>
+      (await clienteApi.post<Unidad>(`/propiedades/${propiedad}/unidades/`, datos))
+        .data,
+    onSuccess: invalidar,
+  })
+}
+
+/** PATCH /unidades/{id}/. Como en la propiedad, el estado tiene su propia acción. */
+export function useActualizarUnidad() {
+  const invalidar = useInvalidarUnidades()
+  return useMutation({
+    mutationFn: async ({ id, ...datos }: DatosUnidad & { id: number }) =>
+      (await clienteApi.patch<Unidad>(`/unidades/${id}/`, datos)).data,
+    onSuccess: invalidar,
+  })
+}
+
+/** DELETE /unidades/{id}/: borrado lógico. */
+export function useDesactivarUnidad() {
+  const invalidar = useInvalidarUnidades()
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await clienteApi.delete(`/unidades/${id}/`)
     },
     onSuccess: invalidar,
   })

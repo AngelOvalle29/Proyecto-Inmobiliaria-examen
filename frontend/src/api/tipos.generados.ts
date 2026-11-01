@@ -709,10 +709,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description GET y POST /api/v1/propiedades/{id}/unidades/ */
+        /** @description GET y POST /api/v1/propiedades/{id}/unidades/?buscar= (código) */
         get: operations["v1_propiedades_unidades_list"];
         put?: never;
-        /** @description GET y POST /api/v1/propiedades/{id}/unidades/ */
+        /** @description GET y POST /api/v1/propiedades/{id}/unidades/?buscar= (código) */
         post: operations["v1_propiedades_unidades_create"];
         delete?: never;
         options?: never;
@@ -3143,6 +3143,7 @@ export interface operations {
     v1_propiedades_unidades_list: {
         parameters: {
             query?: {
+                buscar?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
             };
