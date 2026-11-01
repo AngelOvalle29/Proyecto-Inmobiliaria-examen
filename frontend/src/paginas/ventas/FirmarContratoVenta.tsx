@@ -1,7 +1,11 @@
 import { useNavigate, useSearchParams } from 'react-router'
 import { z } from 'zod'
 
-import { useOpcionesPropiedad, useOpcionesUnidad } from '../../api/catalogo/consultas'
+import {
+  useOpcionesDocumento,
+  useOpcionesPropiedad,
+  useOpcionesUnidad,
+} from '../../api/catalogo/consultas'
 import { useMonedas } from '../../api/core/consultas'
 import {
   useCotizacion,
@@ -35,6 +39,7 @@ const objeto = z.object({
   tasa_interes_anual: monto,
   fecha_primera_cuota: z.string(),
   observaciones: z.string(),
+  documento: z.string(),
 })
 
 type Datos = z.infer<typeof objeto>
@@ -115,6 +120,15 @@ const CAMPOS_DE_LA_VENTA: CampoFormulario<Datos>[] = [
     tipo: 'area',
     ayuda: 'Opcional.',
   },
+  {
+    nombre: 'documento',
+    etiqueta: 'Documento del contrato',
+    tipo: 'relacion',
+    dependeDe: 'propiedad',
+    marcador: 'Primero elija la propiedad',
+    ayuda: 'Opcional. También se puede vincular después, desde el detalle.',
+    buscar: useOpcionesDocumento,
+  },
 ]
 
 interface PropsFormulario {
@@ -167,6 +181,7 @@ function Formulario({ cotizacion }: PropsFormulario) {
       fecha_firma: datos.fecha_firma,
       modalidad: datos.modalidad as Modalidad,
       observaciones: datos.observaciones,
+      documento: datos.documento ? Number(datos.documento) : undefined,
     }
     if (datos.modalidad === 'FINANCIADO') {
       comunes.enganche = datos.enganche || undefined
@@ -197,7 +212,10 @@ function Formulario({ cotizacion }: PropsFormulario) {
       esquema={crearEsquema(cotizacion !== undefined)}
       valoresIniciales={{
         cliente: '',
-        propiedad: '',
+        // Con cotización no se muestra: la usa el buscador de documentos.
+        propiedad: String(
+          cotizacion?.propiedad?.id ?? cotizacion?.unidad?.propiedad.id ?? '',
+        ),
         unidad: '',
         monto_total: '',
         moneda: '',
@@ -208,6 +226,7 @@ function Formulario({ cotizacion }: PropsFormulario) {
         tasa_interes_anual: '',
         fecha_primera_cuota: '',
         observaciones: '',
+        documento: '',
       }}
       alEnviar={guardar}
       textoEnviar="Firmar contrato"

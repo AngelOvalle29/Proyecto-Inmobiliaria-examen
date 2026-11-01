@@ -321,6 +321,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contratos-arrendamiento/{id}/documento/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vincular o cambiar el documento de un contrato
+         * @description POST /api/v1/contratos-arrendamiento/{id}/documento/ (reglas 17 y 18).
+         */
+        post: operations["v1_contratos_arrendamiento_documento_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/contratos-arrendamiento/{id}/finalizar/": {
         parameters: {
             query?: never;
@@ -430,6 +450,26 @@ export interface paths {
         put?: never;
         /** @description POST /api/v1/contratos-venta/{id}/anular/ (regla 15). */
         post: operations["v1_contratos_venta_anular_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-venta/{id}/documento/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vincular o cambiar el documento de un contrato
+         * @description POST /api/v1/contratos-venta/{id}/documento/ (reglas 23 y 24).
+         */
+        post: operations["v1_contratos_venta_documento_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1008,6 +1048,7 @@ export interface components {
             /** Format: date */
             fecha_rescision?: string | null;
             contrato_anterior?: number | null;
+            documento: components["schemas"]["DocumentoOficialResumen"] | null;
         };
         /** @description El detalle trae además sus pagos de renta: el calendario de cobros. */
         ArrendamientoDetalle: {
@@ -1037,6 +1078,7 @@ export interface components {
             /** Format: date */
             fecha_rescision?: string | null;
             contrato_anterior?: number | null;
+            documento: components["schemas"]["DocumentoOficialResumen"] | null;
             readonly pagos: components["schemas"]["PagoRenta"][];
         };
         Avaluo: {
@@ -1180,6 +1222,7 @@ export interface components {
             comision_agente: string;
             estado?: components["schemas"]["EstadoContratoEnum"];
             observaciones?: string;
+            documento: components["schemas"]["DocumentoOficialResumen"] | null;
         };
         /** @description El detalle trae además sus cuotas (vacío en un contrato de contado). */
         ContratoVentaDetalle: {
@@ -1211,6 +1254,7 @@ export interface components {
             comision_agente: string;
             estado?: components["schemas"]["EstadoContratoEnum"];
             observaciones?: string;
+            documento: components["schemas"]["DocumentoOficialResumen"] | null;
             readonly cuotas: components["schemas"]["Cuota"][];
         };
         /** @description Salida de una cotización. vencida se calcula (regla 4). */
@@ -1389,6 +1433,7 @@ export interface components {
             dias_gracia: number;
             /** Format: decimal */
             porcentaje_mora: string;
+            documento?: number;
         };
         /**
          * @description Entrada para firmar (regla 7): con `cotizacion`, o sin ella con `cliente`,
@@ -1414,6 +1459,7 @@ export interface components {
             /** Format: date */
             fecha_primera_cuota?: string;
             observaciones?: string;
+            documento?: number;
         };
         Login: {
             /** Format: email */
@@ -2062,6 +2108,10 @@ export interface components {
             email: string;
             nombre_completo: string;
         };
+        /** @description Vincula o cambia el documento; no acepta null: no se quita (regla 18). */
+        VincularDocumento: {
+            documento: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -2669,6 +2719,33 @@ export interface operations {
             };
         };
     };
+    v1_contratos_arrendamiento_documento_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VincularDocumento"];
+                "application/x-www-form-urlencoded": components["schemas"]["VincularDocumento"];
+                "multipart/form-data": components["schemas"]["VincularDocumento"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrendamientoDetalle"];
+                };
+            };
+        };
+    };
     v1_contratos_arrendamiento_finalizar_create: {
         parameters: {
             query?: never;
@@ -2835,6 +2912,33 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoVentaDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_venta_documento_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VincularDocumento"];
+                "application/x-www-form-urlencoded": components["schemas"]["VincularDocumento"];
+                "multipart/form-data": components["schemas"]["VincularDocumento"];
+            };
+        };
         responses: {
             200: {
                 headers: {

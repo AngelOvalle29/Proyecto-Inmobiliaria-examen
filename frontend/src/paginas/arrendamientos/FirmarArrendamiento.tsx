@@ -2,7 +2,11 @@ import { useNavigate } from 'react-router'
 import { z } from 'zod'
 
 import { useFirmarArrendamiento } from '../../api/arrendamientos/mutaciones'
-import { useOpcionesPropiedad, useOpcionesUnidad } from '../../api/catalogo/consultas'
+import {
+  useOpcionesDocumento,
+  useOpcionesPropiedad,
+  useOpcionesUnidad,
+} from '../../api/catalogo/consultas'
 import { useMonedas } from '../../api/core/consultas'
 import { useOpcionesCliente } from '../../api/crm/consultas'
 import {
@@ -29,6 +33,7 @@ const esquema = z.object({
   dia_cobro: entero,
   dias_gracia: entero,
   porcentaje_mora: monto,
+  documento: z.string(),
 })
 
 type Datos = z.infer<typeof esquema>
@@ -95,6 +100,15 @@ export function FirmarArrendamiento() {
       ayuda: 'Entre 0 y 31.',
     },
     { nombre: 'porcentaje_mora', etiqueta: 'Recargo por mora (%)', tipo: 'numero' },
+    {
+      nombre: 'documento',
+      etiqueta: 'Documento del contrato',
+      tipo: 'relacion',
+      dependeDe: 'propiedad',
+      marcador: 'Primero elija la propiedad',
+      ayuda: 'Opcional. También se puede vincular después, desde el detalle.',
+      buscar: useOpcionesDocumento,
+    },
   ]
 
   /** Del formulario (todo texto) a lo que espera la API. */
@@ -113,6 +127,7 @@ export function FirmarArrendamiento() {
       dia_cobro: Number(datos.dia_cobro),
       dias_gracia: Number(datos.dias_gracia),
       porcentaje_mora: datos.porcentaje_mora,
+      documento: datos.documento ? Number(datos.documento) : undefined,
     })
     navegar(`/arrendamientos/contratos/${contrato.id}`)
   }
@@ -135,6 +150,7 @@ export function FirmarArrendamiento() {
           dia_cobro: '1',
           dias_gracia: '0',
           porcentaje_mora: '0',
+          documento: '',
         }}
         alEnviar={guardar}
         textoEnviar="Firmar contrato"
