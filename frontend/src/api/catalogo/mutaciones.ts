@@ -2,7 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { clienteApi } from '../cliente'
 import type { components } from '../tipos.generados'
-import type { Avaluo, DocumentoOficial, Propiedad, Unidad } from './consultas'
+import type {
+  Avaluo,
+  DocumentoOficial,
+  Propiedad,
+  TipoPropiedad,
+  Unidad,
+} from './consultas'
 
 type CambiarEstado = components['schemas']['CambiarEstado']
 type DescargaDocumento = components['schemas']['DescargaDocumento']
@@ -270,5 +276,42 @@ export function useDescargarDocumento() {
         throw error
       }
     },
+  })
+}
+
+/** Los campos escribibles de un tipo de propiedad. */
+export type DatosTipoPropiedad = Pick<
+  TipoPropiedad,
+  'nombre' | 'descripcion' | 'requiere_unidades'
+>
+
+/** POST /tipos-propiedad/. Solo el administrador (spec 003, regla 8). */
+export function useCrearTipoPropiedad() {
+  const invalidar = useInvalidar('tipos-propiedad')
+  return useMutation({
+    mutationFn: async (datos: DatosTipoPropiedad) =>
+      (await clienteApi.post<TipoPropiedad>('/tipos-propiedad/', datos)).data,
+    onSuccess: invalidar,
+  })
+}
+
+/** PATCH /tipos-propiedad/{id}/. */
+export function useActualizarTipoPropiedad() {
+  const invalidar = useInvalidar('tipos-propiedad')
+  return useMutation({
+    mutationFn: async ({ id, ...datos }: DatosTipoPropiedad & { id: number }) =>
+      (await clienteApi.patch<TipoPropiedad>(`/tipos-propiedad/${id}/`, datos)).data,
+    onSuccess: invalidar,
+  })
+}
+
+/** DELETE /tipos-propiedad/{id}/: borrado lógico. */
+export function useDesactivarTipoPropiedad() {
+  const invalidar = useInvalidar('tipos-propiedad')
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await clienteApi.delete(`/tipos-propiedad/${id}/`)
+    },
+    onSuccess: invalidar,
   })
 }

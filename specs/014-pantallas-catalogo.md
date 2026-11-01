@@ -143,29 +143,29 @@ No aplica: cada acción llama a un endpoint que ya audita (specs 003 y 011).
 
 ## 8. Criterios de aceptación
 
-- [ ] La ficha abre en *Datos*; cada pestaña carga sus datos solo al abrirla, y
+- [x] La ficha abre en *Datos*; cada pestaña carga sus datos solo al abrirla, y
       la pestaña se conserva al recargar
-- [ ] Una casa no muestra la pestaña Unidades; un edificio sí
-- [ ] Agregar una unidad con un código repetido muestra el 409 de la API
-- [ ] Desactivar una propiedad con unidades activas muestra el 409 de la API
-- [ ] Registrar un avalúo lo pone primero en el historial; uno con fecha futura
+- [x] Una casa no muestra la pestaña Unidades; un edificio sí
+- [x] Agregar una unidad con un código repetido muestra el 409 de la API
+- [x] Desactivar una propiedad con unidades activas muestra el 409 de la API
+- [x] Registrar un avalúo lo pone primero en el historial; uno con fecha futura
       muestra el error junto al campo
 - [ ] Subir un PDF lo agrega a la lista, y Descargar lo abre en una pestaña nueva
-- [ ] Un archivo de otra extensión, o de más de 10 MB, muestra el error del
+- [x] Un archivo de otra extensión, o de más de 10 MB, muestra el error del
       navegador junto al campo, sin subirlo
-- [ ] Un archivo cuyo contenido no es PDF, JPG ni PNG (un `.exe` renombrado)
+- [x] Un archivo cuyo contenido no es PDF, JPG ni PNG (un `.exe` renombrado)
       muestra arriba del formulario el 400 `ARCHIVO_NO_PERMITIDO` de la API
-- [ ] `?buscar=` en las unidades de una propiedad filtra por código, y la
+- [x] `?buscar=` en las unidades de una propiedad filtra por código, y la
       búsqueda de unidades de la spec 012 encuentra las que no están en la
       primera página
-- [ ] Un documento vencido se ve en rojo y uno por vencer en ámbar
-- [ ] Desactivar un documento que respalda un avalúo muestra el 409 de la API
-- [ ] Editar una propiedad muestra su ciudad actual y guarda los cambios
-- [ ] Un gerente no ve las acciones de tipos de propiedad; un administrador sí
-- [ ] `CONSULTA` ve la ficha, las pestañas y Descargar, sin ningún botón de
+- [x] Un documento vencido se ve en rojo y uno por vencer en ámbar
+- [x] Desactivar un documento que respalda un avalúo muestra el 409 de la API
+- [x] Editar una propiedad muestra su ciudad actual y guarda los cambios
+- [x] Un gerente no ve las acciones de tipos de propiedad; un administrador sí
+- [x] `CONSULTA` ve la ficha, las pestañas y Descargar, sin ningún botón de
       escritura
 - [ ] En producción, subir y descargar funcionan contra Supabase
-- [ ] `npm run lint`, `npm run typecheck` y `npm run build` pasan
+- [x] `npm run lint`, `npm run typecheck` y `npm run build` pasan
 
 ## 9. Pruebas
 
@@ -231,3 +231,11 @@ con la misma clave de caché (§6).
   navegador la bloquea igual, el documento se abre en la misma pestaña.
 - **La pestaña Datos muestra el último avalúo** (§5) con la misma consulta que
   la pestaña Avalúos.
+
+**Verificación local (incremento 4, 2026-11-01).** Se recorrió §8 con un
+gerente, un usuario de consulta y un administrador de prueba. Quedan dos
+criterios sin marcar:
+- **Descargar en una pestaña nueva:** el panel del navegador del agente
+  bloquea las ventanas nuevas. La URL firmada se comprobó aparte (devuelve el
+  PDF); falta probar el botón en un navegador normal.
+- **Subir y descargar en producción**, contra Supabase.

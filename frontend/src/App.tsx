@@ -11,6 +11,7 @@ import { Login } from './paginas/auth/Login'
 import { EditarPropiedad } from './paginas/catalogo/EditarPropiedad'
 import { FichaPropiedad } from './paginas/catalogo/FichaPropiedad'
 import { ListaPropiedades } from './paginas/catalogo/ListaPropiedades'
+import { ListaTiposPropiedad } from './paginas/catalogo/ListaTiposPropiedad'
 import { NuevaPropiedad } from './paginas/catalogo/NuevaPropiedad'
 import { EditarCliente, NuevoCliente } from './paginas/crm/FormularioCliente'
 import { ListaAgentes } from './paginas/crm/ListaAgentes'
@@ -62,6 +63,8 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
+      // Todos la ven; los botones de escritura solo el administrador (spec 014).
+      { path: '/catalogo/tipos', element: <ListaTiposPropiedad /> },
       { path: '/crm/clientes', element: <ListaClientes /> },
       {
         path: '/crm/clientes/nuevo',
