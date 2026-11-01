@@ -39,11 +39,34 @@ GET /api/v1/reportes/{slug}/excel/          descarga .xlsx
 GET /api/v1/reportes/{slug}/pdf/            descarga .pdf
 ```
 
-Los filtros viajan como parámetros de consulta. Los reportes pesados se generan
-en Celery y se notifica al usuario cuando el archivo está listo.
+Los filtros viajan como parámetros de consulta. El diseño objetivo contempla
+reportes pesados en Celery con notificación al usuario; ese flujo queda para
+un incremento posterior y no forma parte de la spec 016.
 
 **Filtros comunes a casi todos:** rango de fechas, país, ciudad, moneda de
 presentación (con conversión por tipo de cambio) y agente.
+
+### Primer incremento propuesto (spec 016, PR #61)
+
+La [spec 016](../specs/016-capa-generica-reportes.md), pendiente de aprobación,
+cubre R05, R16 y R17, con exportaciones síncronas de hasta 5,000 filas. Si se
+supera el límite, se rechaza la descarga antes de cargar detalles y se pide
+acotar filtros; no se encola ni se trunca el archivo.
+
+En este incremento la moneda es un filtro de moneda original: no hay conversión
+a moneda de presentación. R05 agrupa y totaliza por moneda; el rango de precio
+exige indicar moneda. La conversión y su fecha/tasa se definirán en otra spec
+con los selectores de core. Esto no altera el diseño de los montos USD de BI.
+
+Para JSON se calcula el resumen con agregaciones en PostgreSQL y se seleccionan
+solo las 25 filas de la página mediante `LIMIT/OFFSET`. `Reporte.filas` recibe
+esa lista parcial; los totales y agrupamientos conservan todo el filtro. Un
+envoltorio `ReportePaginado` aporta el conteo y la página para generar los enlaces.
+Excel/PDF usan otro flujo: comprobar el conteo, seleccionar todo el detalle
+dentro del límite y construir un `Reporte` completo para los mismos exportadores.
+
+R05/R16 están disponibles para todos los roles autenticados; R17 solo para
+administrador. Son tres reportes iniciales: el mínimo de 15 sigue pendiente.
 
 ---
 

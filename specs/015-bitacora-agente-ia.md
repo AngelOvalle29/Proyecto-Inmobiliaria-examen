@@ -9,7 +9,7 @@
 | **Fecha** | 2026-10-31 |
 | **Apps afectadas** | `auditoria` |
 | **Rama** | Documentación: `docs/015-016-bloque-d`; implementación propuesta: `feature/015-bitacora-agente-ia` |
-| **Pull request** | Pendiente; issue [#23](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/23) |
+| **Pull request** | [#61](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/61); issue [#23](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/23) |
 
 ## 1. Problema
 
@@ -79,8 +79,9 @@ Contrato de ejemplo: consulta pública sin fuentes suficientes → usuario nulo,
 modo `PUBLICO`, respuesta indicando falta de información, lista de fuentes
 vacía y `exito=True`. Un fallo del proveedor usa `exito=False`.
 
-Errores de entrada del servicio: `ValidationError` si modo, listas o contadores
-son inválidos. No se define HTTP porque esta spec no publica endpoints.
+Errores de entrada del servicio: `django.core.exceptions.ValidationError` si
+modo, listas o contadores son inválidos. No se usa la excepción de DRF porque
+el servicio no depende de HTTP. Esta spec no publica endpoints.
 
 ## 6. Servicios y selectores
 
@@ -102,6 +103,40 @@ La validación se ejecuta explícitamente: `objects.create()` no llama a
 `full_clean()` automáticamente. Se rechazan booleanos como contadores, aunque
 Python los considere enteros.
 No requiere selector público en este incremento.
+
+**Contrato propuesto a C, pendiente de confirmación en el PR #61:**
+
+```python
+def registrar_consulta_agente(
+    *,
+    usuario: AbstractBaseUser | None,
+    modo: str,
+    pregunta: str,
+    respuesta: str,
+    herramientas_invocadas: list[dict],
+    documentos_recuperados: list[dict],
+    tokens_entrada: int | None,
+    tokens_salida: int | None,
+    duracion_ms: int,
+    exito: bool,
+    error: str = "",
+) -> LogAgenteIA: ...
+```
+
+Ejemplo de las listas JSON con datos ficticios:
+
+```json
+{
+  "herramientas_invocadas": [{"nombre": "buscar_propiedades", "argumentos": {"pais_id": 1}}],
+  "documentos_recuperados": [{"documento_id": 1, "fragmento_id": 2, "seccion": "Requisitos", "distancia": 0.24}]
+}
+```
+
+`distancia` es distancia de coseno, no similitud: menor significa más cercano.
+Ambas listas pueden estar vacías. Tokens `None` significa consumo desconocido;
+`0` solo se usa si se conoce que no hubo consumo. Angel debe confirmar firma,
+claves JSON y manejo de tokens en el PR; hasta entonces no se da por resuelta
+la coordinación ni por aprobada esta spec.
 
 ## 7. Auditoría
 
@@ -141,9 +176,17 @@ La inserción es la evidencia de la consulta; no genera otra entrada en
 Sesión 2026-10-31: Codex inspeccionó el modelo y servicio de auditoría, la spec
 005 y el issue #23, y redactó este borrador. No se implementó código ni se
 afirma aprobación, ejecución de pruebas o revisión personal de la estudiante.
-Nathaly completa aquí qué revisó, entendió y corrigió antes de su commit.
+La revisión personal de Nathaly sigue pendiente de confirmación. El resumen
+para su revisión es: la bitácora solo admite inserciones; guardar fuentes como
+JSON evita depender de modelos de IA; tokens nulos no significan cero consumo.
+Este resumen fue redactado por Codex y no acredita que la estudiante ya lo
+haya leído o pueda explicarlo.
 
 Revisión técnica posterior de Codex, solicitada por Nathaly: se aclaró la
 validación explícita antes de insertar y la coherencia entre `exito` y `error`.
 Nathaly autorizó al agente a ejecutar el commit de documentación; esto no
 equivale a la aprobación de otro integrante ni acredita su revisión personal.
+
+Tras la revisión del PR #61, Nathaly pidió resolver los comentarios con apoyo
+de Codex. Se explicitó la excepción de Django y el contrato propuesto a C.
+No se afirma que el equipo haya aprobado una excepción sobre commits.

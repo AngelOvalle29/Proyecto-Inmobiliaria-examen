@@ -9,7 +9,7 @@
 | **Fecha** | 2026-10-31 |
 | **Apps afectadas** | `reportes`; lecturas de `catalogo`, `core` y `auditoria`; frontend |
 | **Rama** | Documentación: `docs/015-016-bloque-d`; implementación propuesta: `feature/016-capa-generica-reportes` |
-| **Pull request** | Pendiente; avance del issue [#24](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/24) |
+| **Pull request** | [#61](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/61); avance del issue [#24](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/24) |
 
 ## 1. Problema
 
@@ -40,7 +40,8 @@ Todas las reglas nuevas son propuestas para revisión, no acuerdos ya aprobados.
 1. Cada reporte declara slug, título, columnas, filtros y roles. Un slug
    desconocido devuelve 404. El catálogo solo muestra reportes autorizados y
    las rutas de datos y descarga vuelven a comprobar el permiso.
-2. Permisos propuestos: R05/R16 para `ADMINISTRADOR` y `GERENTE`; R17 solo
+2. R05/R16 para todos los roles autenticados, coherente con la lectura de
+   propiedades y documentos en las specs 003 y 011. R17 solo para
    `ADMINISTRADOR`, porque puede contener datos sensibles y accesos fallidos.
 3. Filtros inválidos o desconocidos devuelven 400 `VALIDACION`. Fechas ISO,
    rangos inclusivos y mínimo menor o igual a máximo. Para fechas de auditoría,
@@ -79,6 +80,13 @@ Sin tablas ni migraciones nuevas. `Reporte`, `Columna` y `Grupo` son dataclasses
 en memoria con la estructura de `docs/reportes.md` §1. Los filtros también son
 tipados; cada selector devuelve datos de solo lectura para construir el reporte.
 
+`Reporte.filas` es la lista de filas **ya seleccionadas**: una página para
+JSON o todo el resultado dentro del límite para exportar. No ejecuta consultas
+ni exige cargar todo el conjunto. `ReportePaginado` contiene `reporte: Reporte`,
+`count: int`, `pagina: int` y `tamano_pagina: int` (25). La capa HTTP transforma
+estos datos en `filas: {count, next, previous, results}`. `totales` y
+`agrupamientos` siempre describen todo el conjunto filtrado.
+
 ## 5. API
 
 | Método | Ruta | Respuesta |
@@ -109,10 +117,34 @@ Firmas propuestas, implementadas con anotaciones y docstrings:
   lecturas R05 con proyecciones compatibles de propiedades y unidades.
 - `seleccionar_vencimientos(*, filtros: FiltrosVencimientos) -> QuerySet`: lecturas R16.
 - `seleccionar_bitacora(*, filtros: FiltrosBitacora) -> QuerySet`: lecturas R17.
-- `construir_reporte(*, slug: str, filtros: dict, usuario: AbstractBaseUser) -> Reporte`:
-  adapta datos y agregaciones; no hace consultas fuera de los selectores.
+- `resumir_reporte(*, slug: str, filtros: FiltrosReporte) -> ResumenReporte`:
+  selector que calcula `count`, `totales` y `agrupamientos` en PostgreSQL,
+  antes de paginar y sin materializar filas de detalle. En R05 agrega
+  propiedades y unidades por separado y combina resúmenes sin doble conteo.
+- `seleccionar_filas_reporte(*, slug: str, filtros: FiltrosReporte, offset: int,
+  limite: int) -> list[dict]`: selector que aplica orden estable y
+  `LIMIT/OFFSET` en PostgreSQL antes de convertir el resultado en lista.
+- `construir_reporte(*, slug: str, filas: list[dict], resumen: ResumenReporte,
+  filtros: FiltrosReporte, usuario: AbstractBaseUser) -> Reporte`:
+  presentación compartida, sin consultas; recibe las filas ya elegidas.
+- `obtener_reporte_paginado(*, slug: str, filtros: FiltrosReporte,
+  usuario: AbstractBaseUser, pagina: int = 1) -> ReportePaginado`:
+  comprueba permisos, obtiene el resumen y solicita solo 25 filas con
+  `offset=(pagina-1)*25`. Usa `construir_reporte` con esas filas. Una página
+  inválida devuelve 404 según la paginación habitual; sin resultados, página 1 vacía.
+- `obtener_reporte_exportacion(*, slug: str, filtros: FiltrosReporte,
+  usuario: AbstractBaseUser) -> Reporte`: comprueba permisos, obtiene el resumen,
+  rechaza `count > 5000` antes de cargar detalles y selecciona las filas con
+  `offset=0, limite=5000`; construye el reporte completo. Las descargas no
+  admiten `page`: responde 400 `VALIDACION` si se envía, para evitar ambigüedad.
 - `exportar_excel(reporte: Reporte) -> bytes` y `exportar_pdf(reporte: Reporte) -> bytes`:
   solo presentación, sin consultar modelos.
+
+`FiltrosReporte` es la unión de las tres dataclasses de filtros.
+`ResumenReporte` contiene `count: int`, `totales: dict` y
+`agrupamientos: list[Grupo]`. Ningún endpoint pagina una lista completa en
+memoria. Las consultas, agregaciones y límites viven en selectores; el servicio
+elige el flujo paginado o el de exportación y los exportadores solo renderizan.
 
 Frontend: una ruta `/reportes`, formulario generado por metadatos, tabla paginada
 y descargas autenticadas; tipos regenerados desde OpenAPI. Añadir un reporte
@@ -129,7 +161,12 @@ consultar R17. No crea copias de las bitácoras en una tabla nueva.
 - [ ] R05 evita doble conteo de edificios/unidades y separa monedas.
 - [ ] R16 respeta los límites hoy/hoy+N y omite vencimientos nulos.
 - [ ] R17 no expone campos excluidos ni permite acceso con roles no autorizados.
+- [ ] Todos los roles autenticados acceden a R05/R16 en catálogo, JSON y archivos;
+      R17 responde 403 para cualquier rol distinto de administrador.
 - [ ] JSON pagina de forma estable; sus totales no cambian al pasar de página.
+- [ ] Con 60 filas, página 2 materializa solo 25 detalles, conserva count=60 y
+      totales completos; Excel/PDF incluyen las 60. Con 5,001 filas no se
+      materializan detalles para la descarga y se devuelve el error del límite.
 - [ ] Excel y PDF incluyen todas las filas filtradas dentro del límite, título,
       filtros, fecha, autor y totales; Excel congela encabezados y formatea celdas.
 - [ ] PDF repite encabezados/pie y numera páginas; horizontal con más de 6 columnas.
@@ -143,7 +180,7 @@ consultar R17. No crea copias de las bitácoras en una tabla nueva.
 | Nivel | Caso |
 |---|---|
 | Selector | Filtros combinados, inactivos, dos monedas, edificio con unidades |
-| Servicio | Totales de todas las páginas, vacío y límite de exportación |
+| Servicio | 60 filas: página de 25 con totales de 60 y exportación de 60; vacío; 5,001 rechazadas antes de cargar detalle |
 | Exportador | Celdas numéricas, texto con fórmula, fechas y PDF multipágina |
 | API | Permisos iguales en catálogo, JSON y ambos archivos; parámetros inválidos |
 | Frontend/manual | Cambiar filtros reinicia página; descargar con sesión vigente |
@@ -160,11 +197,19 @@ consultar R17. No crea copias de las bitácoras en una tabla nueva.
 ## 11. Trabajo con agentes de IA
 
 Sesión 2026-10-31: Codex comparó el catálogo, modelos y convenciones con el
-issue #24 y redactó este borrador. No se implementó ni probó código. Nathaly
-completa su revisión y los ajustes acordados antes de hacer su propio commit.
+issue #24 y redactó este borrador. No se implementó ni probó código.
+La revisión personal de Nathaly sigue pendiente de confirmación. El resumen
+para su revisión es: JSON consulta solo una página; Excel/PDF consultan el
+resultado completo hasta el límite; los totales incluyen todo el filtro y
+separan monedas. Este resumen es de Codex y no acredita comprensión personal.
 
 Revisión técnica posterior de Codex, solicitada por Nathaly: se precisaron la
 identidad de filas mixtas, la paginación antes de cargar filas, el origen de
 montos/áreas y la moneda exigida para comparar precios. Nathaly autorizó al
 agente a ejecutar el commit de documentación; la aprobación del equipo sigue
 pendiente.
+
+Tras la revisión del PR #61, Nathaly pidió corregir los comentarios con apoyo
+de Codex. Se abrieron R05/R16 a todos los roles autenticados y se separaron
+resumen SQL, selección limitada y construcción del reporte. El equipo no ha
+aprobado una excepción sobre quién ejecuta los commits.

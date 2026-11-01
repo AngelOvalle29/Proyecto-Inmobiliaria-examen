@@ -59,8 +59,15 @@ funcionamiento local ni de producción.
 4. Acordar el conjunto de al menos 15 reportes y las fórmulas pendientes con B/C.
 5. Especificar las cuatro vistas iniciales y crear un tablero conectado.
 
-Los borradores quedan en `docs/015-016-bloque-d`. Nathaly solicitó una revisión
-técnica de Codex y autorizó expresamente al agente a ejecutar el commit de
-estos tres documentos, como excepción a `docs/convenciones.md` §5. Esta revisión
-no sustituye la aprobación de otro integrante. No se implementó código ni se
-publicaron cambios; las specs siguen como borradores.
+Los borradores se publicaron en `docs/015-016-bloque-d` mediante el commit
+`f1e1a26` y el [PR #61](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/61).
+Nathaly solicitó la revisión y ejecución del commit al agente. Eso describe
+lo ocurrido; **no existe una excepción aprobada por el equipo** a
+`docs/convenciones.md` §5. La política de commits queda para discusión conjunta,
+sin modificarla mediante este PR.
+
+La revisión solicita confirmar con Angel el contrato de la bitácora y completar
+la revisión personal de Nathaly en §11. Ambos puntos siguen pendientes de las
+respuestas correspondientes. Los permisos y la separación entre paginación y
+exportación se ajustaron en la spec 016 y en `docs/reportes.md`. No se
+implementó código y no se consideran aprobadas las specs.
