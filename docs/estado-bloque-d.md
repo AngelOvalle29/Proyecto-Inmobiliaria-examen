@@ -23,7 +23,7 @@ funcionamiento local ni de producción.
 | Área / issue | Lo que existe | Lo que falta / siguiente paso |
 |---|---|---|
 | Auditoría base | Modelo inmutable, servicio explícito, migración y admin de solo lectura | Consulta REST y pantalla aún son esqueletos; no confundir con ausencia de registros |
-| Bitácora IA [#23](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/23) | Spec 015 aprobada y contrato confirmado con C | Implementar modelo/servicio y después conectar IA |
+| Bitácora IA [#23](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/23) | Modelo, servicio, migración, admin y pruebas implementados en la rama 015 | Revisar y fusionar implementación; después conectar IA con C |
 | Reportes [#24](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/24) | Spec 016 aprobada; app aún sin implementación | Infraestructura y R05/R16/R17, después completar al menos 15 |
 | Mensajería [#25](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/25) | Celery configurado, tarea de diagnóstico y arranque del worker | Spec de ingesta con C; el diagnóstico no satisface el flujo de negocio |
 | Power BI [#26](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/26) | Diseño del esquema `bi` en documentación | Spec, migración de vistas, usuario de solo lectura, tablero y `.pbix` |
@@ -53,9 +53,9 @@ funcionamiento local ni de producción.
 
 ## Orden de trabajo propuesto
 
-1. Resolver con A el bloqueo de la previsualización de Vercel y fusionar el PR
-   #61 siguiendo las convenciones; actualizar `develop` y crear la rama de 015.
-2. Implementar y probar 015; después 016 con exportadores y tres reportes.
+1. Revisar y fusionar la implementación de 015; las specs del PR #61 ya están
+   fusionadas mediante merge commit en `develop` (`e179ece`).
+2. Conectar la bitácora con C e implementar 016 con exportadores y tres reportes.
 3. Redactar la spec de ingesta con el contrato de C y el worker de A.
 4. Acordar el conjunto de al menos 15 reportes y las fórmulas pendientes con B/C.
 5. Especificar las cuatro vistas iniciales y crear un tablero conectado.
@@ -73,11 +73,11 @@ propio. También aprobó el PR sobre `dc258e5`. La integración desde su rama
 `feature/005-agente-ia-rag` se conectará cuando la implementación esté en
 `develop`. Las secciones 11 recogen la participación de Nathaly y el apoyo de
 Codex de forma resumida. Los permisos y la separación entre paginación y
-exportación se ajustaron en la spec 016 y en `docs/reportes.md`. No se
-implementó código. El PR tiene aprobación de Angel y sigue pendiente de fusión
-en el momento de esta actualización.
+exportación se ajustaron en la spec 016 y en `docs/reportes.md`. Esa etapa fue
+de documentación. El PR #61 quedó fusionado en `develop` y la implementación
+de 015 se describe al final de este documento.
 
-## Cierre de la sesión de especificaciones
+## Cierre de la sesión de especificaciones (registro histórico)
 
 - Los cambios de este bloque son solo documentación: no están implementados
   `LogAgenteIA`, los tres reportes ni sus exportadores.
@@ -98,3 +98,17 @@ Para la próxima sesión: retomar 015 en `feature/015-bitacora-agente-ia`, desde
 `develop` actualizado después de fusionar las specs, y verificar el contrato
 con la rama de IA. El entorno y las pruebas de aplicación se comprobarán al
 implementar; en esta sesión solo se revisó documentación y estado de GitHub.
+
+## Avance de implementación 015
+
+El PR #61 ya se fusionó, sin cambiar la configuración de Vercel ni usar
+opciones de administrador. La rama `feature/015-bitacora-agente-ia` parte de
+`origin/develop` en `e179ece` e implementa la bitácora con una migración nueva,
+sin editar migraciones anteriores ni modificar la rama de Angel.
+
+Las 43 pruebas de auditoría pasan sobre PostgreSQL 16, incluidos tokens nulos
+frente a cero, JSON de fuentes, inmutabilidad, protección del usuario y
+reversión de transacciones. La suite final del backend pasó con 557 pruebas;
+también pasan ruff y las comprobaciones de Django.
+La integración desde el agente, los reportes de 016, mensajería y Power BI
+siguen pendientes; los issues no se cierran por esta entrega aislada.

@@ -3,12 +3,12 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 015 |
-| **Estado** | Aprobada; pendiente de implementación |
+| **Estado** | Implementada en `auditoria`; integración con IA pendiente |
 | **Autor** | Nathaly Saraí Reyes Cifuentes (rol D), con apoyo de Codex |
 | **Revisor** | AngelOvalle29 (rol C), aprobación del PR #61 sobre `dc258e5` |
 | **Fecha** | 2026-10-31 |
 | **Apps afectadas** | `auditoria` |
-| **Rama** | Documentación: `docs/015-016-bloque-d`; implementación propuesta: `feature/015-bitacora-agente-ia` |
+| **Rama** | `feature/015-bitacora-agente-ia`, desde `develop` con las specs fusionadas |
 | **Pull request** | [#61](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/61); issue [#23](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/23) |
 
 ## 1. Problema
@@ -166,14 +166,14 @@ La inserción es la evidencia de la consulta; no genera otra entrada en
 
 ## 8. Criterios de aceptación
 
-- [ ] Se crea la tabla mediante una migración nueva sin editar la 0001.
-- [ ] Se guardan consultas públicas, autenticadas, sin información y fallidas.
-- [ ] Se distingue consumo desconocido de consumo cero.
-- [ ] Actualizar o borrar por el modelo falla; admin no permite altas ni cambios.
-- [ ] Contadores negativos y modos inválidos son rechazados.
+- [x] Se crea la tabla mediante una migración nueva sin editar la 0001.
+- [x] Se guardan consultas públicas, autenticadas, sin información y fallidas.
+- [x] Se distingue consumo desconocido de consumo cero.
+- [x] Actualizar o borrar por el modelo falla; admin no permite altas ni cambios.
+- [x] Contadores negativos y modos inválidos son rechazados.
 - [x] C confirma en el PR el contrato, incluido el caso de fallo sin métricas.
 - [ ] Se verifica el mismo contrato en la spec 005 y la integración al implementar.
-- [ ] Pasan ruff, comprobación de migraciones y pruebas contra PostgreSQL.
+- [x] Pasan ruff, comprobación de migraciones y pruebas contra PostgreSQL.
 
 ## 9. Pruebas
 
@@ -208,3 +208,27 @@ y los acuerdos restantes se registran en el PR.
 Angel confirmó directamente el contrato y los tokens desconocidos en el PR
 #61 y registró su aprobación sobre `dc258e5`. Esta actualización incorpora esa
 confirmación; no acredita implementación ni pruebas de integración.
+
+### Implementación de auditoría (2026-10-31)
+
+Con apoyo de Codex se implementaron `ModoAgente`, `LogAgenteIA`, el servicio
+`registrar_consulta_agente`, la migración `0002_log_agente_ia`, el admin de solo
+lectura y las pruebas. No se agregó ninguna dependencia ni se modificó `ia`.
+
+La validación del servicio rechaza contadores negativos, booleanos usados como
+números, modos inválidos, JSON fuera del contrato y resultados incoherentes.
+El modelo fuerza INSERT para que incluso otra instancia con el mismo ID no
+pueda sobrescribir un log; esta protección no sustituye las restricciones ya
+documentadas sobre operaciones directas de QuerySet o SQL.
+
+Para explicar el flujo: el servicio valida tipos, construye el registro,
+ejecuta `full_clean()` y lo inserta. No llama a Gemini ni abre `atomic()`: la
+transacción pertenece al llamador. Los fallos se registran después de revertir
+cualquier transacción de negocio fallida. El admin permite consultar evidencia,
+sin crearla o modificarla manualmente.
+
+Verificación con Python 3.12 y PostgreSQL 16 + pgvector en contenedores aislados:
+ruff y comprobación de migraciones correctos; `manage.py check` sin problemas;
+43 pruebas de auditoría correctas y suite completa con **557 pruebas correctas**
+en 58.16 segundos. La conexión desde `responder_consulta_publica` se hará con C
+cuando este servicio esté fusionado; no se presenta como integración ya probada.
