@@ -10,6 +10,8 @@ from datetime import timedelta
 from decimal import Decimal
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -77,6 +79,21 @@ def test_un_agente_firma_para_su_cliente_y_ve_las_cuotas_con_mora():
     assert len(contrato["cuotas"]) == 12
     assert contrato["cuotas"][0]["en_mora"] is False
     assert contrato["cuotas"][0]["saldo"] == contrato["cuotas"][0]["monto_total"]
+
+
+def test_el_detalle_no_consulta_el_contrato_por_cada_cuota():
+    """en_mora lee el contrato de la cuota: debe venir de la misma consulta."""
+    cliente = ClienteFactory()
+    agente = cliente.agente_asignado.usuario
+
+    def consultas(numero_cuotas: int) -> int:
+        contrato = firmar(agente, cliente, numero_cuotas=numero_cuotas).json()
+        with CaptureQueriesContext(connection) as capturadas:
+            respuesta = http(agente).get(f"{CONTRATOS}{contrato['id']}/")
+        assert respuesta.status_code == 200
+        return len(capturadas)
+
+    assert consultas(2) == consultas(12)
 
 
 def test_un_agente_no_firma_para_un_cliente_ajeno():

@@ -22,12 +22,8 @@ import { DialogoPagarCuota } from './DialogoPagarCuota'
 
 const columna = createColumnHelper<Cuota>()
 
-/**
- * Las columnas de dinero necesitan la moneda del contrato. La mora solo se
- * marca en un contrato vigente: la API la calcula por cuota, sin mirar si el
- * contrato se anuló.
- */
-function crearColumnas(moneda: string, vigente: boolean) {
+/** Las columnas de dinero necesitan la moneda del contrato. */
+function crearColumnas(moneda: string) {
   const dinero = (monto: string) => formatearMoneda(monto, moneda)
   return [
     columna.accessor('numero', { header: 'Cuota' }),
@@ -57,7 +53,7 @@ function crearColumnas(moneda: string, vigente: boolean) {
       cell: ({ row }) => (
         <>
           {ETIQUETAS_ESTADO_CUOTA[row.original.estado ?? 'PENDIENTE']}
-          {vigente && row.original.en_mora && (
+          {row.original.en_mora && (
             <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-red-700">
               En mora
             </span>
@@ -182,7 +178,7 @@ export function DetalleContratoVenta() {
         <>
           <h2 className="text-lg font-semibold">Cuotas</h2>
           <TablaDatos
-            columnas={crearColumnas(contrato.moneda.codigo, vigente)}
+            columnas={crearColumnas(contrato.moneda.codigo)}
             datos={contrato.cuotas}
             acciones={acciones}
           />

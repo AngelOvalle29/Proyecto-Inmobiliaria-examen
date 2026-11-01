@@ -202,9 +202,14 @@ class CuotaPago(ModeloBase):
 
     def en_mora(self, hoy=None) -> bool:
         """
-        Regla 17: una cuota no pagada del todo y con fecha vencida está en
-        mora. No se guarda: se calcula con la fecha de hoy, así nunca queda
-        desactualizada.
+        Regla 17: una cuota no pagada del todo y con fecha vencida de un
+        contrato vigente está en mora. Un contrato anulado ya no se cobra, así
+        que sus cuotas no están en mora. No se guarda: se calcula con la fecha
+        de hoy, así nunca queda desactualizada.
         """
         hoy = hoy or timezone.localdate()
-        return self.estado != EstadoCuota.PAGADA and self.fecha_vencimiento < hoy
+        return (
+            self.contrato.estado == EstadoContrato.VIGENTE
+            and self.estado != EstadoCuota.PAGADA
+            and self.fecha_vencimiento < hoy
+        )
