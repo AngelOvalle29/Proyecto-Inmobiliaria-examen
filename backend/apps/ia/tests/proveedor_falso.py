@@ -36,6 +36,8 @@ class ProveedorFalso(ProveedorIA):
         self.falla = False
         self.dimension = DIMENSION_EMBEDDINGS
         self.texto_respuesta = "Respuesta de prueba [1]."
+        # Vector que se devuelve para un texto dado; los demás reciben uno fijo.
+        self.vectores: dict[str, list[float]] = {}
 
     def generar_respuesta(self, *, mensajes, herramientas=None) -> RespuestaIA:
         self.llamadas_respuesta.append({"mensajes": mensajes})
@@ -55,4 +57,4 @@ class ProveedorFalso(ProveedorIA):
         self.llamadas_embeddings.append({"textos": list(textos), "tarea": tarea})
         if self.falla:
             raise ProveedorIANoDisponible("falla simulada")
-        return [[0.1] * self.dimension for _ in textos]
+        return [self.vectores.get(t, [0.1] * self.dimension) for t in textos]

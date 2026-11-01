@@ -27,3 +27,20 @@ class EmbeddingConDimensionIncorrecta(Exception):
     coincide con el campo vector). Debe verse como error y detener la
     indexación antes de guardar nada.
     """
+
+
+class AgenteNoDisponible(ErrorDominio):
+    """Gemini no respondió tras los reintentos, o falta la llave (regla 9).
+
+    Se responde 503 y no 500: no es un error del programa, es un servicio
+    externo caído, y el usuario puede volver a intentar en un momento.
+    """
+
+    codigo = "AGENTE_NO_DISPONIBLE"
+    estado_http = 503
+
+    def __init__(self) -> None:
+        super().__init__(
+            "El asistente no está disponible en este momento. "
+            "Intenta de nuevo en unos minutos."
+        )

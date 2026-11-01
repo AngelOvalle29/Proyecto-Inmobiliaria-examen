@@ -239,7 +239,11 @@ REST_FRAMEWORK = {
     # separados: detrás de una misma IP pública (la red de la universidad en la
     # defensa) entran varias personas a la vez, y renovar el token no debe
     # gastar los intentos de login de nadie (spec 001, §5).
-    "DEFAULT_THROTTLE_RATES": {"login": "30/min", "renovacion": "60/min"},
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "30/min",
+        "agente": "10/min",
+        "renovacion": "60/min",
+    },
     # Cuántos proxies propios hay delante de Django. Define qué IP es la real:
     # 0 (desarrollo) ignora X-Forwarded-For, que cualquier cliente puede
     # inventar; en producción (Render) hay tres y se configura NUM_PROXIES=3
@@ -335,3 +339,5 @@ IA_MODELO_EMBEDDINGS = env("IA_MODELO_EMBEDDINGS", default="gemini-embedding-001
 # Debe coincidir con DIMENSION_EMBEDDINGS de apps/ia/models.py.
 IA_DIMENSION_EMBEDDINGS = env.int("IA_DIMENSION_EMBEDDINGS", default=768)
 IA_MAX_TOKENS_RESPUESTA = env.int("IA_MAX_TOKENS_RESPUESTA", default=1024)
+# Distancia de coseno máxima para usar un fragmento (0 = mismo significado).
+IA_DISTANCIA_MAXIMA = env.float("IA_DISTANCIA_MAXIMA", default=0.6)
