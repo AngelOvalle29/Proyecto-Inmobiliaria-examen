@@ -15,6 +15,7 @@ import { ContextoSesion, type EstadoSesion, type ValorSesion } from './useSesion
 export function ProveedorSesion({ children }: { children: ReactNode }) {
   const clienteConsultas = useQueryClient()
   const [hayRefresco, setHayRefresco] = useState(() => obtenerRefresco() !== null)
+  const [recordarRuta, setRecordarRuta] = useState(true)
   const consulta = useUsuarioActual(hayRefresco)
 
   const cerrarSesion = useCallback(() => {
@@ -24,8 +25,14 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     setHayRefresco(false)
   }, [clienteConsultas])
 
+  const salir = useCallback(() => {
+    setRecordarRuta(false)
+    cerrarSesion()
+  }, [cerrarSesion])
+
   const abrirSesion = useCallback((tokens: Tokens) => {
     guardarTokens(tokens.access, tokens.refresh)
+    setRecordarRuta(true)
     setHayRefresco(true)
   }, [])
 
@@ -50,8 +57,16 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   const usuario = estado === 'con-sesion' ? (consulta.data ?? null) : null
 
   const valor = useMemo<ValorSesion>(
-    () => ({ estado, usuario, abrirSesion, cerrarSesion, reintentar }),
-    [estado, usuario, abrirSesion, cerrarSesion, reintentar],
+    () => ({
+      estado,
+      usuario,
+      abrirSesion,
+      cerrarSesion,
+      salir,
+      recordarRuta,
+      reintentar,
+    }),
+    [estado, usuario, abrirSesion, cerrarSesion, salir, recordarRuta, reintentar],
   )
 
   return <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>
