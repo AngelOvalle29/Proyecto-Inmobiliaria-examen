@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 016 |
-| **Estado** | Aprobada; pendiente de implementación |
+| **Estado** | Aprobada; implementación local, pendiente de validación manual y revisión de PR |
 | **Autor** | Nathaly Saraí Reyes Cifuentes (rol D), con apoyo de Codex |
 | **Revisor** | AngelOvalle29 (rol C), aprobación del PR #61 sobre `dc258e5` |
 | **Fecha** | 2026-10-31 |
@@ -158,22 +158,22 @@ consultar R17. No crea copias de las bitácoras en una tabla nueva.
 
 ## 8. Criterios de aceptación
 
-- [ ] Los tres reportes filtran y totalizan correctamente, también sin resultados.
-- [ ] R05 evita doble conteo de edificios/unidades y separa monedas.
-- [ ] R16 respeta los límites hoy/hoy+N y omite vencimientos nulos.
-- [ ] R17 no expone campos excluidos ni permite acceso con roles no autorizados.
-- [ ] Todos los roles autenticados acceden a R05/R16 en catálogo, JSON y archivos;
+- [x] Los tres reportes filtran y totalizan correctamente, también sin resultados.
+- [x] R05 evita doble conteo de edificios/unidades y separa monedas.
+- [x] R16 respeta los límites hoy/hoy+N y omite vencimientos nulos.
+- [x] R17 no expone campos excluidos ni permite acceso con roles no autorizados.
+- [x] Todos los roles autenticados acceden a R05/R16 en catálogo, JSON y archivos;
       R17 responde 403 para cualquier rol distinto de administrador.
-- [ ] JSON pagina de forma estable; sus totales no cambian al pasar de página.
-- [ ] Con 60 filas, página 2 materializa solo 25 detalles, conserva count=60 y
+- [x] JSON pagina de forma estable; sus totales no cambian al pasar de página.
+- [x] Con 60 filas, página 2 materializa solo 25 detalles, conserva count=60 y
       totales completos; Excel/PDF incluyen las 60. Con 5,001 filas no se
       materializan detalles para la descarga y se devuelve el error del límite.
-- [ ] Excel y PDF incluyen todas las filas filtradas dentro del límite, título,
+- [x] Excel y PDF incluyen todas las filas filtradas dentro del límite, título,
       filtros, fecha, autor y totales; Excel congela encabezados y formatea celdas.
-- [ ] PDF repite encabezados/pie y numera páginas; horizontal con más de 6 columnas.
-- [ ] Un texto con fórmula se exporta literalmente; HTML del usuario queda escapado.
+- [x] PDF repite encabezados/pie y numera páginas; horizontal con más de 6 columnas.
+- [x] Un texto con fórmula se exporta literalmente; HTML del usuario queda escapado.
 - [ ] La pantalla construye filtros y columnas desde el catálogo y maneja errores.
-- [ ] Pasan ruff, pytest con PostgreSQL, lint, typecheck y build del frontend.
+- [x] Pasan ruff, pytest con PostgreSQL, lint, typecheck y build del frontend.
 - [ ] Revisión visual de PDF multipágina y apertura del XLSX de muestra.
 
 ## 9. Pruebas
@@ -207,3 +207,28 @@ por moneda y los permisos. También separan el resumen SQL y la selección de
 25 filas para JSON del resultado completo para Excel/PDF, con límite de 5,000.
 La entrega contiene especificación, sin implementación ni pruebas de aplicación.
 AngelOvalle29 aprobó el PR #61 sobre `dc258e5`; la implementación sigue pendiente.
+
+### Implementación local del 2026-10-31
+
+Se implementaron los tres reportes, los exportadores compartidos, las rutas
+autenticadas y la pantalla `/reportes`, en `feature/016-capa-generica-reportes`.
+Se conserva el registro anterior como evidencia de la etapa de especificación.
+La explicación para revisión y defensa está en
+[`docs/016-implementacion-reportes.md`](../docs/016-implementacion-reportes.md).
+
+Se utilizaron consultas SQL separadas para el resumen y el detalle paginado,
+sin migraciones ni dependencias distintas de openpyxl/WeasyPrint ya aprobadas.
+Los tipos del frontend se regeneraron desde OpenAPI. Los importes JSON se
+conservan como cadenas decimales exactas. Se ajustó el ancho de las columnas
+del PDF y el ajuste de texto de Excel tras revisar muestras ficticias.
+
+La revisión manual del flujo en navegador queda pendiente porque los servicios
+de control del navegador y aplicaciones de esta sesión no están disponibles.
+La implementación no se considera aprobada ni fusionada; requiere revisión
+del estudiante, commit propio y revisión de otro integrante mediante PR.
+
+Verificación final: 587 pruebas pasaron con PostgreSQL (30 nuevas de reportes),
+ruff y formato correctos, sin migraciones nuevas, esquema OpenAPI sin avisos,
+y lint/typecheck/build del frontend correctos. Las muestras XLSX se abrieron
+mediante bibliotecas y se renderizaron; su apertura en Microsoft Excel queda
+pendiente junto con la revisión manual del navegador.

@@ -720,6 +720,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reportes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_reportes_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reportes/{slug}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_reportes_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reportes/{slug}/excel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_reportes_excel_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reportes/{slug}/pdf/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_reportes_pdf_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tipos-cambio/": {
         parameters: {
             query?: never;
@@ -945,6 +1009,14 @@ export interface components {
             estado: components["schemas"]["EstadoPropiedadEnum"];
             motivo: string;
         };
+        CatalogoReporte: {
+            slug: string;
+            codigo: string;
+            titulo: string;
+            roles: string[];
+            columnas: components["schemas"]["ColumnaReporte"][];
+            filtros: components["schemas"]["FiltroReporte"][];
+        };
         Ciudad: {
             readonly id: number;
             nombre: string;
@@ -1010,6 +1082,13 @@ export interface components {
             id: number;
             codigo: string;
             nombre: string;
+        };
+        ColumnaReporte: {
+            nombre: string;
+            etiqueta: string;
+            tipo: string;
+            formato: string;
+            alineacion: string;
         };
         /** @description Salida de un contrato en el listado (sin sus cuotas). */
         ContratoVenta: {
@@ -1233,6 +1312,25 @@ export interface components {
             estado: components["schemas"]["EstadoSaludEnum"];
             base_datos: components["schemas"]["EstadoSaludEnum"];
         };
+        FilasReporte: {
+            count: number;
+            /** Format: uri */
+            next: string | null;
+            /** Format: uri */
+            previous: string | null;
+            results: {
+                [key: string]: unknown;
+            }[];
+        };
+        FiltroReporte: {
+            nombre: string;
+            etiqueta: string;
+            tipo: string;
+            obligatorio: boolean;
+            origen_opciones: string;
+            buscable: boolean;
+            opciones: components["schemas"]["OpcionFiltro"][];
+        };
         /** @description Entrada para firmar (reglas 1 a 3), con los rangos de la regla 3. */
         FirmarArrendamiento: {
             cliente: number;
@@ -1276,6 +1374,12 @@ export interface components {
             fecha_primera_cuota?: string;
             observaciones?: string;
         };
+        GrupoReporte: {
+            etiqueta: string;
+            valores: {
+                [key: string]: unknown;
+            };
+        };
         Login: {
             /** Format: email */
             email: string;
@@ -1296,6 +1400,10 @@ export interface components {
         MonedaResumen: {
             id: number;
             codigo: string;
+        };
+        OpcionFiltro: {
+            valor: string;
+            etiqueta: string;
         };
         PagarRenta: {
             /** Format: date */
@@ -1348,6 +1456,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Avaluo"][];
+        };
+        PaginatedCatalogoReporteList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["CatalogoReporte"][];
         };
         PaginatedCiudadList: {
             /** @example 123 */
@@ -1713,6 +1836,19 @@ export interface components {
             /** Format: decimal */
             renta_mensual: string;
             duracion_meses: number;
+        };
+        Reporte: {
+            titulo: string;
+            subtitulo: string;
+            /** Format: date-time */
+            generado_en: string;
+            generado_por: string;
+            columnas: components["schemas"]["ColumnaReporte"][];
+            totales: {
+                [key: string]: unknown;
+            };
+            agrupamientos: components["schemas"]["GrupoReporte"][];
+            filas: components["schemas"]["FilasReporte"];
         };
         RescindirArrendamiento: {
             /** Format: date */
@@ -3187,6 +3323,179 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
+    v1_reportes_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedCatalogoReporteList"];
+                };
+            };
+        };
+    };
+    v1_reportes_retrieve: {
+        parameters: {
+            query?: {
+                /** @description R17: acción de auditoría */
+                accion?: string;
+                /** @description R05: decimal inclusivo */
+                area_max?: string;
+                /** @description R05: decimal inclusivo */
+                area_min?: string;
+                /** @description R05: ID de ciudad */
+                ciudad?: number;
+                /** @description R16: 0 a 365, por defecto 30 */
+                dias_anticipacion?: number;
+                /** @description R17: entidad exacta */
+                entidad?: string;
+                /** @description R17: día ISO de Guatemala, inclusivo */
+                fecha_desde?: string;
+                /** @description R17: día ISO de Guatemala, inclusivo */
+                fecha_hasta?: string;
+                /** @description R05: código ISO de moneda */
+                moneda?: string;
+                page?: number;
+                /** @description R05/R16: ID del país */
+                pais?: number;
+                /** @description R05: decimal inclusivo */
+                precio_max?: string;
+                /** @description R05: decimal inclusivo */
+                precio_min?: string;
+                /** @description R05: ID de tipo; R16: código de documento */
+                tipo?: string;
+                /** @description R17: ID del usuario */
+                usuario?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reporte"];
+                };
+            };
+        };
+    };
+    v1_reportes_excel_retrieve: {
+        parameters: {
+            query?: {
+                /** @description R17: acción de auditoría */
+                accion?: string;
+                /** @description R05: decimal inclusivo */
+                area_max?: string;
+                /** @description R05: decimal inclusivo */
+                area_min?: string;
+                /** @description R05: ID de ciudad */
+                ciudad?: number;
+                /** @description R16: 0 a 365, por defecto 30 */
+                dias_anticipacion?: number;
+                /** @description R17: entidad exacta */
+                entidad?: string;
+                /** @description R17: día ISO de Guatemala, inclusivo */
+                fecha_desde?: string;
+                /** @description R17: día ISO de Guatemala, inclusivo */
+                fecha_hasta?: string;
+                /** @description R05: código ISO de moneda */
+                moneda?: string;
+                /** @description R05/R16: ID del país */
+                pais?: number;
+                /** @description R05: decimal inclusivo */
+                precio_max?: string;
+                /** @description R05: decimal inclusivo */
+                precio_min?: string;
+                /** @description R05: ID de tipo; R16: código de documento */
+                tipo?: string;
+                /** @description R17: ID del usuario */
+                usuario?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+        };
+    };
+    v1_reportes_pdf_retrieve: {
+        parameters: {
+            query?: {
+                /** @description R17: acción de auditoría */
+                accion?: string;
+                /** @description R05: decimal inclusivo */
+                area_max?: string;
+                /** @description R05: decimal inclusivo */
+                area_min?: string;
+                /** @description R05: ID de ciudad */
+                ciudad?: number;
+                /** @description R16: 0 a 365, por defecto 30 */
+                dias_anticipacion?: number;
+                /** @description R17: entidad exacta */
+                entidad?: string;
+                /** @description R17: día ISO de Guatemala, inclusivo */
+                fecha_desde?: string;
+                /** @description R17: día ISO de Guatemala, inclusivo */
+                fecha_hasta?: string;
+                /** @description R05: código ISO de moneda */
+                moneda?: string;
+                /** @description R05/R16: ID del país */
+                pais?: number;
+                /** @description R05: decimal inclusivo */
+                precio_max?: string;
+                /** @description R05: decimal inclusivo */
+                precio_min?: string;
+                /** @description R05: ID de tipo; R16: código de documento */
+                tipo?: string;
+                /** @description R17: ID del usuario */
+                usuario?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
                 };
             };
         };

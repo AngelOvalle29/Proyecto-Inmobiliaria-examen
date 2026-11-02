@@ -48,6 +48,7 @@ export const REGISTRAN_PAGOS: Rol[] = [...ADMINISTRAN_CRM, ROLES.CONTABILIDAD]
 
 export const MENU: EntradaMenu[] = [
   { ruta: '/', etiqueta: 'Inicio' },
+  { ruta: '/reportes', etiqueta: 'Reportes' },
   { ruta: '/catalogo/propiedades', etiqueta: 'Propiedades', grupo: 'Catálogo' },
   {
     ruta: '/catalogo/propiedades/nueva',
