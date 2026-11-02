@@ -330,16 +330,16 @@ atribuidas a un usuario de negocio.
 - [ ] No se suman monedas distintas ni se multiplican filas por relaciones.
 - [ ] Los datos desconocidos se distinguen del cero y tienen cobertura explícita.
 - [ ] Los dos abonos de una cuota en meses/tasas distintos caen en sus meses correctos.
-- [ ] R13/R15 funcionan con los modelos y migraciones reales de la 017.
+- [x] R13/R15 funcionan con los modelos y migraciones reales de la 017.
 - [ ] R04/R10 no suman rentas futuras ni cuotas de contratos anulados; R11 solo muestra deuda vencida.
 - [ ] R02 respeta la cartera por cliente, muestra al agente solo su fila y excluye borradores de emitidas.
 - [ ] R14 excluye el contrato renovado cuya renovación fue rescindida, aunque sus fechas cubran hoy.
 - [ ] R12 usa renta recibida con recargo una sola vez, y contado/enganche con tasa y fecha de firma.
 - [ ] R13 filtra por país de la propiedad, aunque el proveedor sea de otro país.
-- [ ] R15 coincide con el detalle de proyecto en comprometido y disponible; solo pagos `PAGADO` aportan USD.
+- [x] R15 coincide con el detalle de proyecto en comprometido y disponible; solo pagos `PAGADO` aportan USD.
 - [ ] Vistas BI concilian claves, conteos y montos con los selectores de origen.
-- [ ] `powerbi_reader` lee las vistas, pero no tablas operativas ni escribe.
-- [ ] La migración crea solo las cuatro vistas, depende de las apps leídas y se puede revertir; cambios de columnas usados por BI recrean las vistas.
+- [x] `powerbi_reader` lee las vistas, pero no tablas operativas ni escribe.
+- [x] La migración crea solo las cuatro vistas, depende de las apps leídas y se puede revertir; cambios de columnas usados por BI recrean las vistas.
 - [ ] Power BI Desktop conecta realmente a Neon con SSL y `powerbi_reader`.
 - [ ] El `.pbix` se abre, actualiza desde PostgreSQL y filtra el tablero comercial.
 - [ ] Hay capturas con datos ficticios y pasos de actualización sin contraseñas.
@@ -462,3 +462,28 @@ los tiempos por etapa de R03 para esta entrega. Se actualizaron regla 10,
 tabla de reportes, pruebas y decisiones para evitar que su implementación
 tenga que cumplir una métrica recortada. Indicó que trabaja sobre la capa del
 PR #77 y en archivos de selectores separados para reducir conflictos.
+
+### Implementación de A en el cierre (2026-11-02)
+
+Con el acuerdo del equipo, A implementó R06, R08 y R14 (#83), R13 y R15
+(#87, sobre la spec 017), y las cuatro vistas `bi`. R12 y el `.pbix` siguen con
+D.
+
+**Vistas `bi`** (`reportes/migrations/0001_vistas_bi.py`):
+- `dim_propiedad` usa la regla de R05: un edificio no es un bien, sus unidades
+  sí. La clave es una sola columna de texto (`PROPIEDAD-12`, `UNIDAD-5`),
+  porque Power BI relaciona tablas por una columna.
+- `dim_tiempo` sale de `generate_series`, desde el primer año con ventas hasta
+  el año en curso o el último con ventas.
+- `hechos_ventas` excluye los anulados; el USD es el guardado al firmar.
+- La migración depende de la última de `core`, `catalogo` y `ventas`, y se
+  revirtió y volvió a aplicar en local.
+- `docs/powerbi/crear_lector.sql` crea `powerbi_reader` con SQL, no desde la
+  consola de Neon, cuyos roles entran a `neon_superuser`. Probado en local: lee
+  las vistas, y leer una tabla del sistema o crear en `bi` da `permission
+  denied`. La contraseña no se versiona.
+- `docs/powerbi/README.md` explica las relaciones y la conexión desde Power BI
+  Desktop.
+
+Quedan sin marcar la conexión real a Neon y el `.pbix`, que se hacen en Power
+BI Desktop.
