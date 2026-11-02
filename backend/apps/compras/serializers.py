@@ -18,7 +18,7 @@ from .models import ContratoCompra, Proveedor
 from .selectors import listar_proveedores
 
 
-class CiudadDeProveedorSerializer(serializers.Serializer):
+class CiudadProveedorResumenSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     nombre = serializers.CharField()
 
@@ -27,7 +27,7 @@ class ProveedorSerializer(serializers.ModelSerializer):
     """Salida de un proveedor, con su país y ciudad resumidos."""
 
     pais = PaisResumenSerializer()
-    ciudad = CiudadDeProveedorSerializer(allow_null=True)
+    ciudad = CiudadProveedorResumenSerializer(allow_null=True)
 
     class Meta:
         model = Proveedor
