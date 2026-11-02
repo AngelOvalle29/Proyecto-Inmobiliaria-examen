@@ -341,7 +341,7 @@ const ETIQUETAS_RESUMEN: Record<string, string> = {
   otros: 'Otros estados',
   ocupacion_pct: 'Ocupación %',
   ingreso_por_moneda: 'Renta mensual vigente por moneda',
-  // R13 y R15 (spec 021).
+  // R13 y R15 (spec 021). por_moneda y pagado ya están en el bloque de B.
   proveedor: 'Proveedor',
   constructora: 'Constructora',
   mes: 'Mes',
@@ -353,10 +353,8 @@ const ETIQUETAS_RESUMEN: Record<string, string> = {
   costo_usd: 'Costo en USD',
   atrasados: 'Proyectos atrasados',
   pagado_usd: 'Pagado en USD',
-  por_moneda: 'Por moneda',
   presupuesto_total: 'Presupuesto',
   programado: 'Programado',
-  pagado: 'Pagado',
   comprometido: 'Comprometido',
   disponible: 'Disponible',
   saldo_por_pagar: 'Saldo por pagar',
