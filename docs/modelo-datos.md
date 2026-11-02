@@ -116,46 +116,48 @@ país para empresas. La fecha de registro es `creado_en` (detalle en
 en el agente. Solo los usuarios con rol `AGENTE` tienen perfil de agente.
 
 ### Cotizacion ★
-`id` · `codigo` · `cliente` (FK) · `agente` (FK) · `fecha_emision` ·
-`fecha_vencimiento` · `estado` (enum: BORRADOR, ENVIADA, EN_NEGOCIACION,
-APROBADA, RECHAZADA, VENCIDA) · `subtotal` · `descuento` · `total` ·
-`moneda` (FK) · `observaciones` · `activo`
+`id` · `codigo` · `cliente` (FK) · `agente` (FK) · `propiedad` (FK, opcional) ·
+`unidad` (FK, opcional) · `fecha_emision` · `fecha_vencimiento` ·
+`estado` (enum: BORRADOR, ENVIADA, APROBADA, RECHAZADA) · `precio` ·
+`descuento` · `total` · `moneda` (FK) · `observaciones` · `activo`
 
-### CotizacionDetalle
-`id` · `cotizacion` (FK) · `propiedad` (FK, opcional) · `unidad` (FK, opcional) ·
-`descripcion` · `precio_unitario` · `descuento` · `subtotal`
-
-*Regla:* el total de la cotización se recalcula desde sus detalles, nunca se
-edita directamente.
+*Reglas:*
+- Exactamente uno de `propiedad` o `unidad` debe estar presente.
+- El total es precio menos descuento; lo calcula el servicio.
+- Vencida no es un estado guardado: se calcula con la fecha.
+- No hay `CotizacionDetalle`: el plan de una semana (#28) dejó el detalle en la
+  propia cotización (spec 007).
 
 ---
 
 ## 4. Ventas — app `ventas`
 
 ### ContratoVenta ★
-`id` · `codigo` · `cotizacion` (FK, opcional) · `cliente` (FK) ·
+`id` · `codigo` · `cotizacion` (OneToOne, opcional) · `cliente` (FK) ·
 `propiedad` (FK, opcional) · `unidad` (FK, opcional) · `agente` (FK) ·
-`fecha_firma` · `monto_total` · `moneda` (FK) · `enganche` ·
-`modalidad` (CONTADO, FINANCIADO) · `estado` (VIGENTE, LIQUIDADO, ANULADO) ·
-`comision_agente` · `observaciones` · `documento` (FK DocumentoOficial,
-opcional) · `activo`
+`fecha_firma` · `monto_total` · `moneda` (FK) · `tasa_a_usd` ·
+`monto_total_usd` · `enganche` · `modalidad` (CONTADO, FINANCIADO) ·
+`numero_cuotas` · `tasa_interes_anual` · `fecha_primera_cuota` ·
+`estado` (VIGENTE, LIQUIDADO, ANULADO) · `comision_agente` · `observaciones` ·
+`documento` (FK DocumentoOficial, opcional) · `activo`
 
 *Reglas:*
 - Exactamente uno de `propiedad` o `unidad` debe estar presente.
-- Al firmarse, la propiedad o unidad pasa a `VENDIDA` y se crea el evento.
+- Al firmarse, la propiedad o unidad pasa a `VENDIDA`.
 - Un contrato anulado conserva el registro; nunca se borra.
-
-### PlanPago ★
-`id` · `contrato_venta` (FK) · `numero_cuotas` · `tasa_interes` ·
-`fecha_inicio` · `periodicidad` (MENSUAL, TRIMESTRAL, ANUAL)
+- No hay `PlanPago`: sus datos van en el contrato (#28, spec 007).
 
 ### CuotaPago ★
-`id` · `plan_pago` (FK) · `numero` · `fecha_vencimiento` · `monto_capital` ·
-`monto_interes` · `monto_total` · `estado` (PENDIENTE, PAGADA, VENCIDA,
-PARCIAL) · `fecha_pago` · `monto_pagado` · `referencia_pago`
+`id` · `contrato` (FK) · `numero` · `fecha_vencimiento` · `monto_capital` ·
+`monto_interes` · `monto_total` · `estado` (PENDIENTE, PARCIAL, PAGADA) ·
+`monto_pagado` · `fecha_ultimo_pago` · `referencia_ultimo_pago` ·
+`tasa_a_usd_ultimo_pago`
 
-*Regla:* una cuota con `fecha_vencimiento` pasada y estado `PENDIENTE` cuenta
-como mora. Es la base del reporte de morosidad.
+*Reglas:*
+- La mora no es un estado: `en_mora()` la calcula con la fecha, y solo en
+  contratos vigentes. Un filtro en SQL debe repetir esa condición.
+- Los pagos parciales se acumulan en `monto_pagado`; la historia de cada pago,
+  con su fecha y su tasa, queda en la bitácora de auditoría.
 
 ---
 
@@ -163,17 +165,26 @@ como mora. Es la base del reporte de morosidad.
 
 ### ContratoArrendamiento ★
 `id` · `codigo` · `cliente` (FK) · `propiedad` (FK, opcional) ·
-`unidad` (FK, opcional) · `agente` (FK) · `fecha_inicio` · `fecha_fin` ·
-`renta_mensual` · `moneda` (FK) · `deposito` · `dia_cobro` ·
-`estado` (VIGENTE, VENCIDO, RESCINDIDO, RENOVADO) · `renovacion_automatica` ·
+`unidad` (FK, opcional) · `agente` (FK) · `fecha_inicio` · `duracion_meses` ·
+`fecha_fin` · `renta_mensual` · `moneda` (FK) · `tasa_a_usd` · `deposito` ·
+`dia_cobro` · `dias_gracia` · `porcentaje_mora` ·
+`estado` (VIGENTE, VENCIDO, RESCINDIDO, RENOVADO) · `fecha_rescision` ·
+`contrato_anterior` (OneToOne, opcional) ·
 `documento` (FK DocumentoOficial, opcional) · `activo`
+
+*Regla:* renovar crea un contrato nuevo, que apunta al anterior con
+`contrato_anterior`.
 
 ### PagoRenta ★
 `id` · `contrato` (FK) · `periodo_anio` · `periodo_mes` · `fecha_vencimiento` ·
-`monto` · `moneda` (FK) · `estado` (PENDIENTE, PAGADO, VENCIDO) ·
-`fecha_pago` · `monto_pagado` · `mora_aplicada` · `referencia_pago`
+`monto` · `estado` (PENDIENTE, PAGADO, CANCELADO) · `fecha_pago` ·
+`monto_pagado` · `mora_aplicada` · `referencia_pago` · `tasa_a_usd`
 
-*Regla:* único por contrato, año y mes.
+*Reglas:*
+- Único por contrato, año y mes.
+- La moneda es la del contrato.
+- La mora no es un estado: `en_mora()` la calcula con la fecha.
+- `monto_pagado` ya incluye el recargo de `mora_aplicada`.
 
 ---
 
@@ -294,9 +305,9 @@ Pais ──< Ciudad ──< Propiedad ──< Unidad
      Constructora ──< ProyectoConstruccion ──< AvanceObra
                         └──< PagoConstructora
                         │
-        Cliente ──< Cotizacion ──< CotizacionDetalle
+        Cliente ──< Cotizacion
             │           │
-            │           └──> ContratoVenta ──> PlanPago ──< CuotaPago
+            │           └──> ContratoVenta ──< CuotaPago
             │
             └──< ContratoArrendamiento ──< PagoRenta
 
