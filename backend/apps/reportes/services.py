@@ -7,15 +7,10 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.utils import timezone
 
-from apps.core.exceptions import ErrorDominio
-
 from .catalogo import definicion_reporte
 from .estructuras import FiltrosReporte, Reporte, ReportePaginado, ResumenReporte
+from .exceptions import ReporteDemasiadoGrande
 from .selectors import resumir_reporte, seleccionar_filas_reporte
-
-
-class ReporteDemasiadoGrande(ErrorDominio):
-    codigo = "REPORTE_DEMASIADO_GRANDE"
 
 
 def comprobar_permiso(*, slug: str, usuario: AbstractBaseUser) -> dict:
@@ -54,6 +49,7 @@ def construir_reporte(
 def obtener_reporte_paginado(
     *, slug: str, filtros: FiltrosReporte, usuario: AbstractBaseUser, pagina: int = 1
 ) -> ReportePaginado:
+    """Comprueba el acceso y devuelve 25 detalles con el resumen completo."""
     comprobar_permiso(slug=slug, usuario=usuario)
     resumen = resumir_reporte(slug=slug, filtros=filtros, usuario=usuario)
     if pagina < 1 or (pagina > 1 and (pagina - 1) * 25 >= resumen.count):
@@ -77,6 +73,7 @@ def obtener_reporte_paginado(
 def obtener_reporte_exportacion(
     *, slug: str, filtros: FiltrosReporte, usuario: AbstractBaseUser
 ) -> Reporte:
+    """Rechaza más de 5,000 filas antes de cargar el detalle para exportar."""
     comprobar_permiso(slug=slug, usuario=usuario)
     resumen = resumir_reporte(slug=slug, filtros=filtros, usuario=usuario)
     if resumen.count > 5000:

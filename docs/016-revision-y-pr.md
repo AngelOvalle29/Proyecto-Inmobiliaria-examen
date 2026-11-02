@@ -41,6 +41,19 @@ casos de prueba. En Windows el backend en Docker evita instalar Pango a mano.
 | Roles desde navegador | Pendiente | Cuenta ficticia/rol y resultado, sin contraseña |
 | Revisión del código por Nathaly | Pendiente | Explicar flujo y responder los tres casos siguientes |
 
+Marco registró en su revisión del PR #77 una prueba independiente de pantalla:
+R05/R16/R17 como administrador, país sin resultados, precio sin moneda,
+Limpiar y descarga Excel; como agente, R17 no aparece. También verificó los
+tres exportadores Excel/PDF en Docker. Queda pendiente comprobar desde el
+navegador la descarga PDF y la paginación con más de 25 filas, además de su
+revisión visual. La prueba parcial no se presenta como recorrido completo.
+
+Las pruebas PDF requieren bibliotecas nativas de WeasyPrint. En Windows,
+instalar solo `requirements/dev.txt` no instala Pango/Cairo/libgobject: las
+pruebas PDF fallarán si faltan. Para validar los PDF, ejecutar pytest dentro
+de una imagen basada en `backend/Dockerfile`, que ya instala esas bibliotecas;
+no omitir las pruebas ni confundir el error del entorno con un PDF aprobado.
+
 El control de aplicaciones y navegador no estuvo disponible en la sesión del
 2026-11-01: el servicio nativo devolvió `native pipe is unavailable` y el
 servicio de navegador `browser access host is unavailable`. No se marca este

@@ -1,4 +1,4 @@
-"""Filtros del listado de constructoras (django-filter).
+"""Filtros de los listados de construcción (django-filter).
 
 ?buscar= es un filtro más y no el SearchFilter de DRF, igual que en crm.
 """
@@ -8,7 +8,8 @@ from django.db.models import Q
 
 from apps.core.normalizacion import normalizar_documento
 
-from .models import Constructora
+from .enums import EstadoPago, EstadoProyecto, TipoPagoConstructora
+from .models import Constructora, PagoConstructora, ProyectoConstruccion
 
 
 class ConstructoraFilter(django_filters.FilterSet):
@@ -30,3 +31,27 @@ class ConstructoraFilter(django_filters.FilterSet):
         if nit:
             condicion |= Q(nit__icontains=nit)
         return consulta.filter(condicion)
+
+
+class ProyectoFilter(django_filters.FilterSet):
+    """Filtros de /proyectos-construccion/ (spec 017, §5)."""
+
+    estado = django_filters.ChoiceFilter(choices=EstadoProyecto.choices)
+    constructora = django_filters.NumberFilter(field_name="constructora_id")
+    propiedad = django_filters.NumberFilter(field_name="propiedad_id")
+
+    class Meta:
+        model = ProyectoConstruccion
+        fields = ["estado", "constructora", "propiedad"]
+
+
+class PagoFilter(django_filters.FilterSet):
+    """Filtros de /pagos-constructora/ (spec 017, §5)."""
+
+    estado = django_filters.ChoiceFilter(choices=EstadoPago.choices)
+    tipo = django_filters.ChoiceFilter(choices=TipoPagoConstructora.choices)
+    proyecto = django_filters.NumberFilter(field_name="proyecto_id")
+
+    class Meta:
+        model = PagoConstructora
+        fields = ["estado", "tipo", "proyecto"]
