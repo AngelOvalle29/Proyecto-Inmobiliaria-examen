@@ -25,7 +25,7 @@ from apps.core.http import obtener_ip_cliente
 from apps.usuarios.enums import NombreRol
 from apps.usuarios.permissions import TieneRol
 
-from .filters import DocumentoFilter, PropiedadFilter
+from .filters import DocumentoFilter, PropiedadFilter, UnidadFilter
 from .models import Propiedad
 from .selectors import (
     listar_avaluos,
@@ -208,9 +208,10 @@ class CambiarEstadoPropiedadView(GenericAPIView):
 
 
 class UnidadesDePropiedadView(ListCreateAPIView):
-    """GET y POST /api/v1/propiedades/{id}/unidades/"""
+    """GET y POST /api/v1/propiedades/{id}/unidades/?buscar= (código)"""
 
     serializer_class = UnidadSerializer
+    filterset_class = UnidadFilter
     permission_classes = [TieneRol]
     roles_por_metodo = {"POST": ADMINISTRACION_Y_GERENCIA}
 

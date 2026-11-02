@@ -3,18 +3,22 @@ import { createBrowserRouter, RouterProvider } from 'react-router'
 import { RutaProtegida } from './componentes/comunes/RutaProtegida'
 import { LayoutAuth } from './layouts/LayoutAuth'
 import { LayoutPrincipal } from './layouts/LayoutPrincipal'
-import { ESCRIBEN_CATALOGO, ESCRIBEN_CRM } from './menu'
+import { ADMINISTRAN_CRM, ESCRIBEN_CATALOGO, ESCRIBEN_CRM } from './menu'
 import { DetalleArrendamiento } from './paginas/arrendamientos/DetalleArrendamiento'
 import { FirmarArrendamiento } from './paginas/arrendamientos/FirmarArrendamiento'
 import { ListaArrendamientos } from './paginas/arrendamientos/ListaArrendamientos'
 import { Login } from './paginas/auth/Login'
+import { EditarPropiedad } from './paginas/catalogo/EditarPropiedad'
+import { FichaPropiedad } from './paginas/catalogo/FichaPropiedad'
 import { ListaPropiedades } from './paginas/catalogo/ListaPropiedades'
+import { ListaTiposPropiedad } from './paginas/catalogo/ListaTiposPropiedad'
 import { NuevaPropiedad } from './paginas/catalogo/NuevaPropiedad'
 import { EditarCliente, NuevoCliente } from './paginas/crm/FormularioCliente'
 import { ListaAgentes } from './paginas/crm/ListaAgentes'
 import { ListaClientes } from './paginas/crm/ListaClientes'
 import { ListaCotizaciones } from './paginas/crm/ListaCotizaciones'
 import { NuevaCotizacion } from './paginas/crm/NuevaCotizacion'
+import { NuevoAgente } from './paginas/crm/NuevoAgente'
 import { NoEncontrada } from './paginas/errores/NoEncontrada'
 import { DetalleContratoVenta } from './paginas/ventas/DetalleContratoVenta'
 import { FirmarContratoVenta } from './paginas/ventas/FirmarContratoVenta'
@@ -51,6 +55,17 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
+      { path: '/catalogo/propiedades/:id', element: <FichaPropiedad /> },
+      {
+        path: '/catalogo/propiedades/:id/editar',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CATALOGO}>
+            <EditarPropiedad />
+          </RutaProtegida>
+        ),
+      },
+      // Todos la ven; los botones de escritura solo el administrador (spec 014).
+      { path: '/catalogo/tipos', element: <ListaTiposPropiedad /> },
       { path: '/crm/clientes', element: <ListaClientes /> },
       {
         path: '/crm/clientes/nuevo',
@@ -69,6 +84,14 @@ const enrutador = createBrowserRouter([
         ),
       },
       { path: '/crm/agentes', element: <ListaAgentes /> },
+      {
+        path: '/crm/agentes/nuevo',
+        element: (
+          <RutaProtegida roles={ADMINISTRAN_CRM}>
+            <NuevoAgente />
+          </RutaProtegida>
+        ),
+      },
       { path: '/crm/cotizaciones', element: <ListaCotizaciones /> },
       {
         path: '/crm/cotizaciones/nueva',
