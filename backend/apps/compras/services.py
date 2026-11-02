@@ -1,27 +1,48 @@
 """Servicios de compras: escrituras con reglas de negocio, transacciones y
-auditoría (spec 006, §6 y §7).
+auditoría (specs 006 y 017, §6 y §7).
 
 No conocen request ni hablan HTTP. Cada escritura registra su auditoría dentro
 de la misma transacción: si algo falla, se revierten las dos.
 """
 
+from datetime import date
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.db import transaction
 from django.forms.models import model_to_dict
+from django.utils import timezone
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
-from apps.core.exceptions import CiudadFueraDelPais
+from apps.catalogo.enums import EstadoPropiedad
+from apps.catalogo.exceptions import PropiedadNoDisponible
+from apps.catalogo.services import cambiar_estado_propiedad
+from apps.core.exceptions import CiudadFueraDelPais, TipoCambioNoDisponible
 from apps.core.normalizacion import normalizar_documento
-from apps.core.selectors import listar_ciudades, listar_paises
+from apps.core.selectors import listar_ciudades, listar_paises, obtener_tipo_cambio
 from apps.usuarios.models import Usuario
 
 from . import datos_demo
-from .enums import TipoProveedor
-from .exceptions import NitObligatorio, ProveedorDuplicado
-from .models import Proveedor
-from .selectors import existe_proveedor_con_nit
+from .enums import EstadoContratoCompra, TipoProveedor
+from .exceptions import (
+    FechaInvalida,
+    NitObligatorio,
+    PropiedadConContrato,
+    ProveedorConContratos,
+    ProveedorDuplicado,
+    TransicionInvalida,
+)
+from .models import ContratoCompra, Proveedor
+from .selectors import (
+    existe_contrato_no_anulado,
+    existe_proveedor_con_nit,
+    obtener_dolar,
+    proveedor_tiene_contratos_en_proceso,
+)
 
 ENTIDAD_PROVEEDOR = "compras_proveedor"
+ENTIDAD_CONTRATO = ContratoCompra._meta.db_table  # "compras_contratocompra"
+CENTAVOS = Decimal("0.01")
 
 # Campos que se guardan en la bitácora y que se pueden editar. El código no
 # está: lo genera el sistema y no cambia nunca (regla 8).
@@ -121,7 +142,16 @@ def actualizar_proveedor(
 def desactivar_proveedor(
     *, proveedor: Proveedor, autor: Usuario, ip: str | None
 ) -> None:
-    """Borrado lógico (regla 9): el proveedor deja de listarse, no se borra."""
+    """
+    Borrado lógico (spec 006, regla 9): el proveedor deja de listarse, no se
+    borra.
+
+    Con un contrato de compra EN_PROCESO no se desactiva (spec 017, regla 22):
+    el contrato quedaría a nombre de un proveedor que ya no aparece en ninguna
+    lista. Los completados y anulados no lo impiden, porque ya están cerrados.
+    """
+    if proveedor_tiene_contratos_en_proceso(proveedor=proveedor):
+        raise ProveedorConContratos(proveedor=proveedor.codigo)
     with transaction.atomic():
         proveedor.activo = False
         proveedor.actualizado_por = autor
@@ -135,6 +165,188 @@ def desactivar_proveedor(
             valores_nuevos={"activo": False},
             ip=ip,
         )
+
+
+# ---------- Contratos de compra (spec 017) ----------
+
+# Campos que se guardan en la bitácora al registrar un contrato.
+CAMPOS_CONTRATO_AUDITADOS = [
+    "codigo",
+    "proveedor",
+    "propiedad",
+    "fecha_compra",
+    "monto",
+    "gastos_legales",
+    "impuestos",
+    "costo_total",
+    "moneda",
+    "tasa_a_usd",
+    "costo_total_usd",
+    "estado",
+    "observaciones",
+]
+
+
+@transaction.atomic
+def crear_contrato_compra(
+    *, datos: dict, autor: Usuario, ip: str | None
+) -> ContratoCompra:
+    """
+    Registra la compra de una propiedad a un proveedor (spec 017, reglas 1 a 5
+    y 8).
+
+    - La propiedad debe estar EN_NEGOCIACION y sin otro contrato que no esté
+      anulado. El contrato nace EN_PROCESO y la propiedad no cambia: pasa a
+      ADQUIRIDA solo al completar (reglas 1, 2 y 6).
+    - El costo total es monto + gastos legales + impuestos; lo calcula el
+      sistema, no lo manda el usuario (regla 3).
+    - La fecha de compra no puede ser futura (regla 4).
+    - Guarda la tasa al dólar de la fecha de compra y el costo convertido. Sin
+      tasa registrada, se rechaza (regla 5).
+
+    datos ya viene validado por el serializador: proveedor activo, propiedad
+    activa, moneda, montos en rango.
+    """
+    propiedad = datos["propiedad"]
+    fecha_compra = datos["fecha_compra"]
+    if fecha_compra > timezone.localdate():
+        raise FechaInvalida(
+            campo="fecha_compra", mensaje="La fecha de compra no puede ser futura."
+        )
+    if propiedad.estado != EstadoPropiedad.EN_NEGOCIACION:
+        raise PropiedadNoDisponible(
+            codigo=propiedad.codigo,
+            estado_actual=propiedad.estado,
+            estado_requerido=EstadoPropiedad.EN_NEGOCIACION,
+        )
+    if existe_contrato_no_anulado(propiedad=propiedad):
+        raise PropiedadConContrato(propiedad=propiedad.codigo)
+
+    monto = datos["monto"]
+    gastos_legales = datos.get("gastos_legales", Decimal("0"))
+    impuestos = datos.get("impuestos", Decimal("0"))
+    costo_total = monto + gastos_legales + impuestos
+    moneda = datos["moneda"]
+    tasa_a_usd = _tasa_a_dolar(moneda=moneda, fecha=fecha_compra)
+
+    contrato = ContratoCompra.objects.create(
+        proveedor=datos["proveedor"],
+        propiedad=propiedad,
+        fecha_compra=fecha_compra,
+        monto=monto,
+        gastos_legales=gastos_legales,
+        impuestos=impuestos,
+        costo_total=costo_total,
+        moneda=moneda,
+        tasa_a_usd=tasa_a_usd,
+        costo_total_usd=_a_centavos(costo_total * tasa_a_usd),
+        observaciones=datos.get("observaciones", ""),
+        creado_por=autor,
+        actualizado_por=autor,
+    )
+    # Regla 8: el código sale del id, como CV-00001 en ventas.
+    contrato.codigo = f"CC-{contrato.pk:05d}"
+    contrato.save(update_fields=["codigo"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ENTIDAD_CONTRATO,
+        entidad_id=contrato.pk,
+        accion=AccionAuditoria.CREAR,
+        valores_nuevos=model_to_dict(contrato, fields=CAMPOS_CONTRATO_AUDITADOS),
+        ip=ip,
+    )
+    return contrato
+
+
+@transaction.atomic
+def completar_contrato_compra(
+    *, contrato: ContratoCompra, autor: Usuario, ip: str | None
+) -> ContratoCompra:
+    """
+    Cierra la compra: el contrato pasa a COMPLETADO y la propiedad de
+    EN_NEGOCIACION a ADQUIRIDA (regla 6).
+
+    La fila del contrato se bloquea antes de revisar su estado: dos peticiones
+    que completan a la vez no pasan las dos (spec 017, §6). Si la propiedad ya
+    no está en negociación, cambiar_estado_propiedad lanza
+    PropiedadNoDisponible y la transacción revierte todo: el contrato sigue
+    EN_PROCESO.
+    """
+    contrato = ContratoCompra.objects.select_for_update().get(pk=contrato.pk)
+    _exigir_en_proceso(contrato, accion="completar")
+    cambiar_estado_propiedad(
+        propiedad=contrato.propiedad,
+        estado=EstadoPropiedad.ADQUIRIDA,
+        autor=autor,
+        ip=ip,
+        motivo=f"Compra {contrato.codigo} completada",
+        estado_requerido=EstadoPropiedad.EN_NEGOCIACION,
+    )
+    contrato.estado = EstadoContratoCompra.COMPLETADO
+    contrato.actualizado_por = autor
+    contrato.save(update_fields=["estado", "actualizado_por", "actualizado_en"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ENTIDAD_CONTRATO,
+        entidad_id=contrato.pk,
+        accion=AccionAuditoria.ACTUALIZAR,
+        valores_anteriores={"estado": EstadoContratoCompra.EN_PROCESO},
+        valores_nuevos={"estado": EstadoContratoCompra.COMPLETADO},
+        ip=ip,
+    )
+    return contrato
+
+
+@transaction.atomic
+def anular_contrato_compra(
+    *, contrato: ContratoCompra, motivo: str, autor: Usuario, ip: str | None
+) -> ContratoCompra:
+    """
+    Anula un contrato EN_PROCESO con su motivo (regla 7). La propiedad no
+    cambia: sigue en negociación y puede tener otro contrato (regla 2).
+
+    Un contrato completado no se anula: la propiedad ya es de la agencia, y
+    deshacer la compra no está en el alcance.
+    """
+    contrato = ContratoCompra.objects.select_for_update().get(pk=contrato.pk)
+    _exigir_en_proceso(contrato, accion="anular")
+    contrato.estado = EstadoContratoCompra.ANULADO
+    contrato.actualizado_por = autor
+    contrato.save(update_fields=["estado", "actualizado_por", "actualizado_en"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ENTIDAD_CONTRATO,
+        entidad_id=contrato.pk,
+        accion=AccionAuditoria.ANULAR,
+        valores_anteriores={"estado": EstadoContratoCompra.EN_PROCESO},
+        valores_nuevos={"estado": EstadoContratoCompra.ANULADO, "motivo": motivo},
+        ip=ip,
+    )
+    return contrato
+
+
+def _exigir_en_proceso(contrato: ContratoCompra, *, accion: str) -> None:
+    if contrato.estado != EstadoContratoCompra.EN_PROCESO:
+        raise TransicionInvalida(
+            codigo=contrato.codigo, estado=contrato.estado, accion=accion
+        )
+
+
+def _tasa_a_dolar(*, moneda, fecha: date) -> Decimal:
+    """
+    Tasa de la moneda al dólar vigente en la fecha (regla 5), como en ventas.
+    Para un contrato en dólares es 1. Sin tasa registrada, o sin el dólar en
+    el catálogo, se rechaza con TIPO_CAMBIO_NO_DISPONIBLE.
+    """
+    dolar = obtener_dolar()
+    if dolar is None:
+        raise TipoCambioNoDisponible(origen=moneda.codigo, destino="USD", fecha=fecha)
+    return obtener_tipo_cambio(origen=moneda, destino=dolar, fecha=fecha)
+
+
+def _a_centavos(valor: Decimal) -> Decimal:
+    """Redondeo comercial a dos decimales, el mismo de ventas."""
+    return valor.quantize(CENTAVOS, rounding=ROUND_HALF_UP)
 
 
 def cargar_demo_compras() -> dict[str, int]:
