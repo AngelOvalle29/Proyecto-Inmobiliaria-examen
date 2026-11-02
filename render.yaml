@@ -69,3 +69,8 @@ services:
         sync: false
       - key: STORAGE_SECRET_KEY
         sync: false
+      # Llave de Gemini para el agente y los embeddings (spec 005). Sin ella,
+      # cargar_demo_ia carga los documentos sin indexar y el agente responde
+      # 503. Los demás IA_* tienen valores por defecto en settings.
+      - key: IA_API_KEY
+        sync: false

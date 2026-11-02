@@ -11,3 +11,11 @@ class TipoProveedor(models.TextChoices):
     BANCO = "BANCO", "Banco"
     GOBIERNO = "GOBIERNO", "Gobierno"
     OTRO = "OTRO", "Otro"
+
+
+class EstadoContratoCompra(models.TextChoices):
+    """Ciclo de vida de un contrato de compra (spec 017, reglas 1, 6 y 7)."""
+
+    EN_PROCESO = "EN_PROCESO", "En proceso"
+    COMPLETADO = "COMPLETADO", "Completado"
+    ANULADO = "ANULADO", "Anulado"
