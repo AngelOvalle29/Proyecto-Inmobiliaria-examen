@@ -65,6 +65,9 @@ export const MENU: EntradaMenu[] = [
     etiqueta: 'Contratos de arrendamiento',
     grupo: 'Arrendamientos',
   },
+  // El asistente es público (spec 018, regla 8): aquí aparece para quien ya
+  // inició sesión; la página no pide sesión.
+  { ruta: '/asistente', etiqueta: 'Asistente', grupo: 'Asistente' },
   {
     ruta: '/asistente/documentos',
     etiqueta: 'Documentos del asistente',

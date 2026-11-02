@@ -12,6 +12,7 @@ import {
 import { DetalleArrendamiento } from './paginas/arrendamientos/DetalleArrendamiento'
 import { FirmarArrendamiento } from './paginas/arrendamientos/FirmarArrendamiento'
 import { ListaArrendamientos } from './paginas/arrendamientos/ListaArrendamientos'
+import { Asistente } from './paginas/asistente/Asistente'
 import { ListaDocumentosAgente } from './paginas/asistente/ListaDocumentosAgente'
 import { Login } from './paginas/auth/Login'
 import { EditarPropiedad } from './paginas/catalogo/EditarPropiedad'
@@ -45,6 +46,9 @@ const enrutador = createBrowserRouter([
     element: <LayoutAuth />,
     children: [{ path: '/login', element: <Login /> }],
   },
+  // Pública, fuera de RutaProtegida: el asistente es para los visitantes del
+  // sitio, sin cuenta (spec 018, regla 8).
+  { path: '/asistente', element: <Asistente /> },
   {
     element: (
       <RutaProtegida>

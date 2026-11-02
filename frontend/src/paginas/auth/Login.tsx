@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { Navigate, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { z } from 'zod'
 
 import { leerErrorApi } from '../../api/errores'
@@ -87,6 +87,13 @@ export function Login() {
             {iniciar.isPending ? 'Entrando…' : 'Entrar'}
           </Button>
         </form>
+        {/* Spec 018, §5: un visitante sin cuenta encuentra el asistente. */}
+        <p className="mt-4 text-center text-sm text-slate-500">
+          ¿Tiene una pregunta sobre nuestras propiedades?{' '}
+          <Link className="text-sky-700 hover:underline" to="/asistente">
+            Consulte al asistente
+          </Link>
+        </p>
       </CardContent>
     </Card>
   )
