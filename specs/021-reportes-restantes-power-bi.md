@@ -68,12 +68,17 @@ de implementarlos y verificarlos sobre esos modelos reales.
 5. Anulados y cancelados no aportan ventas, compras, cobros ni deuda. Los
    contratos terminados pueden conservar deuda exigible; no se descartan
    automáticamente sus pagos pendientes. Esto sigue las specs 007/008 y la
-   corrección propuesta en el PR #70.
+   corrección ya fusionada en el PR #70. Para saldos de cuotas en R04/R10/R11
+   se filtra `contrato__estado=VIGENTE` en SQL: las cuotas de un contrato
+   anulado pueden seguir en `PENDIENTE` y no constituyen deuda exigible.
 6. R01/R02/R03/R04/R10/R11: administración, gerencia y contabilidad consultan
    el conjunto; agente solo su cartera, siguiendo los selectores de origen.
-   No se redefine aquí si la cartera depende del agente del contrato o del
-   cliente: se reutiliza la regla vigente de B, también en agregaciones.
-   `CONSULTA` no accede a estos reportes en esta propuesta.
+   La cartera se determina por el cliente, reutilizando
+   `listar_contratos_visibles` y los selectores de clientes/cotizaciones,
+   también en agregaciones. R02 añade una restricción: un agente ve solo su
+   propia fila, sin mostrar números de otros agentes tras reasignar clientes.
+   A propuesta de B, `CONSULTA` puede leer R01–R04, R10 y R11, coherente con
+   su acceso a contratos y clientes; pendiente de aprobación global de la spec.
 7. R06/R08/R14: todos los roles autenticados, con las restricciones de lectura
    que ya imponga catálogo. R12/R13/R15: administración, gerencia y contabilidad.
    R05/R16/R17 mantienen sus permisos aprobados. Un agente no puede ampliar
@@ -88,7 +93,7 @@ detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
 |---|---|---|---|
 | R01 `ventas-por-periodo` | Contrato: código, firma, cliente, agente, bien, país, ciudad, modalidad, moneda, neto, bruto/descuento documentados y comisión | Firma desde/hasta, país, ciudad, agente, tipo, modalidad, moneda | Cantidad, neto y comisión por mes/país/moneda; bruto y descuento solo de la población con evidencia |
 | R02 `desempeno-agentes` | Agente: cotizaciones emitidas/aprobadas, contratos vinculados, ventas sin cotización, conversión, monto vendido y comisión | Emisión desde/hasta, país, agente | Conteos y montos por agente/moneda; conversión ponderada global |
-| R03 `embudo-cotizaciones` | Cotización: código, emisión, cliente, agente, estado actual, vencida, total, moneda y contrato vinculado | Emisión desde/hasta, agente, país, estado, moneda, monto mínimo/máximo | Conteos por estado y tasas de la cohorte, sin sumar porcentajes |
+| R03 `embudo-cotizaciones` | Cotización: código, emisión, cliente, agente, estado actual, vencida, total, moneda y contrato vinculado | Emisión desde/hasta, agente, país, estado, moneda, monto mínimo/máximo | Conteos por estado, tasas de la cohorte y tiempos por etapa desde auditoría; sin sumar porcentajes |
 | R04 `ranking-clientes` | Cliente: código/nombre comercial, contratos de venta, arrendamientos vigentes, vendido USD y saldos por moneda | Firma de venta desde/hasta, país del cliente, tipo de cliente | Ranking por vendido USD descendente y cliente ID; conteos y saldos de la población |
 | R06 `propiedades-por-estado` | Bien `(origen,id)`: código, propiedad, tipo, ciudad, estado actual, fecha de entrada conocida y días en estado | País, ciudad, tipo, estado, corte hoy | Conteos por estado/tipo; antigüedad media solo de fechas conocidas y cantidad sin historia |
 | R08 `evolucion-avaluos` | Avalúo: propiedad, fecha, perito, valor, moneda, anterior comparable y variación | Propiedad, país, fechas, moneda | Cantidad, primera/última valuación por propiedad/moneda y variación comparable |
@@ -104,20 +109,25 @@ detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
 8. R01: neto es `monto_total`; comisión es la guardada. Con cotización,
    bruto/precio y descuento salen de ella. Sin cotización, esos dos datos son
    desconocidos: no se inventa descuento cero. Se informa la cobertura.
-9. R02/R03: la cohorte son cotizaciones emitidas en el intervalo. Conversión
-   a contrato = cotizaciones de esa cohorte con contrato no anulado / total
-   de la cohorte × 100. Denominador cero produce `null`. Las ventas directas
-   se muestran aparte y no inflan esa conversión. R02 distingue ventas por
-   fecha de firma de las conversiones de la cohorte.
-10. R03: estados actuales no prueban tiempos en cada etapa. El tiempo medio
-    por etapa de `docs/reportes.md` queda condicionado a validar con B la
-    cobertura y el contrato de eventos de auditoría; si falta historia se
-    informa «sin historial», nunca duración cero. Antes de aprobar se debe
-    aceptar expresamente esta cobertura o definir los eventos faltantes.
+9. R02/R03 agrupan por `fecha_emision` en el intervalo. R02 no cuenta como
+   emitidas las cotizaciones en `BORRADOR`; R03 sí las muestra como primera
+   etapa. Conversión a contrato = cotizaciones de la cohorte con contrato no
+   anulado / total de la cohorte del reporte × 100. Denominador cero produce
+   `null`. Las ventas directas se muestran aparte y no inflan esa conversión.
+   R02 distingue ventas por fecha de firma de las conversiones de la cohorte.
+10. R03 calcula tiempos por etapa desde los registros de creación, envío,
+    aprobación y rechazo en auditoría, ordenados por `(fecha,id)`. El tiempo
+    de una etapa cerrada es la diferencia entre entrada y siguiente transición;
+    la media incluye solo duraciones documentadas, con su conteo de cobertura.
+    La etapa abierta se informa aparte y no se mezcla en la media de cerradas.
+    Sin eventos suficientes se informa «sin historial», nunca duración cero.
+    Si se acuerda recortar esta métrica por plazo, se registra expresamente
+    antes de considerar completo R03.
 11. R04: el ranking usa ventas USD, no mezcla precio de venta con renta
     mensual. Saldos y arrendamientos son actuales y se etiquetan así; el
     intervalo filtra ventas. Esta precisión del «monto total transado» del
-    catálogo debe aprobarla B; no se cambia el criterio silenciosamente.
+    catálogo fue aceptada por B en su revisión del PR #78. Sus saldos de renta
+    incluyen solo obligaciones vencidas, conforme a la regla 14.
 12. R06/R14 reutilizan la regla propiedad/unidad de R05: un edificio no se
     suma además de sus unidades activas. R06 obtiene la última transición
     documentada al estado actual; creación solo sirve si registra ese estado.
@@ -125,18 +135,22 @@ detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
 13. R08 calcula el avalúo anterior por propiedad y moneda con orden `(fecha,id)`
     antes de filtrar el período mostrado. Variación = `(nuevo/anterior - 1) ×
     100`; sin anterior o con anterior cero, `null`. No compara monedas distintas.
-14. R10/R11: saldo de cuota = total − pagado; saldo de renta pendiente = monto
-    programado, sin recargo hipotético. Rentas pagadas/canceladas no tienen
-    saldo. Mora empieza el día posterior al vencimiento, también en rentas:
+14. R04/R10/R11: saldo de cuota = total − pagado, solo para contrato `VIGENTE`;
+    en R04/R10 se incluyen todas sus cuotas, también las futuras, porque la
+    deuda fue firmada. Para rentas el saldo incluye solo las pendientes con
+    `fecha_vencimiento < hoy`, por su monto programado sin recargo hipotético;
+    no incluye los meses futuros ni el que vence hoy. Rentas pagadas/canceladas
+    no tienen saldo. R11 incluye solo obligaciones vencidas. Mora empieza el
+    día posterior al vencimiento, también en rentas:
     la gracia afecta el recargo al cobrar, no la clasificación, según spec 008.
     No se suman enganche ni precio total otra vez a la deuda de cuotas.
 15. R12: cada abono de cuota se obtiene del log inmutable del pago, que guarda
     `pago`, `fecha` y `tasa_a_usd` (spec 007), con ID del log como identidad.
     No se usa `monto_pagado` con `fecha_ultimo_pago`. Cada renta pagada aporta
-    una fila con recibido y recargo efectivo una sola vez. Se propone incluir
-    contado liquidado y enganche en fecha de firma según el contrato, con
-    etiqueta de origen distinta: B debe confirmar que firma equivale a cobro
-    de esos importes o definir su registro explícito antes de aprobar.
+    una fila por `monto_pagado`, que ya incluye el recargo: no se suma de nuevo.
+    B confirmó incluir contado liquidado y enganche como cobrados en
+    `fecha_firma`, con la tasa guardada del contrato y orígenes separados.
+    El enganche de un contrato anulado no cuenta como cobro; tampoco sus cuotas.
     Depósitos de garantía no son ingreso. Si falta un log requerido o su tasa,
     el resultado no puede aparentar estar completo: 409 `DATOS_INCOMPLETOS`,
     diagnóstico sin datos sensibles y conciliación con los acumulados.
@@ -162,7 +176,9 @@ detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
     `DISPONIBLE`, no total menos arrendados. Denominador cero da `null`.
     Ingreso recurrente suma rentas de contratos que cubren hoy y no estén
     rescindidos a esa fecha; una renovación futura no duplica el contrato
-    anterior. B debe validar el tratamiento de renovados antes de aprobar.
+    anterior. Un contrato `RENOVADO` se excluye si su `renovacion` está
+    `RESCINDIDO`, incluso si sus fechas todavía cubren hoy: en ese caso el
+    bien puede estar `DISPONIBLE`. B acepta renovados con esta exclusión.
 
 ## 4. Modelo de datos
 
@@ -181,7 +197,7 @@ vistas de este incremento. No modifica tablas de otras apps.
 | `bi.dim_proveedor` | Proveedor / ID y código; sin NIT ni correo |
 | `bi.hechos_ventas` | Contrato no anulado / contrato ID, fecha firma, bien, cliente, agente, moneda, neto y USD |
 | `bi.hechos_cobros` | Cobro / `(origen,id_fuente)`, fecha efectiva, contrato, moneda, recibido y USD; regla 15 |
-| `bi.hechos_arrendamientos` | Mes de contrato / `(contrato_id,fecha_id)`; renta programada y USD, sin llamarla cobro |
+| `bi.hechos_arrendamientos` | Mes de contrato / `(contrato_id,fecha_id)`; renta programada y USD, sin llamarla cobro; excluye pagos `CANCELADO` |
 | `bi.hechos_compras` | Contrato completado / compra ID, fecha compra, bien, `proveedor_id` hacia `bi.dim_proveedor`, costo y USD |
 | `bi.hechos_construccion` | Pago pagado / pago ID, fecha pago, proyecto, constructora, moneda, monto y USD |
 
@@ -280,6 +296,11 @@ atribuidas a un usuario de negocio.
 - [ ] Los datos desconocidos se distinguen del cero y tienen cobertura explícita.
 - [ ] Los dos abonos de una cuota en meses/tasas distintos caen en sus meses correctos.
 - [ ] R13/R15 funcionan con los modelos y migraciones reales de la 017.
+- [ ] R04/R10 no suman rentas futuras ni cuotas de contratos anulados; R11 solo muestra deuda vencida.
+- [ ] R02 respeta la cartera por cliente, muestra al agente solo su fila y excluye borradores de emitidas.
+- [ ] R14 excluye el contrato renovado cuya renovación fue rescindida, aunque sus fechas cubran hoy.
+- [ ] R12 usa renta recibida con recargo una sola vez, y contado/enganche con tasa y fecha de firma.
+- [ ] `bi.hechos_arrendamientos` excluye meses de pago cancelado.
 - [ ] R13 filtra por país de la propiedad, aunque el proveedor sea de otro país.
 - [ ] R15 coincide con el detalle de proyecto en comprometido y disponible; solo pagos `PAGADO` aportan USD.
 - [ ] `bi.hechos_compras.proveedor_id` referencia `bi.dim_proveedor`, que expone solo ID y código.
@@ -298,6 +319,7 @@ atribuidas a un usuario de negocio.
 | Selectores | 0/1/muchas filas, rangos inclusivos, dos monedas, edificios/unidades, varias cuotas por contrato, cartera ajena |
 | Métricas | Cohorte y venta directa, anterior de avalúo fuera del filtro, nulos, mora 0/1/30/31/60/61/90/91 días, renta rescindida pendiente |
 | Cobros | Dos abonos en meses y tasas diferentes; contado, enganche y renta con recargo; log incompleto; conciliación sin duplicación |
+| Comercial | Cliente reasignado y fila propia de R02; borradores distintos en R02/R03; tiempos documentados por transición; contrato de doce meses sin deuda de rentas futuras; cuotas anuladas excluidas; renovación rescindida antes de comenzar; contado/enganche por firma y renta sin duplicar recargo |
 | Servicios/API | Matriz de cinco roles, filtros inválidos, páginas, totales completos, rechazo de 5,001 filas antes de cargar detalle |
 | Exportación | Columnas y totales equivalentes, tipos XLSX, fórmulas literales, PDF multipágina, cobertura desconocida |
 | Migración/SQL | Aplicar/revertir vistas, unicidad de grano, claves a dimensiones, permisos reales y conciliación por fuente |
@@ -314,7 +336,8 @@ y C compras/construcción. No se implementan métricas ambiguas antes de resolve
 Se detectó que los abonos detallados sí están en la bitácora de ventas, aunque
 la cuota solo conserve acumulado y último pago. Leer esos eventos evita crear
 una segunda contabilidad y evita asignar todo el dinero al último mes.
-Contado/enganche y cobertura de logs requieren la validación indicada en regla 15.
+B confirmó contado/enganche por fecha de firma y tasa del contrato; la
+implementación comprobará la cobertura de logs indicada en regla 15.
 
 Se propone Import para obtener una evidencia verificable en Desktop dentro
 del alcance académico; no se promete un servicio publicado ni refresco en nube.
@@ -354,3 +377,17 @@ aprobada en #64, con implementación en #75/#76 todavía pendiente de fusión
 al consultar GitHub en esta sesión. Los criterios y casos de prueba reflejan
 los ajustes. No se da por aprobada la parte de C hasta que Angel registre su
 aprobación sobre la revisión actualizada del PR #78.
+
+### Ajustes a la revisión del integrante B
+
+Durante la actualización llegó la revisión formal de Marco en el PR #78,
+todavía como comentario sin aprobación. Se incorporaron la exclusión del
+renovado cuya renovación se rescindió, saldos de rentas solo vencidas,
+cartera por cliente y fila propia de R02, y cuotas únicamente de contratos
+vigentes para los saldos. Se registraron sus validaciones sobre contado,
+enganche, cohortes, tiempos desde auditoría y ranking. Se precisó que el
+recargo ya está incluido en `monto_pagado` y que BI excluye rentas canceladas.
+Se incluyó su propuesta de acceso para `CONSULTA`, pendiente de aprobación
+global, y se añadieron los criterios/casos de prueba correspondientes.
+Marco indicó que amplía la demo comercial en otro PR; esa mejora debe
+coordinarse para demostrar R02/R03 con varios estados y agentes.
