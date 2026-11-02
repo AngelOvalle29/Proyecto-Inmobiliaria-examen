@@ -20,7 +20,7 @@ export const clienteApi = axios.create({
   timeout: 90_000,
 })
 
-type RespuestaRenovacion = components['schemas']['TokenRefresh']
+type RespuestaRenovacion = components['schemas']['RenovarToken']
 
 // Rutas cuyo 401 nunca dispara la renovación (spec 010, regla 5): un 401 del
 // login es una contraseña equivocada, y uno de refresh es un token de refresco

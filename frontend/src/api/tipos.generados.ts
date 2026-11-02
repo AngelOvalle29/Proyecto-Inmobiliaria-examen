@@ -82,10 +82,12 @@ export interface paths {
         /**
          * @description POST /api/v1/auth/refresh/ — nuevo token de acceso a cambio del de refresco.
          *
-         *     Es la vista de SimpleJWT sin cambios, salvo el límite de peticiones. Tiene
-         *     uno propio y más alto que el login: el token de refresco es una firma que
-         *     no se puede adivinar, así que el límite solo frena abusos, no ataques a
-         *     contraseñas.
+         *     Es la vista de SimpleJWT con dos cambios:
+         *     - Un límite de peticiones propio y más alto que el login: el token de
+         *       refresco es una firma que no se puede adivinar, así que el límite solo
+         *       frena abusos, no ataques a contraseñas.
+         *     - RenovarTokenSerializer, que responde 401 y no 500 si el usuario del token
+         *       ya no existe.
          */
         post: operations["v1_auth_refresh_create"];
         delete?: never;
@@ -1994,6 +1996,16 @@ export interface components {
             renta_mensual: string;
             duracion_meses: number;
         };
+        /**
+         * @description El de SimpleJWT, salvo un caso: si el usuario del token ya no existe (por
+         *     ejemplo, se reinició la base), SimpleJWT 5.5.1 deja escapar DoesNotExist y
+         *     la API responde 500. Aquí es un 401 NO_AUTENTICADO, como un token inválido
+         *     (spec 001, §5), y el frontend cierra la sesión.
+         */
+        RenovarToken: {
+            refresh: string;
+            readonly access: string;
+        };
         RescindirArrendamiento: {
             /** Format: date */
             fecha_rescision: string;
@@ -2042,10 +2054,6 @@ export interface components {
         TipoPropiedadResumen: {
             id: number;
             nombre: string;
-        };
-        TokenRefresh: {
-            readonly access: string;
-            refresh: string;
         };
         Tokens: {
             access: string;
@@ -2272,9 +2280,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TokenRefresh"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenRefresh"];
-                "multipart/form-data": components["schemas"]["TokenRefresh"];
+                "application/json": components["schemas"]["RenovarToken"];
+                "application/x-www-form-urlencoded": components["schemas"]["RenovarToken"];
+                "multipart/form-data": components["schemas"]["RenovarToken"];
             };
         };
         responses: {
@@ -2283,7 +2291,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenRefresh"];
+                    "application/json": components["schemas"]["RenovarToken"];
                 };
             };
         };
