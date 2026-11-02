@@ -286,6 +286,7 @@ SPECTACULAR_SETTINGS = {
         "EstadoPropiedadEnum": "apps.catalogo.enums.EstadoPropiedad",
         "TipoDocumentoEnum": "apps.catalogo.enums.TipoDocumento",
         "TipoClienteEnum": "apps.crm.enums.TipoCliente",
+        "TipoProveedorEnum": "apps.compras.enums.TipoProveedor",
         "EstadoCotizacionEnum": "apps.crm.enums.EstadoCotizacion",
         "EstadoContratoEnum": "apps.ventas.enums.EstadoContrato",
         "EstadoCuotaEnum": "apps.ventas.enums.EstadoCuota",

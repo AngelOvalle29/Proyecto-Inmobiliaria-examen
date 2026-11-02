@@ -232,3 +232,16 @@ ruff y formato correctos, sin migraciones nuevas, esquema OpenAPI sin avisos,
 y lint/typecheck/build del frontend correctos. Las muestras XLSX se abrieron
 mediante bibliotecas y se renderizaron; su apertura en Microsoft Excel queda
 pendiente junto con la revisión manual del navegador.
+
+### Integración autorizada del 2026-11-01
+
+Nathaly autorizó expresamente que Codex ejecute commit, push y apertura del PR
+con su configuración Git. Se integró `develop` sobre `769df79`, conservando las
+rutas y el menú del equipo y regenerando tipos desde OpenAPI. Se corrigieron
+dos colisiones de nombres en el esquema de proveedores, sin cambiar su JSON;
+ese ajuste requiere revisión del integrante C.
+
+La versión integrada pasó **652 pruebas** con PostgreSQL, ruff, formato,
+comprobación de migraciones, OpenAPI sin avisos y lint/typecheck/build.
+Se presenta como PR en borrador: falta navegador, comprensión del estudiante
+y aprobación real de otro integrante antes de fusionar.

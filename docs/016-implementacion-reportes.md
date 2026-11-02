@@ -124,3 +124,21 @@ sin implementarla. Debe presentarse en un PR de documentación separado de la
 implementación de la 016. Nathaly autorizó posteriormente que Codex ejecute
 commit, push y apertura del PR con su configuración de Git. Sigue pendiente
 la revisión del estudiante y la aprobación de otro integrante para fusionar.
+
+### Integración con develop y preparación del PR
+
+Tras la autorización se creó el commit de implementación con la identidad Git
+de Nathaly y se integró `origin/develop` (`769df79`). Se conservaron las rutas
+de reportes, compras y construcción, y las opciones actuales del menú.
+Los tipos del frontend se regeneraron desde OpenAPI, sin resolverlos a mano.
+
+La integración detectó dos avisos del esquema de proveedores: nombres de
+serializer de ciudad duplicados con CRM y enum de tipo sin nombre explícito.
+Se dio un nombre propio al resumen de ciudad de proveedor y se declaró
+`TipoProveedorEnum`. No cambia la respuesta JSON; C debe revisar el ajuste.
+
+Validación de la versión integrada: **652 pruebas pasaron en 97.03 s**,
+ruff y formato correctos, sin cambios de migraciones y OpenAPI sin avisos.
+Pasaron lint, typecheck y build del frontend. El paquete principal integrado
+es de 695.09 kB antes de gzip y conserva el aviso de tamaño.
+El PR se prepara como borrador por la validación de navegador pendiente.

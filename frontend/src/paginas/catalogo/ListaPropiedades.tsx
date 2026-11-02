@@ -95,8 +95,15 @@ export function ListaPropiedades() {
   }
 
   const puedeEscribir = rolPermitido(usuario?.rol ?? '', ESCRIBEN_CATALOGO)
+  // Ver ficha la tienen todos los roles; las demás, solo quien escribe en el
+  // catálogo (spec 014, regla 2).
+  const verFicha: AccionFila<Propiedad> = {
+    etiqueta: 'Ver ficha',
+    ejecutar: (fila) => navegar(`/catalogo/propiedades/${fila.id}`),
+  }
   const acciones: AccionFila<Propiedad>[] = puedeEscribir
     ? [
+        verFicha,
         { etiqueta: 'Cambiar estado', ejecutar: (fila) => setParaCambiarEstado(fila) },
         {
           etiqueta: 'Desactivar',
@@ -106,7 +113,7 @@ export function ListaPropiedades() {
           ejecutar: (fila) => desactivar.mutateAsync(fila.id),
         },
       ]
-    : []
+    : [verFicha]
 
   return (
     <div className="flex flex-col gap-4">
@@ -175,7 +182,8 @@ export function ListaPropiedades() {
       />
 
       <DialogoCambiarEstado
-        propiedad={paraCambiarEstado}
+        recurso="propiedades"
+        elemento={paraCambiarEstado}
         alCerrar={() => setParaCambiarEstado(null)}
       />
     </div>
