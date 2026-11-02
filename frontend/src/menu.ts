@@ -46,6 +46,10 @@ export const ESCRIBEN_CRM: Rol[] = [...ADMINISTRAN_CRM, ROLES.AGENTE]
 // (reglas 20 y 21 de la spec 007).
 export const REGISTRAN_PAGOS: Rol[] = [...ADMINISTRAN_CRM, ROLES.CONTABILIDAD]
 
+// Quiénes administran los documentos del asistente: también los leen solo
+// ellos (regla 14 de la spec 020).
+export const ADMINISTRAN_ASISTENTE: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
+
 export const MENU: EntradaMenu[] = [
   { ruta: '/', etiqueta: 'Inicio' },
   // "Nueva propiedad" es un botón de la lista, como en CRM (spec 014, §5).
@@ -59,6 +63,12 @@ export const MENU: EntradaMenu[] = [
     ruta: '/arrendamientos/contratos',
     etiqueta: 'Contratos de arrendamiento',
     grupo: 'Arrendamientos',
+  },
+  {
+    ruta: '/asistente/documentos',
+    etiqueta: 'Documentos del asistente',
+    roles: ADMINISTRAN_ASISTENTE,
+    grupo: 'Asistente',
   },
 ]
 
