@@ -9,12 +9,16 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.catalogo.selectors import listar_propiedades
-from apps.catalogo.serializers import PropiedadResumenSerializer
+from apps.catalogo.selectors import listar_documentos, listar_propiedades
+from apps.catalogo.serializers import (
+    DocumentoOficialResumenSerializer,
+    PropiedadResumenSerializer,
+)
 from apps.core.selectors import listar_monedas, listar_paises
 from apps.core.serializers import MonedaResumenSerializer, PaisResumenSerializer
 
-from .models import Constructora, ProyectoConstruccion
+from .enums import TipoPagoConstructora
+from .models import Constructora, PagoConstructora, ProyectoConstruccion
 from .selectors import listar_constructoras
 
 
@@ -91,6 +95,24 @@ class ProyectoSerializer(serializers.ModelSerializer):
         ]
 
 
+class ProyectoDetalleSerializer(ProyectoSerializer):
+    """
+    Detalle de un proyecto: lo de la lista más total_comprometido y disponible,
+    que calcula el selector listar_proyectos_con_totales (spec 017, §5). Así la
+    pantalla (spec 018) no suma los pagos por su cuenta.
+    """
+
+    total_comprometido = serializers.DecimalField(
+        max_digits=18, decimal_places=2, read_only=True
+    )
+    disponible = serializers.DecimalField(
+        max_digits=18, decimal_places=2, read_only=True
+    )
+
+    class Meta(ProyectoSerializer.Meta):
+        fields = [*ProyectoSerializer.Meta.fields, "total_comprometido", "disponible"]
+
+
 class ProyectoEntradaSerializer(serializers.Serializer):
     """
     Entrada para registrar un proyecto (POST). Solo valida el formato: que la
@@ -132,7 +154,73 @@ class AvanceSerializer(serializers.Serializer):
     descripcion = serializers.CharField(max_length=500)
 
 
-class MotivoProyectoSerializer(serializers.Serializer):
-    """Entrada de /suspender/ y /cancelar/: el motivo es obligatorio."""
+class MotivoConstruccionSerializer(serializers.Serializer):
+    """
+    Entrada de las acciones que solo piden un motivo: suspender o cancelar un
+    proyecto y anular un pago. El motivo es obligatorio y queda en la bitácora.
+    """
 
     motivo = serializers.CharField(max_length=255)
+
+
+# ---------- Pagos a constructoras (spec 017) ----------
+
+
+class ProyectoDePagoSerializer(serializers.Serializer):
+    """El proyecto de un pago, con su constructora: el pago no la repite (§10)."""
+
+    id = serializers.IntegerField()
+    codigo = serializers.CharField()
+    constructora = ConstructoraResumenSerializer()
+
+
+class PagoSerializer(serializers.ModelSerializer):
+    """Salida de un pago a constructora."""
+
+    proyecto = ProyectoDePagoSerializer()
+    moneda = MonedaResumenSerializer()
+    documento = DocumentoOficialResumenSerializer(allow_null=True)
+
+    class Meta:
+        model = PagoConstructora
+        fields = [
+            "id",
+            "codigo",
+            "proyecto",
+            "tipo",
+            "monto",
+            "moneda",
+            "fecha_programada",
+            "estado",
+            "fecha_pago",
+            "referencia_pago",
+            "tasa_a_usd",
+            "monto_usd",
+            "documento",
+            "observaciones",
+        ]
+
+
+class ProgramarPagoSerializer(serializers.Serializer):
+    """
+    Entrada de POST /proyectos-construccion/{id}/pagos/. La moneda no se
+    recibe: es la del proyecto (regla 20). El presupuesto, el finiquito y que
+    el documento sea de la misma propiedad los revisa el servicio.
+    """
+
+    tipo = serializers.ChoiceField(choices=TipoPagoConstructora.choices)
+    monto = serializers.DecimalField(
+        max_digits=18, decimal_places=2, min_value=Decimal("0.01")
+    )
+    fecha_programada = serializers.DateField()
+    documento = serializers.PrimaryKeyRelatedField(
+        queryset=listar_documentos(), allow_null=True, default=None
+    )
+    observaciones = serializers.CharField(allow_blank=True, default="")
+
+
+class PagarSerializer(serializers.Serializer):
+    """Entrada de /pagar/ (regla 21). Las reglas de la fecha, en el servicio."""
+
+    fecha_pago = serializers.DateField()
+    referencia_pago = serializers.CharField(max_length=100)

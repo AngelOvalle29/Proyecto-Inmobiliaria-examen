@@ -8,8 +8,8 @@ from django.db.models import Q
 
 from apps.core.normalizacion import normalizar_documento
 
-from .enums import EstadoProyecto
-from .models import Constructora, ProyectoConstruccion
+from .enums import EstadoPago, EstadoProyecto, TipoPagoConstructora
+from .models import Constructora, PagoConstructora, ProyectoConstruccion
 
 
 class ConstructoraFilter(django_filters.FilterSet):
@@ -43,3 +43,15 @@ class ProyectoFilter(django_filters.FilterSet):
     class Meta:
         model = ProyectoConstruccion
         fields = ["estado", "constructora", "propiedad"]
+
+
+class PagoFilter(django_filters.FilterSet):
+    """Filtros de /pagos-constructora/ (spec 017, §5)."""
+
+    estado = django_filters.ChoiceFilter(choices=EstadoPago.choices)
+    tipo = django_filters.ChoiceFilter(choices=TipoPagoConstructora.choices)
+    proyecto = django_filters.NumberFilter(field_name="proyecto_id")
+
+    class Meta:
+        model = PagoConstructora
+        fields = ["estado", "tipo", "proyecto"]

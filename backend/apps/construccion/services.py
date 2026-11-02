@@ -15,7 +15,7 @@ from django.utils import timezone
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
 from apps.catalogo.enums import EstadoPropiedad
-from apps.catalogo.exceptions import PropiedadNoDisponible
+from apps.catalogo.exceptions import DocumentoDeOtraPropiedad, PropiedadNoDisponible
 from apps.catalogo.selectors import listar_unidades
 from apps.catalogo.services import cambiar_estado_propiedad, cambiar_estado_unidad
 from apps.core.exceptions import TipoCambioNoDisponible
@@ -24,26 +24,29 @@ from apps.core.selectors import listar_paises, obtener_tipo_cambio
 from apps.usuarios.models import Usuario
 
 from . import datos_demo
-from .enums import ESTADOS_ACTIVOS, EstadoProyecto
+from .enums import ESTADOS_ACTIVOS, EstadoPago, EstadoProyecto, TipoPagoConstructora
 from .exceptions import (
     AvanceInvalido,
     ConstructoraConProyectos,
     ConstructoraDuplicada,
     FechaInvalida,
     NitObligatorio,
+    PresupuestoExcedido,
     PropiedadConProyecto,
     TransicionInvalida,
 )
-from .models import Constructora, ProyectoConstruccion
+from .models import Constructora, PagoConstructora, ProyectoConstruccion
 from .selectors import (
     constructora_tiene_proyectos_activos,
     existe_constructora_con_nit,
     existe_proyecto_activo,
     obtener_dolar,
+    total_comprometido,
 )
 
 ENTIDAD_CONSTRUCTORA = "construccion_constructora"
 ENTIDAD_PROYECTO = ProyectoConstruccion._meta.db_table
+ENTIDAD_PAGO = PagoConstructora._meta.db_table
 CENTAVOS = Decimal("0.01")
 
 # Campos que se guardan en la bitácora y que se pueden editar. El código no
@@ -249,6 +252,9 @@ def actualizar_proyecto(
       finiquito que no cabía (§10). Uno CANCELADO, nada.
     - Si cambia el presupuesto, se convierte con la tasa que el proyecto ya
       tiene (regla 11), no con la de hoy.
+    - El presupuesto nunca queda por debajo de lo ya programado y pagado
+      (reglas 17 y 19). Se revisa con la fila bloqueada, para que un pago que
+      se programa al mismo tiempo no se cuele.
 
     Audita solo lo que cambió; si nada cambia, no guarda ni audita.
     """
@@ -267,6 +273,14 @@ def actualizar_proyecto(
         return proyecto
     fin_estimada = datos.get("fecha_fin_estimada", proyecto.fecha_fin_estimada)
     _validar_fechas(proyecto.fecha_inicio, fin_estimada)
+    if "presupuesto_total" in cambios:
+        comprometido = total_comprometido(proyecto=proyecto)
+        if datos["presupuesto_total"] < comprometido:
+            raise PresupuestoExcedido(
+                proyecto=proyecto.codigo,
+                presupuesto=datos["presupuesto_total"],
+                comprometido=comprometido,
+            )
 
     campos_bitacora = list(cambios)
     if "presupuesto_total" in cambios:
@@ -451,6 +465,8 @@ def cancelar_proyecto(
       nunca quede atascado (regla 26).
     - Un proyecto PLANIFICADO nunca cambió la propiedad, así que no hay nada que
       devolver.
+    - Sus pagos programados se anulan con él: ya no se van a pagar. Los pagados
+      quedan como están, porque ese dinero ya salió.
     """
     proyecto = _bloquear(proyecto, exigir=ESTADOS_ACTIVOS, accion="cancelar")
     propiedad = proyecto.propiedad
@@ -467,6 +483,14 @@ def cancelar_proyecto(
         )
     elif proyecto.estado != EstadoProyecto.PLANIFICADO:
         extra["propiedad_sin_cambio"] = propiedad.estado
+    # select_for_update: si alguien paga uno de estos pagos al mismo tiempo,
+    # se espera a que termine. PostgreSQL vuelve a revisar el filtro sobre la
+    # fila ya pagada y la deja fuera, así un pago PAGADO nunca se anula.
+    programados = PagoConstructora.objects.select_for_update().filter(
+        proyecto=proyecto, estado=EstadoPago.PROGRAMADO
+    )
+    for pago in programados:
+        _anular(pago, motivo=f"Obra {proyecto.codigo} cancelada", autor=autor, ip=ip)
     return _cambiar_estado(
         proyecto,
         EstadoProyecto.CANCELADO,
@@ -475,6 +499,187 @@ def cancelar_proyecto(
         accion=AccionAuditoria.ANULAR,
         extra=extra,
     )
+
+
+# ---------- Pagos a constructoras (spec 017) ----------
+
+CAMPOS_PAGO_AUDITADOS = [
+    "codigo",
+    "proyecto",
+    "tipo",
+    "monto",
+    "moneda",
+    "fecha_programada",
+    "estado",
+    "documento",
+    "observaciones",
+]
+
+
+@transaction.atomic
+def programar_pago(
+    *, proyecto: ProyectoConstruccion, datos: dict, autor: Usuario, ip: str | None
+) -> PagoConstructora:
+    """
+    Programa un pago a la constructora de la obra (spec 017, reglas 19 a 21).
+
+    - En la moneda del proyecto: la asigna el sistema (regla 20).
+    - No para un proyecto cancelado. Un FINIQUITO, solo para uno FINALIZADO
+      (regla 20).
+    - El documento, si lo lleva, debe ser de la misma propiedad (regla 20).
+    - Lo programado y pagado, con este pago, no supera el presupuesto (regla
+      19). La fila del proyecto se bloquea antes de sumar: dos pagos
+      simultáneos no pueden pasar juntos el presupuesto (§6).
+
+    datos ya viene validado: tipo, monto mayor que cero, documento activo.
+    """
+    proyecto = ProyectoConstruccion.objects.select_for_update().get(pk=proyecto.pk)
+    tipo = datos["tipo"]
+    if proyecto.estado == EstadoProyecto.CANCELADO:
+        raise TransicionInvalida(
+            codigo=proyecto.codigo, estado=proyecto.estado, accion="programar pagos"
+        )
+    if tipo == TipoPagoConstructora.FINIQUITO and (
+        proyecto.estado != EstadoProyecto.FINALIZADO
+    ):
+        raise TransicionInvalida(
+            codigo=proyecto.codigo,
+            estado=proyecto.estado,
+            accion="programar un finiquito antes de finalizar",
+        )
+    documento = datos.get("documento")
+    if documento is not None and documento.propiedad_id != proyecto.propiedad_id:
+        raise DocumentoDeOtraPropiedad(
+            documento=documento.nombre,
+            propiedad=proyecto.propiedad.codigo,
+            propiedad_documento=documento.propiedad.codigo,
+        )
+    comprometido = total_comprometido(proyecto=proyecto) + datos["monto"]
+    if comprometido > proyecto.presupuesto_total:
+        raise PresupuestoExcedido(
+            proyecto=proyecto.codigo,
+            presupuesto=proyecto.presupuesto_total,
+            comprometido=comprometido,
+        )
+
+    pago = PagoConstructora.objects.create(
+        proyecto=proyecto,
+        tipo=tipo,
+        monto=datos["monto"],
+        moneda=proyecto.moneda,
+        fecha_programada=datos["fecha_programada"],
+        documento=documento,
+        observaciones=datos.get("observaciones", ""),
+        creado_por=autor,
+        actualizado_por=autor,
+    )
+    # Regla 21: el código sale del id, como los contratos y proyectos.
+    pago.codigo = f"PG-{pago.pk:05d}"
+    pago.save(update_fields=["codigo"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ENTIDAD_PAGO,
+        entidad_id=pago.pk,
+        accion=AccionAuditoria.CREAR,
+        valores_nuevos=model_to_dict(pago, fields=CAMPOS_PAGO_AUDITADOS),
+        ip=ip,
+    )
+    return pago
+
+
+@transaction.atomic
+def pagar(
+    *,
+    pago: PagoConstructora,
+    fecha_pago: date,
+    referencia: str,
+    autor: Usuario,
+    ip: str | None,
+) -> PagoConstructora:
+    """
+    Registra que el pago salió (regla 21): de PROGRAMADO a PAGADO, con su fecha
+    y su referencia, y la tasa al dólar de esa fecha con el monto convertido.
+
+    La fecha de pago no puede ser futura ni anterior al inicio de la obra,
+    salvo un ANTICIPO, que se paga justamente antes de empezar (decidido en la
+    revisión de Marco, §10).
+    """
+    pago = _bloquear_pago(pago, accion="pagar")
+    if fecha_pago > timezone.localdate():
+        raise FechaInvalida(
+            campo="fecha_pago", mensaje="La fecha de pago no puede ser futura."
+        )
+    inicio = pago.proyecto.fecha_inicio
+    if fecha_pago < inicio and pago.tipo != TipoPagoConstructora.ANTICIPO:
+        raise FechaInvalida(
+            campo="fecha_pago",
+            mensaje=(
+                "Solo un anticipo se paga antes del inicio de la obra "
+                f"({inicio.isoformat()})."
+            ),
+        )
+    tasa_a_usd = _tasa_a_dolar(moneda=pago.moneda, fecha=fecha_pago)
+    pago.estado = EstadoPago.PAGADO
+    pago.fecha_pago = fecha_pago
+    pago.referencia_pago = referencia
+    pago.tasa_a_usd = tasa_a_usd
+    pago.monto_usd = _a_centavos(pago.monto * tasa_a_usd)
+    pago.actualizado_por = autor
+    campos = ["estado", "fecha_pago", "referencia_pago", "tasa_a_usd", "monto_usd"]
+    pago.save(update_fields=[*campos, "actualizado_por", "actualizado_en"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ENTIDAD_PAGO,
+        entidad_id=pago.pk,
+        accion=AccionAuditoria.ACTUALIZAR,
+        valores_anteriores={"estado": EstadoPago.PROGRAMADO},
+        valores_nuevos=model_to_dict(pago, fields=campos),
+        ip=ip,
+    )
+    return pago
+
+
+@transaction.atomic
+def anular_pago(
+    *, pago: PagoConstructora, motivo: str, autor: Usuario, ip: str | None
+) -> PagoConstructora:
+    """
+    Anula un pago PROGRAMADO con su motivo (regla 21): deja de contar contra
+    el presupuesto. Un pago pagado no se anula, porque el dinero ya salió.
+    """
+    pago = _bloquear_pago(pago, accion="anular")
+    return _anular(pago, motivo=motivo, autor=autor, ip=ip)
+
+
+def _bloquear_pago(pago: PagoConstructora, *, accion: str) -> PagoConstructora:
+    """Bloquea la fila del pago y exige que esté PROGRAMADO (spec 017, §6)."""
+    pago = (
+        PagoConstructora.objects.select_for_update()
+        .select_related("proyecto")
+        .get(pk=pago.pk)
+    )
+    if pago.estado != EstadoPago.PROGRAMADO:
+        raise TransicionInvalida(codigo=pago.codigo, estado=pago.estado, accion=accion)
+    return pago
+
+
+def _anular(
+    pago: PagoConstructora, *, motivo: str, autor: Usuario, ip: str | None
+) -> PagoConstructora:
+    """Pasos de anular un pago; los usan anular_pago y cancelar_proyecto."""
+    pago.estado = EstadoPago.ANULADO
+    pago.actualizado_por = autor
+    pago.save(update_fields=["estado", "actualizado_por", "actualizado_en"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ENTIDAD_PAGO,
+        entidad_id=pago.pk,
+        accion=AccionAuditoria.ANULAR,
+        valores_anteriores={"estado": EstadoPago.PROGRAMADO},
+        valores_nuevos={"estado": EstadoPago.ANULADO, "motivo": motivo},
+        ip=ip,
+    )
+    return pago
 
 
 def _bloquear(

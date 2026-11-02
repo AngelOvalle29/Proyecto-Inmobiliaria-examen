@@ -20,3 +20,24 @@ ESTADOS_ACTIVOS = [
     EstadoProyecto.EN_EJECUCION,
     EstadoProyecto.SUSPENDIDO,
 ]
+
+
+class TipoPagoConstructora(models.TextChoices):
+    """Para qué es cada pago a la constructora (spec 017, reglas 20 y 21)."""
+
+    ANTICIPO = "ANTICIPO", "Anticipo"
+    AVANCE = "AVANCE", "Avance"
+    FINIQUITO = "FINIQUITO", "Finiquito"
+    EXTRA = "EXTRA", "Extra"
+
+
+class EstadoPago(models.TextChoices):
+    """Ciclo de vida de un pago a constructora (spec 017, regla 21)."""
+
+    PROGRAMADO = "PROGRAMADO", "Programado"
+    PAGADO = "PAGADO", "Pagado"
+    ANULADO = "ANULADO", "Anulado"
+
+
+# Regla 19: lo que cuenta contra el presupuesto. Un pago anulado ya no compromete.
+ESTADOS_COMPROMETIDOS = [EstadoPago.PROGRAMADO, EstadoPago.PAGADO]

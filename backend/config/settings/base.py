@@ -291,6 +291,11 @@ SPECTACULAR_SETTINGS = {
         "EstadoCuotaEnum": "apps.ventas.enums.EstadoCuota",
         "EstadoArrendamientoEnum": "apps.arrendamientos.enums.EstadoArrendamiento",
         "EstadoPagoRentaEnum": "apps.arrendamientos.enums.EstadoPagoRenta",
+        "TipoProveedorEnum": "apps.compras.enums.TipoProveedor",
+        "EstadoContratoCompraEnum": "apps.compras.enums.EstadoContratoCompra",
+        "EstadoProyectoEnum": "apps.construccion.enums.EstadoProyecto",
+        "TipoPagoConstructoraEnum": "apps.construccion.enums.TipoPagoConstructora",
+        "EstadoPagoConstructoraEnum": "apps.construccion.enums.EstadoPago",
     },
 }
 
