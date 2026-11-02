@@ -5,7 +5,7 @@ No conocen request ni hablan HTTP. Cada escritura registra su auditoría dentro
 de la misma transacción: si algo falla, se revierten las dos.
 """
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
@@ -16,9 +16,9 @@ from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
 from apps.catalogo.enums import EstadoPropiedad
 from apps.catalogo.exceptions import DocumentoDeOtraPropiedad, PropiedadNoDisponible
-from apps.catalogo.selectors import listar_unidades
+from apps.catalogo.selectors import listar_propiedades, listar_unidades
 from apps.catalogo.services import cambiar_estado_propiedad, cambiar_estado_unidad
-from apps.core.exceptions import TipoCambioNoDisponible
+from apps.core.exceptions import ErrorDominio, TipoCambioNoDisponible
 from apps.core.normalizacion import normalizar_documento
 from apps.core.selectors import listar_paises, obtener_tipo_cambio
 from apps.usuarios.models import Usuario
@@ -47,6 +47,11 @@ from .selectors import (
 ENTIDAD_CONSTRUCTORA = "construccion_constructora"
 ENTIDAD_PROYECTO = ProyectoConstruccion._meta.db_table
 ENTIDAD_PAGO = PagoConstructora._meta.db_table
+# Regla 15: las unidades que finalizar una obra pone a la venta.
+UNIDADES_POR_PUBLICAR = [
+    EstadoPropiedad.EN_NEGOCIACION,
+    EstadoPropiedad.EN_CONSTRUCCION,
+]
 CENTAVOS = Decimal("0.01")
 
 # Campos que se guardan en la bitácora y que se pueden editar. El código no
@@ -405,8 +410,11 @@ def finalizar_proyecto(
     de fin real es la de hoy.
 
     La propiedad pasa de EN_CONSTRUCCION a DISPONIBLE, y con ella sus unidades
-    activas que estén EN_NEGOCIACION: en un edificio lo que se cotiza y se vende
-    son las unidades (decidido en la revisión de Marco, §10).
+    activas que todavía no estaban a la venta (EN_NEGOCIACION o
+    EN_CONSTRUCCION): en un edificio lo que se cotiza y se vende son las
+    unidades (revisión de Marco, §10). Las EN_CONSTRUCCION se agregaron al
+    preparar la demo: el catálogo deja marcar así las unidades de una obra.
+    Las que ya tienen otro estado (reservada, vendida) no se tocan.
 
     Si alguien movió la propiedad a mano durante la obra, el catálogo responde
     409 con su estado actual y no cambia nada (regla 26). La salida es
@@ -430,7 +438,7 @@ def finalizar_proyecto(
         estado_requerido=EstadoPropiedad.EN_CONSTRUCCION,
     )
     unidades = listar_unidades(propiedad=proyecto.propiedad).filter(
-        estado=EstadoPropiedad.EN_NEGOCIACION
+        estado__in=UNIDADES_POR_PUBLICAR
     )
     for unidad in unidades:
         cambiar_estado_unidad(
@@ -439,7 +447,9 @@ def finalizar_proyecto(
             autor=autor,
             ip=ip,
             motivo=motivo,
-            estado_requerido=EstadoPropiedad.EN_NEGOCIACION,
+            # El que tenía al leerla: si alguien la cambió entre la lectura y
+            # el bloqueo, el catálogo lo rechaza y se revierte todo.
+            estado_requerido=unidad.estado,
         )
     proyecto.fecha_fin_real = timezone.localdate()
     return _cambiar_estado(
@@ -775,7 +785,8 @@ def _a_centavos(valor: Decimal) -> Decimal:
 
 def cargar_demo_construccion() -> dict[str, int]:
     """
-    Carga las constructoras ficticias de datos_demo.py y devuelve cuántas creó.
+    Carga las constructoras, los proyectos y los pagos ficticios de
+    datos_demo.py y devuelve cuántos creó de cada uno.
 
     Es idempotente: busca cada una por su país y su NIT y solo crea lo que
     falta. Si un país no existe todavía, esa constructora se omite. No registra
@@ -807,7 +818,87 @@ def cargar_demo_construccion() -> dict[str, int]:
         constructora.codigo = f"CST-{constructora.pk:04d}"
         constructora.save(update_fields=["codigo"])
         creadas += 1
-    return {"constructoras": creadas}
+    proyectos, pagos = _cargar_proyectos_demo()
+    return {"constructoras": creadas, "proyectos": proyectos, "pagos": pagos}
+
+
+def _cargar_proyectos_demo() -> tuple[int, int]:
+    """
+    Proyectos y pagos de la demostración (spec 017). Devuelve cuántos creó de
+    cada uno.
+
+    Son una foto, como el resto de la demo: se guardan con el estado que ya
+    tienen sus propiedades en la demo del catálogo (el hotel en obra, la
+    gasolinera adquirida), sin pasar por iniciar ni cambiar el estado de nada,
+    y sin auditoría. Calculan su tasa y sus montos en dólares igual que los
+    servicios, y los pagos de cada proyecto caben en su presupuesto (regla 19).
+
+    Se salta un proyecto si su propiedad o su constructora no existen, si la
+    propiedad ya tiene un proyecto activo (así no duplica), o si falta la tasa.
+    Los pagos solo se crean junto con su proyecto.
+    """
+    hoy = timezone.localdate()
+    proyectos = pagos = 0
+    for datos in datos_demo.PROYECTOS:
+        propiedad = listar_propiedades().filter(nombre=datos["propiedad"]).first()
+        nit = normalizar_documento(datos["constructora_nit"])
+        constructora = Constructora.objects.filter(nit=nit).first()
+        if propiedad is None or constructora is None:
+            continue
+        if existe_proyecto_activo(propiedad=propiedad):
+            continue
+        inicio = hoy + timedelta(days=datos["dias_inicio"])
+        moneda = propiedad.moneda
+        try:
+            tasa = _tasa_a_dolar(moneda=moneda, fecha=inicio)
+            tasas_pago = {
+                dias_pago: _tasa_a_dolar(
+                    moneda=moneda, fecha=hoy + timedelta(days=dias_pago)
+                )
+                for _, _, _, dias_pago in datos["pagos"]
+                if dias_pago is not None
+            }
+        except ErrorDominio:
+            continue
+        presupuesto = Decimal(datos["presupuesto_total"])
+        proyecto = ProyectoConstruccion.objects.create(
+            nombre=datos["nombre"],
+            propiedad=propiedad,
+            constructora=constructora,
+            fecha_inicio=inicio,
+            fecha_fin_estimada=hoy + timedelta(days=datos["dias_fin_estimada"]),
+            presupuesto_total=presupuesto,
+            moneda=moneda,
+            tasa_a_usd=tasa,
+            presupuesto_total_usd=_a_centavos(presupuesto * tasa),
+            estado=datos["estado"],
+            porcentaje_avance=datos["porcentaje_avance"],
+        )
+        proyecto.codigo = f"PC-{proyecto.pk:05d}"
+        proyecto.save(update_fields=["codigo"])
+        proyectos += 1
+
+        for tipo, monto, dias_programada, dias_pago in datos["pagos"]:
+            monto = Decimal(monto)
+            pagado = dias_pago is not None
+            pago = PagoConstructora.objects.create(
+                proyecto=proyecto,
+                tipo=tipo,
+                monto=monto,
+                moneda=moneda,
+                fecha_programada=hoy + timedelta(days=dias_programada),
+                estado=EstadoPago.PAGADO if pagado else EstadoPago.PROGRAMADO,
+                fecha_pago=hoy + timedelta(days=dias_pago) if pagado else None,
+                referencia_pago=f"DEMO-{proyecto.pk}-{pagos + 1}" if pagado else "",
+                tasa_a_usd=tasas_pago[dias_pago] if pagado else None,
+                monto_usd=_a_centavos(monto * tasas_pago[dias_pago])
+                if pagado
+                else None,
+            )
+            pago.codigo = f"PG-{pago.pk:05d}"
+            pago.save(update_fields=["codigo"])
+            pagos += 1
+    return proyectos, pagos
 
 
 def _validar(datos: dict) -> None:

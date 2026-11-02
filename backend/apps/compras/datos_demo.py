@@ -55,3 +55,43 @@ PROVEEDORES = [
         None,
     ),
 ]
+
+# Contratos de compra (spec 017) sobre las propiedades de cargar_demo_catalogo,
+# buscadas por su nombre, y los proveedores de arriba, por su NIT. Cada estado
+# coincide con el de la propiedad en la demo del catálogo:
+# - el terreno sigue EN_NEGOCIACION, así su contrato queda EN_PROCESO para
+#   mostrar Completar y Anular;
+# - la gasolinera (ADQUIRIDA) y el hotel (EN_CONSTRUCCION) ya se compraron.
+# Las fechas son días antes de hoy. Montos en la moneda de la propiedad.
+CONTRATOS = [
+    {
+        "propiedad": "Terreno Las Lomas",
+        "proveedor_nit": "9000001-1",
+        "estado": "EN_PROCESO",
+        "dias_desde_compra": 5,
+        "monto": "250000.00",
+        "gastos_legales": "5000.00",
+        "impuestos": "7500.00",
+        "observaciones": "Terreno adjudicado por el banco; escritura en trámite.",
+    },
+    {
+        "propiedad": "Gasolinera Ruta Sur",
+        "proveedor_nit": "9000003-3",
+        "estado": "COMPLETADO",
+        "dias_desde_compra": 60,
+        "monto": "420000.00",
+        "gastos_legales": "8000.00",
+        "impuestos": "12600.00",
+        "observaciones": "Compra a la municipalidad por subasta pública.",
+    },
+    {
+        "propiedad": "Hotel Brisas del Pacífico",
+        "proveedor_nit": "9000002-2",
+        "estado": "COMPLETADO",
+        "dias_desde_compra": 200,
+        "monto": "1800000.00",
+        "gastos_legales": "25000.00",
+        "impuestos": "54000.00",
+        "observaciones": "Hotel en obra gris comprado para terminarlo.",
+    },
+]

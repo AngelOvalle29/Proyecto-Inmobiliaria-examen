@@ -327,3 +327,17 @@ def test_los_totales_del_detalle_suben_y_bajan_con_los_pagos(gerente, usd):
 
     anular_pago(pago=pago, motivo="x", autor=gerente, ip=IP)
     assert totales() == (Decimal("0"), Decimal("1000.00"))
+
+
+def test_pagar_queda_en_la_bitacora_con_la_fecha_y_la_referencia(gerente, usd):
+    """Criterio de §8: cada operación queda en la bitácora."""
+    pago = programar(gerente, proyecto(gerente, usd))
+
+    pagar(pago=pago, fecha_pago=HOY, referencia="TRF-77", autor=gerente, ip=IP)
+
+    registro = LogAuditoria.objects.get(
+        entidad=ENTIDAD_PAGO, accion=AccionAuditoria.ACTUALIZAR
+    )
+    assert registro.valores_anteriores == {"estado": EstadoPago.PROGRAMADO}
+    assert registro.valores_nuevos["referencia_pago"] == "TRF-77"
+    assert registro.valores_nuevos["estado"] == EstadoPago.PAGADO
