@@ -48,6 +48,7 @@ export const REGISTRAN_PAGOS: Rol[] = [...ADMINISTRAN_CRM, ROLES.CONTABILIDAD]
 
 export const MENU: EntradaMenu[] = [
   { ruta: '/', etiqueta: 'Inicio' },
+  { ruta: '/reportes', etiqueta: 'Reportes' },
   // "Nueva propiedad" es un botón de la lista, como en CRM (spec 014, §5).
   { ruta: '/catalogo/propiedades', etiqueta: 'Propiedades', grupo: 'Catálogo' },
   { ruta: '/catalogo/tipos', etiqueta: 'Tipos de propiedad', grupo: 'Catálogo' },

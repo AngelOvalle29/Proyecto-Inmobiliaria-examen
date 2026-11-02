@@ -309,6 +309,8 @@ SPECTACULAR_SETTINGS = {
 # Solo el frontend puede llamar a la API desde un navegador
 # (arquitectura.md §9). Vacío por defecto: ningún otro origen.
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+# Permite al frontend leer el nombre de las descargas autenticadas (spec 016).
+CORS_EXPOSE_HEADERS = ["Content-Disposition"]
 
 
 # ---------- Celery (spec 002, §5.5) ----------
