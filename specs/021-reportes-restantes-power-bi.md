@@ -25,13 +25,20 @@ equipo debe confirmar ese reparto. No se modifica la ingesta del agente aquí.
 ## 2. Alcance
 
 **Incluye:** doce reportes adicionales, permisos de cartera, vistas analíticas,
-conexión de Power BI, un tablero comercial y uno de portafolio, datos ficticios
+conexión de Power BI, cuatro vistas y un tablero comercial, datos ficticios
 para demostración y explicación para defensa. Los quince propuestos son R01,
 R02, R03, R04, R05, R06, R08, R10, R11, R12, R13, R14, R15, R16 y R17.
 
 La selección y las precisiones de métricas de §3 son propuestas: requieren
 aprobación. R07, R09 y R18 conservan su lugar en `docs/reportes.md`; se proponen
 para otro incremento. No se borran del catálogo de diseño.
+
+Se adopta para esta propuesta revisada el alcance de BI sugerido por A:
+`bi.dim_tiempo`, `bi.dim_geografia`, `bi.dim_propiedad` y `bi.hechos_ventas`.
+El tablero de portafolio y las otras dimensiones/hechos de §4 quedan como
+ampliaciones. Se mantienen los quince reportes Excel/PDF y sus reglas, aunque
+el reporte no tenga una vista BI en este incremento. El reparto de §10 es la
+propuesta de coordinación de A; no se promete trabajo ni plazos por los demás.
 
 **No incluye:** generación pesada con Celery, publicación pública de tableros,
 licencias o servicios de pago, cambios a los ciclos comerciales, una pantalla
@@ -185,29 +192,50 @@ detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
 No se agregan tablas de negocio. Una migración reversible de `reportes`
 crea el esquema `bi` y vistas SQL explícitas; la reversión elimina solo las
 vistas de este incremento. No modifica tablas de otras apps.
+La migración depende de la última migración de cada app cuyas tablas lee:
+se determina sobre `develop` integrado, sin inventar números de migraciones.
+Quien cambie posteriormente el tipo de una columna o elimine una columna
+usada por `bi` debe eliminar y recrear las vistas afectadas dentro de la misma
+migración, con `RunSQL` y su reversa. La eliminación se hace en orden inverso
+de dependencias y la recreación en orden directo; no se usa `CASCADE` para
+borrar objetos ajenos. Se verifican tanto avance como reversión.
+
+**Cuatro vistas de esta entrega:**
 
 | Vista | Grano / clave |
 |---|---|
 | `bi.dim_tiempo` | Día / `fecha_id` entero AAAAMMDD |
 | `bi.dim_geografia` | Ciudad / `ciudad_id`, país y región |
 | `bi.dim_propiedad` | Bien / clave compuesta de origen y ID, propiedad padre y tipo |
+| `bi.hechos_ventas` | Contrato no anulado / contrato ID, fecha firma, bien, ciudad, moneda, neto y USD |
+
+`hechos_ventas.fecha_id` referencia `dim_tiempo`; su clave de bien referencia
+`dim_propiedad` y su ciudad referencia `dim_geografia`. El tablero compara
+ventas por mes, país, ciudad y tipo de propiedad, con monto USD y cantidad de
+contratos. No necesita nombres de clientes ni una dimensión adicional de agente.
+
+**Ampliaciones fuera de esta entrega:** se conservan las definiciones revisadas
+por B/C para un incremento posterior, sin incluirlas en la migración actual.
+
+| Vista futura | Grano / clave |
+|---|---|
 | `bi.dim_cliente` | Cliente / ID, código, tipo y país; sin documento, NIT, correo, teléfono ni dirección |
 | `bi.dim_agente` | Agente / ID y código; sin credenciales ni correo |
 | `bi.dim_constructora` | Constructora / ID y código |
 | `bi.dim_proveedor` | Proveedor / ID y código; sin NIT ni correo |
-| `bi.hechos_ventas` | Contrato no anulado / contrato ID, fecha firma, bien, cliente, agente, moneda, neto y USD |
 | `bi.hechos_cobros` | Cobro / `(origen,id_fuente)`, fecha efectiva, contrato, moneda, recibido y USD; regla 15 |
 | `bi.hechos_arrendamientos` | Mes de contrato / `(contrato_id,fecha_id)`; renta programada y USD, sin llamarla cobro; excluye pagos `CANCELADO` |
 | `bi.hechos_compras` | Contrato completado / compra ID, fecha compra, bien, `proveedor_id` hacia `bi.dim_proveedor`, costo y USD |
 | `bi.hechos_construccion` | Pago pagado / pago ID, fecha pago, proyecto, constructora, moneda, monto y USD |
 
-Cada hecho tiene `fecha_id` y claves de sus dimensiones. Se incluirán en la
-migración comprobaciones de claves únicas, importes y fechas, y las vistas
-auxiliares necesarias para contratos/obligaciones. No se relacionan hechos
+Cada hecho tiene `fecha_id` y claves de sus dimensiones. Se incluirán
+comprobaciones de claves únicas, importes y fechas. La migración actual crea
+únicamente las cuatro vistas de esta entrega, sin vistas auxiliares que
+amplíen el alcance. No se relacionan hechos
 entre sí mediante uniones que dupliquen importes. `dim_tiempo` cubre todas las
 fechas expuestas por hechos, incluso meses programados futuros.
 
-`bi.hechos_construccion` incluye exclusivamente pagos `PAGADO`, con su tasa y
+En la ampliación, `bi.hechos_construccion` incluye exclusivamente pagos `PAGADO`, con su tasa y
 `monto_usd` guardados al pagar. Los pagos `PROGRAMADO` no entran en este hecho
 de pagos realizados ni se convierten a USD; R15 conserva sus importes en la
 moneda del proyecto para comprometido y disponible.
@@ -218,17 +246,26 @@ originales siempre conservan moneda. Estado y geografía actuales se indican
 como actuales, sin afirmar dimensiones históricas que no están guardadas.
 
 El rol PostgreSQL `powerbi_reader` se prepara fuera de Git mediante un script
-documentado: solo conexión, `USAGE` en `bi` y `SELECT` sobre las vistas
-enumeradas, sin permisos de escritura ni lectura directa de tablas. No se
+documentado: solo conexión, `USAGE` en `bi` y `SELECT` sobre las cuatro vistas
+de esta entrega, sin permisos de escritura ni lectura directa de tablas. No se
 versiona su contraseña ni se amplían privilegios por defecto a objetos futuros.
 La cuenta se prueba de verdad: una consulta de tabla operativa debe fallar.
 
 Power BI Desktop usará Import para esta entrega. Se guardará
 `docs/powerbi/inmobiliaria.pbix` con datos ficticios, relaciones de dimensión a
-hechos, medidas y dos páginas: comercial (ventas mensuales, país y agente) y
-portafolio (estado, tipo, ciudad y ocupación). No se afirma actualización
+hechos, medidas y una página comercial (ventas mensuales, país, ciudad y tipo).
+No se afirma actualización
 programada en la nube sin configurarla y demostrarla. DirectQuery y los
-tableros financiero/construcción completos quedan como ampliación.
+tableros de portafolio/financiero/construcción quedan como ampliación.
+
+La conexión de Power BI Desktop a Neon debe probarse antes de dar por cerrada
+la integración, con SSL requerido y el rol de lectura creado en la consola de
+Neon, fuera de Git. Se verifica despertar de la base, actualización y permisos.
+La configuración de SSL del conector debe corresponder a la conexión segura
+requerida por Neon; no se desactiva la validación para hacerla funcionar.
+No se publica la cadena de conexión ni la contraseña en issues, PR, capturas
+o el repositorio. La coordinación de acceso con A se hace por un medio privado.
+Sin esa prueba real, el criterio de conexión permanece pendiente.
 
 ## 5. API
 
@@ -300,13 +337,13 @@ atribuidas a un usuario de negocio.
 - [ ] R02 respeta la cartera por cliente, muestra al agente solo su fila y excluye borradores de emitidas.
 - [ ] R14 excluye el contrato renovado cuya renovación fue rescindida, aunque sus fechas cubran hoy.
 - [ ] R12 usa renta recibida con recargo una sola vez, y contado/enganche con tasa y fecha de firma.
-- [ ] `bi.hechos_arrendamientos` excluye meses de pago cancelado.
 - [ ] R13 filtra por país de la propiedad, aunque el proveedor sea de otro país.
 - [ ] R15 coincide con el detalle de proyecto en comprometido y disponible; solo pagos `PAGADO` aportan USD.
-- [ ] `bi.hechos_compras.proveedor_id` referencia `bi.dim_proveedor`, que expone solo ID y código.
 - [ ] Vistas BI concilian claves, conteos y montos con los selectores de origen.
 - [ ] `powerbi_reader` lee las vistas, pero no tablas operativas ni escribe.
-- [ ] El `.pbix` se abre, actualiza desde PostgreSQL y filtra ambos tableros.
+- [ ] La migración crea solo las cuatro vistas, depende de las apps leídas y se puede revertir; cambios de columnas usados por BI recrean las vistas.
+- [ ] Power BI Desktop conecta realmente a Neon con SSL y `powerbi_reader`.
+- [ ] El `.pbix` se abre, actualiza desde PostgreSQL y filtra el tablero comercial.
 - [ ] Hay capturas con datos ficticios y pasos de actualización sin contraseñas.
 - [ ] Se prueban los quince reportes desde `/reportes`, incluidas sus 30 descargas.
 - [ ] Pasan ruff, formato, migraciones, pytest, OpenAPI, lint, typecheck y build.
@@ -322,9 +359,9 @@ atribuidas a un usuario de negocio.
 | Comercial | Cliente reasignado y fila propia de R02; borradores distintos en R02/R03; tiempos documentados por transición; contrato de doce meses sin deuda de rentas futuras; cuotas anuladas excluidas; renovación rescindida antes de comenzar; contado/enganche por firma y renta sin duplicar recargo |
 | Servicios/API | Matriz de cinco roles, filtros inválidos, páginas, totales completos, rechazo de 5,001 filas antes de cargar detalle |
 | Exportación | Columnas y totales equivalentes, tipos XLSX, fórmulas literales, PDF multipágina, cobertura desconocida |
-| Migración/SQL | Aplicar/revertir vistas, unicidad de grano, claves a dimensiones, permisos reales y conciliación por fuente |
+| Migración/SQL | Aplicar/revertir las cuatro vistas, dependencias de migraciones, cambio de columna con recreación reversible, unicidad de grano, claves a dimensiones, permisos reales y conciliación de ventas |
 | Compras/construcción | Proveedor y propiedad de países distintos; comprometido/disponible iguales al detalle de la 017; programados sin tasa ni USD excluidos del total USD; pagados con su tasa histórica; dimensión de proveedor sin NIT/correo |
-| Manual | Quince consultas, treinta descargas, filtros y errores visibles; abrir/actualizar `.pbix`, segmentadores y cifras conciliadas |
+| Manual | Quince consultas, treinta descargas, filtros y errores visibles; conectar a Neon con SSL y rol de lectura; abrir/actualizar `.pbix`, segmentadores y cifras conciliadas |
 
 ## 10. Decisiones y alternativas descartadas
 
@@ -347,9 +384,25 @@ Orden propuesto, sin comprometer fechas por otros integrantes:
 
 1. Cerrar prueba manual, explicación y PR de la 016.
 2. Revisar y aprobar esta spec, en particular las decisiones de §3.
-3. R01/R02/R03/R04/R06/R08; comprobar seis reportes sobre la capa genérica.
-4. R10/R11/R12/R14; integrar R13/R15 cuando la 017 esté disponible.
-5. Vistas, conexión y `.pbix`; conciliación y evidencia del mínimo de quince.
+3. Coordinar el reparto por dominio sobre la misma capa genérica:
+
+   | Responsable propuesto por A | Reportes / tarea |
+   |---|---|
+   | B, Marco | R01, R02, R03, R04, R10, R11 |
+   | C, Angel | R13, R15, sobre la implementación de la 017 |
+   | A, Douglas | R06, R08, R14 |
+   | D, Nathaly | R12, las cuatro vistas y Power BI; revisión del contrato de la 016 en todos los reportes |
+
+4. Cada responsable entrega selectores, metadatos y pruebas de su bloque;
+   coordinar cambios en catálogo/serializadores/servicios para evitar conflictos.
+5. D concilia los quince reportes, sus treinta descargas y el tablero comercial.
+   Probar la conexión segura a Neon temprano, antes de terminar el diseño visual.
+
+Se adopta el recorte de BI propuesto por A, sin simplificar por ahora R12 ni
+sus abonos históricos: asignar el acumulado al último mes daría resultados
+incorrectos. Los tiempos por etapa de R03 permanecen como en la regla 10;
+si B acuerda recortarlos por plazo, debe registrarse antes de cerrar su bloque.
+No se considera que una simplificación esté aprobada por mencionarla como opción.
 
 Son doce reportes adicionales propuestos, no doce terminados ni una promesa
 confirmada para el lunes 2 de noviembre. Si el equipo divide implementación,
@@ -391,3 +444,14 @@ Se incluyó su propuesta de acceso para `CONSULTA`, pendiente de aprobación
 global, y se añadieron los criterios/casos de prueba correspondientes.
 Marco indicó que amplía la demo comercial en otro PR; esa mejora debe
 coordinarse para demostrar R02/R03 con varios estados y agentes.
+
+### Ajustes a la revisión del integrante A
+
+Douglas pidió reducir BI al alcance del roadmap y repartir reportes por dueño
+de datos. La propuesta revisada adopta cuatro vistas y un tablero comercial,
+mantiene los quince reportes y registra el reparto en §10. Las vistas futuras
+conservan las definiciones revisadas por B/C, pero ya no son criterios de esta
+entrega. Se añadieron dependencias y recreación reversible de vistas ante
+cambios de columnas, y prueba temprana de conexión segura a Neon con un rol
+de lectura sin publicar credenciales. La revisión de A sigue pendiente de
+aprobación formal sobre esta actualización; no se asume por su comentario.
