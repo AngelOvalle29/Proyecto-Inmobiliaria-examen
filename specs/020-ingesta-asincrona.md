@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 020 |
-| **Estado** | En revisión |
+| **Estado** | Implementada (falta la verificación en producción) |
 | **Autor** | Douglas (rol A), con acuerdo de C y D |
 | **Revisor** | Angel (rol C, dueño de `ia`) y Nathaly (rol D, dueña de la mensajería) |
 | **Fecha** | 2026-11-01 |
@@ -254,24 +254,24 @@ del worker va al log de Render.
       responde con él
 - [ ] Con el worker detenido, el documento queda `PENDIENTE`; al arrancarlo, se
       indexa sin volver a subirlo (el mensaje esperó en RabbitMQ)
-- [ ] Reemplazar con otro texto sube la versión y vuelve a indexar; con el mismo
+- [x] Reemplazar con otro texto sube la versión y vuelve a indexar; con el mismo
       texto no cambia nada
-- [ ] Con Gemini caído (sin `IA_API_KEY`), la tarea reintenta 3 veces y el
+- [x] Con Gemini caído (sin `IA_API_KEY`), la tarea reintenta 3 veces y el
       documento queda en `ERROR` con el motivo; reindexar lo recupera
-- [ ] Un archivo que no es Markdown UTF-8, o de más de 200 KB, responde 400
+- [x] Un archivo que no es Markdown UTF-8, o de más de 200 KB, responde 400
       `ARCHIVO_NO_PERMITIDO`; un título repetido, 409 `DOCUMENTO_RAG_DUPLICADO`
 - [ ] Con `cargar_demo_ia` sin `IA_API_KEY`, los documentos quedan `PENDIENTE`;
       reindexar con la llave puesta los deja `INDEXADO`
-- [ ] Reindexar un documento `PENDIENTE` lo vuelve a encolar sin error
-- [ ] Desactivar saca el documento de las respuestas del agente
-- [ ] `AGENTE`, `CONTABILIDAD` y `CONSULTA` reciben 403 y no ven la entrada del
+- [x] Reindexar un documento `PENDIENTE` lo vuelve a encolar sin error
+- [x] Desactivar saca el documento de las respuestas del agente
+- [x] `AGENTE`, `CONTABILIDAD` y `CONSULTA` reciben 403 y no ven la entrada del
       menú
-- [ ] La pantalla actualiza el estado sola mientras haya un `PENDIENTE` reciente,
+- [x] La pantalla actualiza el estado sola mientras haya un `PENDIENTE` reciente,
       y deja de consultar cuando no
-- [ ] Cada acción queda en la bitácora de auditoría (§7)
+- [x] Cada acción queda en la bitácora de auditoría (§7)
 - [ ] En producción, el log de Render muestra la tarea `ia.indexar_documento`
       recibida en la cola `documentos` y terminada
-- [ ] `pytest`, `ruff`, `npm run lint`, `npm run typecheck` y `npm run build`
+- [x] `pytest`, `ruff`, `npm run lint`, `npm run typecheck` y `npm run build`
       pasan
 
 ## 9. Pruebas
@@ -352,6 +352,36 @@ agente, a validar en la revisión.
    cualquier pendiente atascado, no solo el del demo.
 2. `ARCHIVO_NO_PERMITIDO` con una excepción propia de `ia` (regla 1), sin
    importar `catalogo`.
+
+**Implementación (2026-11-02, Claude Code, rol A)**, en tres commits:
+1. Campos y migración, servicios, la tarea, las rutas de Celery y las colas del
+   worker, con 19 pruebas.
+2. La API, con 13 pruebas.
+3. La pantalla *Documentos del asistente* y su entrada de menú.
+
+Ajustes durante la implementación:
+- **`TipoDocumentoRAG` y `EstadoIndexacion` en `ENUM_NAME_OVERRIDES`:** el
+  tipo salía en el esquema como `Tipo8e7Enum`. De paso, el esquema bajó de 2
+  avisos a 1 (el que queda es de `compras`).
+- **`crear_documento_rag` y `actualizar_contenido_documento` reciben `ip`**,
+  opcional, para que la subida desde la API la audite (`CLAUDE.md` §8).
+- **`EmbeddingConDimensionIncorrecta` deja el documento en `ERROR` sin
+  reintentar:** es un error de configuración, y reintentar daría lo mismo.
+- **Las pruebas de la API usan un cliente que ejecuta los `on_commit` al
+  terminar cada petición**: la transacción de la prueba nunca se confirma, y
+  sin eso no se vería qué se encoló.
+
+**Verificación local**, con RabbitMQ de `docker compose` y un worker con
+`-Q celery,documentos`, sin `IA_API_KEY`:
+- la API responde 201 con el documento `PENDIENTE`; el worker recibe la tarea en
+  la cola `documentos` y programa el reintento a 60 s;
+- un documento desactivado se omite en el reintento siguiente;
+- en la pantalla: el aviso "Indexando en la cola…" y la consulta cada 5 s, el
+  error con su motivo, reindexar, desactivar con confirmación, y `CONSULTA` sin
+  la entrada ni la página.
+
+Quedan para producción, con la llave, los criterios del paso a `INDEXADO` y del
+log de Render. El del worker detenido no se probó.
 
 **Plan de implementación** (después de #62):
 1. Campos y migración; servicios, tarea, rutas de Celery y cola del worker;

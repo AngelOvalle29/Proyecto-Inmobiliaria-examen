@@ -55,3 +55,17 @@ class AgenteNoDisponible(ErrorDominio):
             "El asistente no está disponible en este momento. "
             "Intenta de nuevo en unos minutos."
         )
+
+
+class ArchivoRAGNoPermitido(ErrorDominio):
+    """El archivo subido no es Markdown UTF-8 o pasa de 200 KB (spec 020, regla 1).
+
+    Mismo código que la del catálogo (spec 011), pero propia de ia: importar la
+    de catalogo crearía una dependencia ia → catalogo que no existe.
+    """
+
+    codigo = "ARCHIVO_NO_PERMITIDO"
+    estado_http = 400
+
+    def __init__(self, *, motivo: str) -> None:
+        super().__init__(motivo, detalles={"archivo": [motivo]})

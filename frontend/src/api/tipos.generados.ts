@@ -692,6 +692,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documentos-agente/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET y POST /api/v1/documentos-agente/ (spec 020). POST multipart: sube un
+         *     .md y encola su indexación; responde 201 con el documento PENDIENTE.
+         */
+        get: operations["v1_documentos_agente_list"];
+        put?: never;
+        /**
+         * Subir un documento del agente
+         * @description GET y POST /api/v1/documentos-agente/ (spec 020). POST multipart: sube un
+         *     .md y encola su indexación; responde 201 con el documento PENDIENTE.
+         */
+        post: operations["v1_documentos_agente_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documentos-agente/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET, PATCH y DELETE /api/v1/documentos-agente/{id}/. PATCH multipart
+         *     reemplaza el archivo (regla 2); DELETE desactiva (regla 13).
+         */
+        get: operations["v1_documentos_agente_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description GET, PATCH y DELETE /api/v1/documentos-agente/{id}/. PATCH multipart
+         *     reemplaza el archivo (regla 2); DELETE desactiva (regla 13).
+         */
+        delete: operations["v1_documentos_agente_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Reemplazar el archivo de un documento del agente
+         * @description GET, PATCH y DELETE /api/v1/documentos-agente/{id}/. PATCH multipart
+         *     reemplaza el archivo (regla 2); DELETE desactiva (regla 13).
+         */
+        patch: operations["v1_documentos_agente_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/documentos-agente/{id}/reindexar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Volver a encolar la indexación de un documento
+         * @description POST /api/v1/documentos-agente/{id}/reindexar/ (regla 12). 202: solo
+         *     encola, la indexación la hace el worker.
+         */
+        post: operations["v1_documentos_agente_reindexar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documentos/{id}/": {
         parameters: {
             query?: never;
@@ -1817,6 +1892,24 @@ export interface components {
             url: string;
             vence_en_segundos: number;
         };
+        /**
+         * @description Un documento del agente en la lista y el detalle (spec 020, §5). Sin el
+         *     texto completo: ninguna pantalla lo necesita.
+         */
+        DocumentoAgente: {
+            readonly id: number;
+            readonly titulo: string;
+            readonly tipo: components["schemas"]["TipoDocumentoRAGEnum"];
+            pais: components["schemas"]["PaisResumen"] | null;
+            readonly version: number;
+            readonly estado_indexacion: components["schemas"]["EstadoIndexacionEnum"];
+            readonly error_indexacion: string;
+            /** Format: date-time */
+            readonly fecha_indexacion: string | null;
+            fragmentos: number;
+            /** Format: date-time */
+            readonly actualizado_en: string;
+        };
         DocumentoOficial: {
             readonly id: number;
             readonly propiedad: components["schemas"]["PropiedadResumen"];
@@ -1887,6 +1980,13 @@ export interface components {
          * @enum {string}
          */
         EstadoCuotaEnum: "PENDIENTE" | "PARCIAL" | "PAGADA";
+        /**
+         * @description * `PENDIENTE` - Pendiente
+         *     * `INDEXADO` - Indexado
+         *     * `ERROR` - Error
+         * @enum {string}
+         */
+        EstadoIndexacionEnum: "PENDIENTE" | "INDEXADO" | "ERROR";
         /**
          * @description * `PROGRAMADO` - Programado
          *     * `PAGADO` - Pagado
@@ -2201,6 +2301,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Cotizacion"][];
+        };
+        PaginatedDocumentoAgenteList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["DocumentoAgente"][];
         };
         PaginatedDocumentoOficialList: {
             /** @example 123 */
@@ -2554,6 +2669,11 @@ export interface components {
             /** Format: decimal */
             presupuesto_total?: string;
         };
+        /** @description Regla 2: solo el archivo. Título, tipo y país no cambian. */
+        PatchedReemplazarDocumentoAgente: {
+            /** Format: uri */
+            archivo?: string;
+        };
         PatchedTipoPropiedad: {
             readonly id?: number;
             nombre?: string;
@@ -2784,6 +2904,17 @@ export interface components {
             sin_informacion: boolean;
             citas: components["schemas"]["Cita"][];
         };
+        /**
+         * @description Entrada de la subida: multipart con el .md y sus datos (regla 1). El
+         *     contenido lo revisa el servicio.
+         */
+        SubirDocumentoAgente: {
+            /** Format: uri */
+            archivo: string;
+            titulo: string;
+            tipo: components["schemas"]["TipoDocumentoRAGEnum"];
+            pais?: number | null;
+        };
         TipoCambio: {
             readonly id: number;
             moneda_origen: components["schemas"]["MonedaResumen"];
@@ -2810,6 +2941,15 @@ export interface components {
          * @enum {string}
          */
         TipoDocumentoEnum: "ESCRITURA" | "LICENCIA" | "PLANO" | "CERTIFICACION" | "AVALUO" | "CONTRATO" | "OTRO";
+        /**
+         * @description * `POLITICA` - Política de la agencia
+         *     * `MANUAL` - Manual de procesos
+         *     * `LEGAL` - Requisito legal
+         *     * `PLANTILLA` - Plantilla
+         *     * `FICHA_PROPIEDAD` - Ficha de propiedad
+         * @enum {string}
+         */
+        TipoDocumentoRAGEnum: "POLITICA" | "MANUAL" | "LEGAL" | "PLANTILLA" | "FICHA_PROPIEDAD";
         /**
          * @description * `ANTICIPO` - Anticipo
          *     * `AVANCE` - Avance
@@ -4085,6 +4225,153 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Cuota"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                /**
+                 * @description * `PENDIENTE` - Pendiente
+                 *     * `INDEXADO` - Indexado
+                 *     * `ERROR` - Error
+                 */
+                estado_indexacion?: "ERROR" | "INDEXADO" | "PENDIENTE";
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /**
+                 * @description * `POLITICA` - Política de la agencia
+                 *     * `MANUAL` - Manual de procesos
+                 *     * `LEGAL` - Requisito legal
+                 *     * `PLANTILLA` - Plantilla
+                 *     * `FICHA_PROPIEDAD` - Ficha de propiedad
+                 */
+                tipo?: "FICHA_PROPIEDAD" | "LEGAL" | "MANUAL" | "PLANTILLA" | "POLITICA";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDocumentoAgenteList"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["SubirDocumentoAgente"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoAgente"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoAgente"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_documentos_agente_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["PatchedReemplazarDocumentoAgente"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoAgente"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_reindexar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoAgente"];
                 };
             };
         };

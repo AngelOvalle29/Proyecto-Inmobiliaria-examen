@@ -9,3 +9,11 @@ class TipoDocumentoRAG(models.TextChoices):
     LEGAL = "LEGAL", "Requisito legal"
     PLANTILLA = "PLANTILLA", "Plantilla"
     FICHA_PROPIEDAD = "FICHA_PROPIEDAD", "Ficha de propiedad"
+
+
+class EstadoIndexacion(models.TextChoices):
+    """Spec 020, regla 11. PENDIENTE: su versión actual todavía no se indexó."""
+
+    PENDIENTE = "PENDIENTE", "Pendiente"
+    INDEXADO = "INDEXADO", "Indexado"
+    ERROR = "ERROR", "Error"

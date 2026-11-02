@@ -296,6 +296,8 @@ SPECTACULAR_SETTINGS = {
         "EstadoCuotaEnum": "apps.ventas.enums.EstadoCuota",
         "EstadoArrendamientoEnum": "apps.arrendamientos.enums.EstadoArrendamiento",
         "EstadoPagoRentaEnum": "apps.arrendamientos.enums.EstadoPagoRenta",
+        "TipoDocumentoRAGEnum": "apps.ia.enums.TipoDocumentoRAG",
+        "EstadoIndexacionEnum": "apps.ia.enums.EstadoIndexacion",
         "EstadoContratoCompraEnum": "apps.compras.enums.EstadoContratoCompra",
         "EstadoProyectoEnum": "apps.construccion.enums.EstadoProyecto",
         "TipoPagoConstructoraEnum": "apps.construccion.enums.TipoPagoConstructora",
@@ -334,6 +336,11 @@ CELERY_WORKER_SEND_TASK_EVENTS = False
 # Si RabbitMQ no está listo cuando arranca el worker, reintenta en lugar de
 # terminar: en Render, el contenedor puede despertar antes que la conexión.
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Colas por flujo (arquitectura §6). Las tareas de ia van a "documentos"; las
+# demás, como el diagnóstico de core, a la cola por defecto ("celery"). El
+# worker debe consumir las dos (scripts/iniciar.sh, spec 020).
+CELERY_TASK_ROUTES = {"ia.*": {"queue": "documentos"}}
 # ---------- Agente de IA (spec 005) ----------
 
 # La llave es opcional: sin ella el agente responde 503 y el resto del sistema

@@ -18,9 +18,10 @@ from apps.auditoria.services import registrar_auditoria, registrar_consulta_agen
 from apps.core.models import Pais
 
 from . import selectors
-from .enums import TipoDocumentoRAG
+from .enums import EstadoIndexacion, TipoDocumentoRAG
 from .exceptions import (
     AgenteNoDisponible,
+    ArchivoRAGNoPermitido,
     DocumentoModificadoDuranteIndexacion,
     DocumentoRAGDuplicado,
     EmbeddingConDimensionIncorrecta,
@@ -76,8 +77,10 @@ def crear_documento_rag(
     contenido_fuente: str,
     pais: Pais | None = None,
     autor: AbstractBaseUser | None = None,
+    ip: str | None = None,
 ) -> DocumentoRAG:
-    """Crea el documento sin indexar y lo audita. Indexar es un paso aparte."""
+    """Crea el documento sin indexar (PENDIENTE) y lo audita. Indexar es un
+    paso aparte."""
     with transaction.atomic():
         if selectors.obtener_documento_por_titulo(titulo=titulo) is not None:
             raise DocumentoRAGDuplicado(titulo)
@@ -100,6 +103,7 @@ def crear_documento_rag(
                 "pais": pais.nombre if pais else None,
                 "version": documento.version,
             },
+            ip=ip,
         )
     return documento
 
@@ -109,12 +113,13 @@ def actualizar_contenido_documento(
     documento: DocumentoRAG,
     contenido_fuente: str,
     autor: AbstractBaseUser | None = None,
+    ip: str | None = None,
 ) -> DocumentoRAG:
     """Si el texto cambió, sube la versión y lo audita. Si no, no hace nada.
 
     No reindexa: quien llama decide cuándo, porque indexar llama a la red.
-    Sí borra la fecha de indexación: los fragmentos ya no corresponden al
-    texto, y así se sabe que el documento está pendiente de reindexar.
+    Sí borra la fecha de indexación y deja el documento PENDIENTE (spec 020,
+    regla 11): los fragmentos ya no corresponden al texto.
 
     Compara y calcula la versión sobre la fila recién bloqueada, no sobre el
     objeto recibido: si ese objeto es antiguo, su versión ya no es la de la
@@ -130,12 +135,16 @@ def actualizar_contenido_documento(
             actual.contenido_fuente = contenido_fuente
             actual.version = version_anterior + 1
             actual.fecha_indexacion = None
+            actual.estado_indexacion = EstadoIndexacion.PENDIENTE
+            actual.error_indexacion = ""
             actual.actualizado_por = autor
             actual.save(
                 update_fields=[
                     "contenido_fuente",
                     "version",
                     "fecha_indexacion",
+                    "estado_indexacion",
+                    "error_indexacion",
                     "actualizado_por",
                     "actualizado_en",
                 ]
@@ -147,11 +156,18 @@ def actualizar_contenido_documento(
                 accion=AccionAuditoria.ACTUALIZAR,
                 valores_anteriores={"version": version_anterior},
                 valores_nuevos={"version": actual.version},
+                ip=ip,
             )
 
     # Quien llamó sigue usando su objeto (cargar_demo_ia revisa después su
     # fecha de indexación): se deja igual a la fila guardada.
-    for campo in ("contenido_fuente", "version", "fecha_indexacion"):
+    for campo in (
+        "contenido_fuente",
+        "version",
+        "fecha_indexacion",
+        "estado_indexacion",
+        "error_indexacion",
+    ):
         setattr(documento, campo, getattr(actual, campo))
     return actual
 
@@ -210,7 +226,17 @@ def indexar_documento(*, documento_id: int) -> int:
             for orden, (trozo, vector) in enumerate(zip(trozos, vectores, strict=True))
         )
         documento.fecha_indexacion = timezone.now()
-        documento.save(update_fields=["fecha_indexacion", "actualizado_en"])
+        # Spec 020, §6: la única línea que la cola le agrega a la indexación.
+        documento.estado_indexacion = EstadoIndexacion.INDEXADO
+        documento.error_indexacion = ""
+        documento.save(
+            update_fields=[
+                "fecha_indexacion",
+                "estado_indexacion",
+                "error_indexacion",
+                "actualizado_en",
+            ]
+        )
         registrar_auditoria(
             usuario=None,
             entidad=ENTIDAD_DOCUMENTO,
@@ -233,6 +259,168 @@ def _verificar_vectores(vectores: list[list[float]], *, cantidad: int) -> None:
                 f"El proveedor devolvió vectores de {len(vector)} valores y el "
                 f"campo guarda {DIMENSION_EMBEDDINGS}. Revise IA_DIMENSION_EMBEDDINGS."
             )
+
+
+# ---------- Ingesta por la cola (spec 020) ----------
+
+# Regla 1: unas 50 páginas de texto. Acota también los vectores que se piden a
+# Gemini por documento.
+TAMANO_MAXIMO_MARKDOWN = 200 * 1024
+
+
+def _leer_markdown(archivo) -> str:
+    """Regla 1: un .md en UTF-8, no vacío y de hasta 200 KB."""
+    if not archivo.name.lower().endswith(".md"):
+        raise ArchivoRAGNoPermitido(motivo="Solo se aceptan archivos Markdown (.md).")
+    if archivo.size > TAMANO_MAXIMO_MARKDOWN:
+        raise ArchivoRAGNoPermitido(motivo="El archivo pesa más de 200 KB.")
+    try:
+        texto = archivo.read().decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ArchivoRAGNoPermitido(
+            motivo="El archivo no es texto en UTF-8."
+        ) from error
+    if not texto.strip():
+        raise ArchivoRAGNoPermitido(motivo="El archivo está vacío.")
+    return texto
+
+
+def encolar_indexacion(*, documento_id: int) -> None:
+    """Encola la indexación cuando la transacción se confirme (regla 4).
+
+    Si se encolara antes del commit, el worker podría buscar un documento que
+    todavía no existe en la base; y si la transacción se revierte, no queda un
+    mensaje huérfano. Fuera de una transacción, on_commit encola de inmediato.
+
+    La tarea se importa aquí y no arriba: tasks.py importa este módulo, y
+    importarla arriba haría un ciclo.
+    """
+    from .tasks import indexar_documento_tarea
+
+    transaction.on_commit(lambda: indexar_documento_tarea.delay(documento_id))
+
+
+def subir_documento_rag(
+    *,
+    archivo,
+    titulo: str,
+    tipo: TipoDocumentoRAG,
+    pais: Pais | None,
+    autor: AbstractBaseUser,
+    ip: str | None,
+) -> DocumentoRAG:
+    """Regla 1 y 4: crea el documento PENDIENTE desde un .md y encola su
+    indexación. La API responde sin esperar a Gemini."""
+    contenido = _leer_markdown(archivo)
+    with transaction.atomic():
+        documento = crear_documento_rag(
+            titulo=titulo,
+            tipo=tipo,
+            contenido_fuente=contenido,
+            pais=pais,
+            autor=autor,
+            ip=ip,
+        )
+        encolar_indexacion(documento_id=documento.id)
+    return documento
+
+
+def reemplazar_documento_rag(
+    *, documento: DocumentoRAG, archivo, autor: AbstractBaseUser, ip: str | None
+) -> DocumentoRAG:
+    """Regla 2: con otro texto, sube la versión y encola. Con el mismo texto
+    no cambia nada ni encola: no hay nada nuevo que indexar."""
+    contenido = _leer_markdown(archivo)
+    with transaction.atomic():
+        version_anterior = documento.version
+        actual = actualizar_contenido_documento(
+            documento=documento, contenido_fuente=contenido, autor=autor, ip=ip
+        )
+        if actual.version != version_anterior:
+            encolar_indexacion(documento_id=actual.id)
+    return actual
+
+
+@transaction.atomic
+def reindexar_documento_rag(
+    *, documento: DocumentoRAG, autor: AbstractBaseUser, ip: str | None
+) -> DocumentoRAG:
+    """Regla 12: vuelve a encolar el documento en cualquier estado.
+
+    Un PENDIENTE puede no tener mensaje en la cola (cargar_demo_ia sin
+    IA_API_KEY); si lo tiene, se indexa dos veces, y eso es seguro porque
+    indexar reemplaza los fragmentos (regla 10).
+    """
+    actual = DocumentoRAG.objects.select_for_update().get(pk=documento.pk)
+    estado_anterior = actual.estado_indexacion
+    actual.estado_indexacion = EstadoIndexacion.PENDIENTE
+    actual.error_indexacion = ""
+    actual.actualizado_por = autor
+    actual.save(
+        update_fields=[
+            "estado_indexacion",
+            "error_indexacion",
+            "actualizado_por",
+            "actualizado_en",
+        ]
+    )
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ENTIDAD_DOCUMENTO,
+        entidad_id=actual.id,
+        accion=AccionAuditoria.ACTUALIZAR,
+        valores_anteriores={"estado_indexacion": estado_anterior},
+        valores_nuevos={"estado_indexacion": EstadoIndexacion.PENDIENTE},
+        ip=ip,
+    )
+    encolar_indexacion(documento_id=actual.id)
+    return actual
+
+
+@transaction.atomic
+def desactivar_documento_rag(
+    *, documento: DocumentoRAG, autor: AbstractBaseUser, ip: str | None
+) -> None:
+    """Regla 13: lo saca de las respuestas sin borrar sus fragmentos."""
+    documento.activo = False
+    documento.actualizado_por = autor
+    documento.save(update_fields=["activo", "actualizado_por", "actualizado_en"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ENTIDAD_DOCUMENTO,
+        entidad_id=documento.id,
+        accion=AccionAuditoria.ELIMINAR,
+        valores_anteriores={"activo": True},
+        valores_nuevos={"activo": False},
+        ip=ip,
+    )
+
+
+@transaction.atomic
+def marcar_error_indexacion(*, documento_id: int, motivo: str) -> None:
+    """Regla 7: la cola agotó los reintentos. El documento queda en ERROR con
+    el motivo y conserva los fragmentos que tenía. Lo audita la cola (usuario
+    None), como la indexación (§7).
+
+    El motivo lo arma el proveedor (código HTTP, intentos): no lleva la llave
+    ni texto del documento.
+    """
+    documento = DocumentoRAG.objects.select_for_update().get(pk=documento_id)
+    documento.estado_indexacion = EstadoIndexacion.ERROR
+    documento.error_indexacion = motivo[:255]
+    documento.save(
+        update_fields=["estado_indexacion", "error_indexacion", "actualizado_en"]
+    )
+    registrar_auditoria(
+        usuario=None,
+        entidad=ENTIDAD_DOCUMENTO,
+        entidad_id=documento.id,
+        accion=AccionAuditoria.ACTUALIZAR,
+        valores_nuevos={
+            "estado_indexacion": EstadoIndexacion.ERROR,
+            "error_indexacion": documento.error_indexacion,
+        },
+    )
 
 
 def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:

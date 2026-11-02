@@ -3,10 +3,16 @@ import { createBrowserRouter, RouterProvider } from 'react-router'
 import { RutaProtegida } from './componentes/comunes/RutaProtegida'
 import { LayoutAuth } from './layouts/LayoutAuth'
 import { LayoutPrincipal } from './layouts/LayoutPrincipal'
-import { ADMINISTRAN_CRM, ESCRIBEN_CATALOGO, ESCRIBEN_CRM } from './menu'
+import {
+  ADMINISTRAN_ASISTENTE,
+  ADMINISTRAN_CRM,
+  ESCRIBEN_CATALOGO,
+  ESCRIBEN_CRM,
+} from './menu'
 import { DetalleArrendamiento } from './paginas/arrendamientos/DetalleArrendamiento'
 import { FirmarArrendamiento } from './paginas/arrendamientos/FirmarArrendamiento'
 import { ListaArrendamientos } from './paginas/arrendamientos/ListaArrendamientos'
+import { ListaDocumentosAgente } from './paginas/asistente/ListaDocumentosAgente'
 import { Login } from './paginas/auth/Login'
 import { EditarPropiedad } from './paginas/catalogo/EditarPropiedad'
 import { FichaPropiedad } from './paginas/catalogo/FichaPropiedad'
@@ -123,6 +129,14 @@ const enrutador = createBrowserRouter([
         ),
       },
       { path: '/arrendamientos/contratos/:id', element: <DetalleArrendamiento /> },
+      {
+        path: '/asistente/documentos',
+        element: (
+          <RutaProtegida roles={ADMINISTRAN_ASISTENTE}>
+            <ListaDocumentosAgente />
+          </RutaProtegida>
+        ),
+      },
       { path: '*', element: <NoEncontrada /> },
     ],
   },
