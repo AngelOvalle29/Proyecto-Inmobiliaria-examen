@@ -101,3 +101,25 @@ class ConstructoraConProyectos(ErrorDominio):
             "finalícelos o cancélelos antes de desactivarla.",
             detalles={"constructora": constructora},
         )
+
+
+class PresupuestoExcedido(ErrorDominio):
+    """
+    Los pagos programados y pagados superarían el presupuesto, o el presupuesto
+    quedaría por debajo de ellos (spec 017, reglas 17 y 19). La salida es subir
+    el presupuesto, que es la autorización explícita (§10).
+    """
+
+    codigo = "PRESUPUESTO_EXCEDIDO"
+    estado_http = 409
+
+    def __init__(self, *, proyecto: str, presupuesto, comprometido) -> None:
+        super().__init__(
+            f"El proyecto {proyecto} tiene un presupuesto de {presupuesto} y "
+            f"quedarían comprometidos {comprometido}: suba el presupuesto primero.",
+            detalles={
+                "proyecto": proyecto,
+                "presupuesto": str(presupuesto),
+                "comprometido": str(comprometido),
+            },
+        )

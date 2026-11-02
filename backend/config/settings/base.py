@@ -290,11 +290,16 @@ SPECTACULAR_SETTINGS = {
         "EstadoPropiedadEnum": "apps.catalogo.enums.EstadoPropiedad",
         "TipoDocumentoEnum": "apps.catalogo.enums.TipoDocumento",
         "TipoClienteEnum": "apps.crm.enums.TipoCliente",
+        "TipoProveedorEnum": "apps.compras.enums.TipoProveedor",
         "EstadoCotizacionEnum": "apps.crm.enums.EstadoCotizacion",
         "EstadoContratoEnum": "apps.ventas.enums.EstadoContrato",
         "EstadoCuotaEnum": "apps.ventas.enums.EstadoCuota",
         "EstadoArrendamientoEnum": "apps.arrendamientos.enums.EstadoArrendamiento",
         "EstadoPagoRentaEnum": "apps.arrendamientos.enums.EstadoPagoRenta",
+        "EstadoContratoCompraEnum": "apps.compras.enums.EstadoContratoCompra",
+        "EstadoProyectoEnum": "apps.construccion.enums.EstadoProyecto",
+        "TipoPagoConstructoraEnum": "apps.construccion.enums.TipoPagoConstructora",
+        "EstadoPagoConstructoraEnum": "apps.construccion.enums.EstadoPago",
     },
 }
 
@@ -304,6 +309,8 @@ SPECTACULAR_SETTINGS = {
 # Solo el frontend puede llamar a la API desde un navegador
 # (arquitectura.md §9). Vacío por defecto: ningún otro origen.
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+# Permite al frontend leer el nombre de las descargas autenticadas (spec 016).
+CORS_EXPOSE_HEADERS = ["Content-Disposition"]
 
 
 # ---------- Celery (spec 002, §5.5) ----------

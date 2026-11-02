@@ -3,12 +3,16 @@
 from django.urls import path
 
 from .views import (
+    AnularPagoView,
     AvanceProyectoView,
     CancelarProyectoView,
     ConstructoraDetalleView,
     ConstructorasView,
     FinalizarProyectoView,
     IniciarProyectoView,
+    PagarPagoView,
+    PagosConstructoraView,
+    PagosProyectoView,
     ProyectoDetalleView,
     ProyectosView,
     ReanudarProyectoView,
@@ -47,5 +51,21 @@ urlpatterns = [
         f"{PROYECTO}cancelar/",
         CancelarProyectoView.as_view(),
         name="proyecto-cancelar",
+    ),
+    path(f"{PROYECTO}pagos/", PagosProyectoView.as_view(), name="proyecto-pagos"),
+    path(
+        "pagos-constructora/",
+        PagosConstructoraView.as_view(),
+        name="pagos-constructora",
+    ),
+    path(
+        "pagos-constructora/<int:pk>/pagar/",
+        PagarPagoView.as_view(),
+        name="pago-constructora-pagar",
+    ),
+    path(
+        "pagos-constructora/<int:pk>/anular/",
+        AnularPagoView.as_view(),
+        name="pago-constructora-anular",
     ),
 ]

@@ -49,7 +49,8 @@ presentación (con conversión por tipo de cambio) y agente.
 ### Primer incremento aprobado (spec 016, PR #61)
 
 La [spec 016](../specs/016-capa-generica-reportes.md), aprobada en el PR #61
-por AngelOvalle29 sobre `dc258e5` y pendiente de implementación,
+por AngelOvalle29 sobre `dc258e5`, tiene implementación local pendiente de revisión
+en `feature/016-capa-generica-reportes` y
 cubre R05, R16 y R17, con exportaciones síncronas de hasta 5,000 filas. Si se
 supera el límite, se rechaza la descarga antes de cargar detalles y se pide
 acotar filtros; no se encola ni se trunca el archivo.
@@ -68,6 +69,9 @@ dentro del límite y construir un `Reporte` completo para los mismos exportadore
 
 R05/R16 están disponibles para todos los roles autenticados; R17 solo para
 administrador. Son tres reportes iniciales: el mínimo de 15 sigue pendiente.
+
+Uso, validaciones y explicación para la defensa:
+[`016-implementacion-reportes.md`](016-implementacion-reportes.md).
 
 ---
 

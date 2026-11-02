@@ -1,9 +1,9 @@
 """
 python manage.py cargar_demo_compras
 
-Carga los proveedores de demostración. Es una cáscara delgada: llama al
-servicio. Normalmente lo invoca seed_demo (COMANDOS_DE_DEMO), después de cargar
-los países y ciudades de core.
+Carga los proveedores y contratos de compra de demostración. Es una cáscara
+delgada: llama al servicio. Normalmente lo invoca seed_demo
+(COMANDOS_DE_DEMO), después de core y del catálogo.
 """
 
 from django.core.management.base import BaseCommand
@@ -12,7 +12,7 @@ from apps.compras.services import cargar_demo_compras
 
 
 class Command(BaseCommand):
-    help = "Carga proveedores de demostración sin duplicar."
+    help = "Carga proveedores y contratos de compra de demostración sin duplicar."
 
     def handle(self, *args, **options):
         creados = cargar_demo_compras()

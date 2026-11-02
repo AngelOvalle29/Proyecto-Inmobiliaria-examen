@@ -293,11 +293,15 @@ def test_finalizar_con_avance_menor_se_rechaza(gerente, usd):
     assert estado_de(proyecto) == EstadoProyecto.EN_EJECUCION
 
 
-def test_finalizar_publica_las_unidades_en_negociacion(gerente, usd):
+def test_finalizar_publica_las_unidades_que_no_estaban_a_la_venta(gerente, usd):
     """Regla 15: en un edificio se venden las unidades, no el edificio."""
     edificio = adquirida(tipo=tipo("Apartamentos"))
     en_negociacion = UnidadFactory(
         propiedad=edificio, estado=EstadoPropiedad.EN_NEGOCIACION
+    )
+    # Como las del hotel de la demo del catálogo.
+    en_construccion = UnidadFactory(
+        propiedad=edificio, estado=EstadoPropiedad.EN_CONSTRUCCION
     )
     reservada = UnidadFactory(propiedad=edificio, estado=EstadoPropiedad.RESERVADA)
     proyecto = en_ejecucion(gerente, usd, propiedad=edificio)
@@ -308,7 +312,8 @@ def test_finalizar_publica_las_unidades_en_negociacion(gerente, usd):
     finalizar_proyecto(proyecto=proyecto, autor=gerente, ip=IP)
 
     assert estado_de(en_negociacion) == EstadoPropiedad.DISPONIBLE
-    # Solo las que estaban en negociación: las demás ya tienen su propio camino.
+    assert estado_de(en_construccion) == EstadoPropiedad.DISPONIBLE
+    # Las que ya tenían otro estado siguen su propio camino.
     assert estado_de(reservada) == EstadoPropiedad.RESERVADA
 
 
