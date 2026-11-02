@@ -108,9 +108,12 @@ programada.
     (409 `CONTRATO_NO_VIGENTE`). Puede ser parcial: la cuota queda `PARCIAL`
     hasta completar su total, y entonces `PAGADA`. Un pago no puede exceder lo
     que falta de la cuota.
-17. Una cuota `PENDIENTE` o `PARCIAL` con fecha de vencimiento pasada está **en
-    mora**. No se guarda como estado: se calcula al consultar, así nunca queda
-    desactualizada (base del reporte R11).
+17. Una cuota `PENDIENTE` o `PARCIAL` de un contrato `VIGENTE`, con fecha de
+    vencimiento pasada, está **en mora**. No se guarda como estado: se calcula
+    al consultar, así nunca queda desactualizada (base del reporte R11). Un
+    contrato anulado ya no se cobra, así que sus cuotas no están en mora
+    (corregido el 2026-11-01: lo señaló B en #56, y A propuso resolverlo en el
+    modelo para que ninguna pantalla ni reporte tenga que recordarlo).
 18. Cuando todas las cuotas están `PAGADA`, el contrato pasa a `LIQUIDADO`.
 
 **Permisos** (esquema de la spec 004)
