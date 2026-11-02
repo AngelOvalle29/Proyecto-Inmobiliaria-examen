@@ -5,9 +5,9 @@
 | **Número** | 018 |
 | **Estado** | En revisión |
 | **Autor** | Angel Glicerio Ovalle Fernandez (rol C) |
-| **Revisor** | Por asignar |
+| **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-31 |
-| **Apps afectadas** | `frontend/` (`paginas/compras`, `paginas/construccion`, `paginas/asistente` y sus hooks en `api/`). En el backend, solo el campo `total_comprometido` del proyecto (§4) |
+| **Apps afectadas** | `frontend/` (`paginas/compras`, `paginas/construccion`, `paginas/asistente` y sus hooks en `api/`; `DialogoMotivo` en `componentes/comunes/`; el filtro de estado de `useOpcionesPropiedad`). Sin cambios en el backend |
 | **Rama** | `feature/018-pantallas-bloque-c` |
 | **Pull request** | — |
 
@@ -36,8 +36,8 @@ Todo con los componentes de la spec 010 (`TablaDatos`, `FormularioDatos`,
 ejemplo.
 
 **No incluye:**
-- Cambios en el backend, salvo `total_comprometido` (§4): las pantallas usan los
-  endpoints que ya existen.
+- Cambios en el backend: las pantallas usan los endpoints de las specs 005,
+  006 y 017. `total_comprometido` y `disponible` los agrega la spec 017 (§4).
 - Reactivar proveedores o constructoras desactivados (spec 006, §2).
 - Cargar o editar los documentos del asistente: se cargan con `cargar_demo_ia`
   (spec 005).
@@ -46,7 +46,7 @@ ejemplo.
   con los criterios de §8.
 
 **Orden:** las pantallas de proveedores, constructoras y el asistente se
-implementan primero, porque su API ya está en revisión (#62 y #63). Las de
+implementan primero, porque su API ya existe (#63 fusionado, #62 en revisión). Las de
 contratos, proyectos y pagos, cuando la spec 017 esté implementada.
 
 ## 3. Reglas
@@ -78,8 +78,11 @@ contratos, proyectos y pagos, cuando la spec 017 esté implementada.
    solo adelanta la suma como ayuda.
 7. **Los formularios de compra y de proyecto ofrecen solo las propiedades que
    la operación acepta:** en `EN_NEGOCIACION` para comprar y `ADQUIRIDA` para
-   construir, con el filtro `?estado=` de `/propiedades/`. La API sigue siendo la
-   que valida.
+   construir. No se crea un hook nuevo: `useOpcionesPropiedad`
+   (`api/catalogo/consultas.ts`) acepta un `estado` opcional y lo pasa a
+   `?estado=` de `/propiedades/`, como se amplió `useUnidadesDePropiedad` en la
+   spec 014 (§6). Sin `estado`, los formularios de B siguen igual. La API sigue
+   siendo la que valida.
 8. **El asistente es público** (decisión a validar, §10): se abre sin iniciar
    sesión, en `/asistente`, y también aparece en el menú de quien sí inició
    sesión.
@@ -88,16 +91,18 @@ contratos, proyectos y pagos, cuando la spec 017 esté implementada.
    `sin_informacion` se muestra como tal, sin citas. Un 503 dice que el
    asistente no está disponible y un 429 cuántos segundos esperar
    (`espera_segundos`).
+10. **El asistente pide no escribir datos personales.** Es una pantalla pública
+    y la capa gratuita de Gemini usa lo que recibe (`CLAUDE.md` §11). Un aviso
+    fijo, visible antes de la primera pregunta y mientras se conversa, pide no
+    escribir nombres, teléfonos ni números de documento.
 
 ## 4. Modelo de datos
 
 Sin cambios de modelo. Los tipos salen de `npm run gen:api`.
 
-**Un campo nuevo en la API:** el detalle de `/proyectos-construccion/{id}/`
-incluye `total_comprometido` (la suma de pagos programados y pagados que ya
-calcula el selector de la spec 017). Así la pantalla muestra presupuesto,
-comprometido y disponible sin sumar los pagos por su cuenta. Se agrega en la
-implementación de la spec 017.
+El detalle de `/proyectos-construccion/{id}/` trae `total_comprometido` y
+`disponible`, que agrega la spec 017 (§5). La pantalla los muestra tal cual,
+sin sumar los pagos por su cuenta.
 
 ## 5. Pantallas y rutas
 
@@ -112,11 +117,13 @@ implementación de la spec 017.
 | `/construccion/proyectos` | Lista: código, nombre, propiedad, constructora, estado, avance. Filtro: estado | Todos |
 | `/construccion/proyectos/nuevo` | Formulario: nombre, propiedad adquirida, constructora, fechas de inicio y fin estimada, presupuesto, moneda | Admin, gerente |
 | `/construccion/proyectos/{id}` | **Detalle** (decisión a validar, §10): datos, barra de avance, presupuesto / comprometido / disponible y tabla de pagos. Acciones del proyecto: Iniciar, Registrar avance, Suspender, Reanudar, Finalizar, Cancelar y Editar (diálogos según el estado). Programar pago (diálogo: tipo, monto, fecha, documento). Por pago: Pagar (diálogo: fecha y referencia) y Anular (diálogo con motivo) | Todos (proyecto: admin y gerente; pagos: admin, gerente y contabilidad) |
-| `/asistente` | Pregunta, respuesta con sus marcas `[n]` y la lista de citas. Mantiene las preguntas de la sesión en pantalla; no se guardan | Público |
+| `/asistente` | Aviso de no escribir datos personales (regla 10), pregunta, respuesta con sus marcas `[n]` y la lista de citas. Mantiene las preguntas de la sesión en pantalla; no se guardan | Público |
 
 **Menú**, agrupado: *Compras* (Proveedores, Contratos de compra),
 *Construcción* (Constructoras, Proyectos) y *Asistente*. Las entradas de
-"Nuevo…" están en el botón de cada lista, como en la spec 012.
+"Nuevo…" están en el botón de cada lista, como en la spec 012. La pantalla de
+inicio de sesión lleva un enlace al asistente, para que un visitante lo
+encuentre sin cuenta.
 
 ## 6. Componentes y módulos
 
@@ -128,9 +135,10 @@ src/api/construccion/   consultas.ts (useConstructoras, useProyectos, useProyect
                         mutaciones.ts (constructoras; las acciones del proyecto;
                                        programar, pagar y anular pago)
 src/api/ia/             mutaciones.ts (useConsultarAgente)
+src/api/catalogo/       consultas.ts (useOpcionesPropiedad acepta `estado`)
+src/componentes/comunes/   DialogoMotivo
 src/paginas/compras/       ListaProveedores, FormularioProveedor,
-                           ListaContratosCompra, NuevoContratoCompra,
-                           DialogoMotivo
+                           ListaContratosCompra, NuevoContratoCompra
 src/paginas/construccion/  ListaConstructoras, FormularioConstructora,
                            ListaProyectos, NuevoProyecto, DetalleProyecto,
                            DialogoAvance, DialogoEditarProyecto,
@@ -139,20 +147,27 @@ src/paginas/asistente/     Asistente, RespuestaConCitas
 ```
 
 Cada mutación invalida la consulta de su lista y de su detalle, para que la
-tabla se actualice sola, como en el catálogo y en la spec 012. Una acción del
-proyecto invalida también la lista de propiedades, porque cambia su estado.
+tabla se actualice sola, como en el catálogo y en la spec 012. Las que cambian
+el estado de una propiedad invalidan además `['catalogo']` completo, como
+`useInvalidarVenta` en ventas: completar o anular un contrato de compra, y
+todas las acciones del proyecto. Invalidar solo la lista no basta, porque la
+ficha usa `['catalogo', 'propiedades', 'detalle', id]` y
+`['catalogo', 'unidades', …]`, y finalizar cambia también las unidades
+(spec 017, regla 15). Los pagos invalidan `['construccion']`, porque cambian
+el comprometido del detalle.
 
-`DialogoMotivo` sirve a todas las acciones que solo piden un motivo (anular un
-contrato o un pago, suspender o cancelar un proyecto), con el título y la
-mutación que le pase cada página.
+`DialogoMotivo` vive en `componentes/comunes/`, porque no es de un dominio:
+sirve a todas las acciones que solo piden un motivo (anular un contrato o un
+pago, suspender o cancelar un proyecto) y también a B para anular contratos de
+venta. Recibe el título y la función que llama a la mutación.
 
 `RespuestaConCitas` convierte cada `[n]` del texto en un enlace a la cita `n` de
 la lista. Si el modelo menciona un número que no está en las citas, se deja como
 texto.
 
-**Si `CampoRelacion` aún no acepta una etiqueta inicial** (spec 012, §6), la
-edición de un proveedor no cambia su país ni su ciudad, ni la de una
-constructora su país, y se registra aquí.
+La edición de un proveedor muestra su país y su ciudad actuales con
+`etiquetaInicial` de `CampoRelacion` (existe desde #52), y los dos se pueden
+cambiar; la de una constructora, su país.
 
 ## 7. Auditoría
 
@@ -168,17 +183,24 @@ endpoint que ya audita (specs 005, 006 y 017).
       error junto al campo; un NIT repetido muestra el 409 de la API.
 - [ ] La ciudad del proveedor se busca dentro del país elegido y se vacía al
       cambiarlo.
+- [ ] Al editar un proveedor se ven su país y su ciudad actuales, y cambiarlos
+      se guarda.
 - [ ] Una constructora con calificación 6 muestra el error de validación.
 - [ ] El formulario de compra solo ofrece propiedades en negociación; al
       completar el contrato, la propiedad aparece como adquirida en el catálogo.
 - [ ] Un proyecto se inicia, avanza, se suspende, se reanuda y se finaliza desde
       su detalle, y la propiedad pasa a en construcción y luego a disponible.
+- [ ] Tras finalizar un proyecto, la ficha de la propiedad muestra la propiedad
+      y sus unidades como disponibles sin recargar la página.
 - [ ] El detalle muestra presupuesto, comprometido y disponible; un pago que
       supera el presupuesto muestra el 409, y tras subir el presupuesto se acepta.
 - [ ] Pagar un pago programado guarda su fecha y referencia, y deja de ofrecer
       Pagar y Anular.
 - [ ] El asistente responde sin iniciar sesión, con sus marcas `[n]` enlazadas a
       las citas; una pregunta ajena muestra que no hay información, sin citas.
+- [ ] El asistente muestra el aviso de no escribir datos personales antes de la
+      primera pregunta y lo mantiene visible; la pantalla de inicio de sesión
+      enlaza al asistente.
 - [ ] Con el asistente sin llave o con Gemini caído, la pantalla muestra que no
       está disponible y no se rompe.
 - [ ] Montos con su moneda y fechas `dd/mm/aaaa`.
@@ -208,8 +230,27 @@ endpoint que ya audita (specs 005, 006 y 017).
   cuotas ni pagos que listar.
 - *Un solo `DialogoMotivo`* para las cuatro acciones que solo piden un motivo,
   en lugar de cuatro diálogos iguales.
-- *`total_comprometido` lo calcula la API.* Sumar los pagos en el navegador
-  daría otro número si la API cambia qué cuenta como comprometido.
+- *`total_comprometido` y `disponible` los calcula la API* (spec 017). Sumar los
+  pagos en el navegador daría otro número si la API cambia qué cuenta como
+  comprometido.
+
+**Revisión de Douglas (PR #66), seis cambios aceptados:**
+
+1. *Aviso de datos personales en el asistente* (regla 10), con su criterio en
+   §8: la pantalla es pública y Gemini, en su capa gratuita, usa lo que recibe.
+2. *Sin el condicional de `CampoRelacion`:* `etiquetaInicial` existe desde #52,
+   así que la edición sí cambia país y ciudad.
+3. *`useOpcionesPropiedad` con `estado` opcional* en vez de un hook nuevo
+   (regla 7), como `useUnidadesDePropiedad` en la spec 014.
+4. *Las acciones que cambian una propiedad invalidan `['catalogo']` completo*
+   (§6), porque la ficha y las unidades tienen sus propias claves.
+5. *`total_comprometido` pasa a la spec 017*, porque es backend; esta spec queda
+   sin cambios en el backend.
+6. *`DialogoMotivo` en `componentes/comunes/`*, porque lo usan compras,
+   construcción y ventas.
+
+La sugerencia del enlace al asistente en el inicio de sesión también se
+aceptó (§5).
 
 ## 11. Trabajo con agentes de IA
 
@@ -218,6 +259,13 @@ B, `menu.ts`, `App.tsx` y los componentes `TablaDatos` y `FormularioDatos` de la
 base del frontend (spec 010), y propuso el borrador siguiendo esos patrones.
 Las decisiones de §10 son propuestas del agente que valida el integrante C en
 la revisión.
+
+**Sesión 2026-11-01, revisión (Claude, rol C).** El agente aplicó los seis
+cambios de la revisión de Douglas tras revisar en `develop` `CampoRelacion`
+(`etiquetaInicial`), `useOpcionesPropiedad` y `useUnidadesDePropiedad`, y las
+claves de caché del catálogo. Movió `total_comprometido` a la spec 017 y le
+agregó `disponible`, que la regla 6 ya pedía calculado por la API. El
+integrante C revisó y aceptó cada cambio.
 
 **Plan de implementación:** (1) proveedores y constructoras; (2) asistente;
 (3) contratos de compra; (4) proyectos, su detalle y sus pagos; (5) verificación
