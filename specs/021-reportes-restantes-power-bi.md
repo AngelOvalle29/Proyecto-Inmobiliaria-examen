@@ -100,7 +100,7 @@ detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
 |---|---|---|---|
 | R01 `ventas-por-periodo` | Contrato: código, firma, cliente, agente, bien, país, ciudad, modalidad, moneda, neto, bruto/descuento documentados y comisión | Firma desde/hasta, país, ciudad, agente, tipo, modalidad, moneda | Cantidad, neto y comisión por mes/país/moneda; bruto y descuento solo de la población con evidencia |
 | R02 `desempeno-agentes` | Agente: cotizaciones emitidas/aprobadas, contratos vinculados, ventas sin cotización, conversión, monto vendido y comisión | Emisión desde/hasta, país, agente | Conteos y montos por agente/moneda; conversión ponderada global |
-| R03 `embudo-cotizaciones` | Cotización: código, emisión, cliente, agente, estado actual, vencida, total, moneda y contrato vinculado | Emisión desde/hasta, agente, país, estado, moneda, monto mínimo/máximo | Conteos por estado, tasas de la cohorte y tiempos por etapa desde auditoría; sin sumar porcentajes |
+| R03 `embudo-cotizaciones` | Cotización: código, emisión, cliente, agente, estado actual, vencida, total, moneda y contrato vinculado | Emisión desde/hasta, agente, país, estado, moneda, monto mínimo/máximo | Conteos por estado y tasas de la cohorte, sin sumar porcentajes |
 | R04 `ranking-clientes` | Cliente: código/nombre comercial, contratos de venta, arrendamientos vigentes, vendido USD y saldos por moneda | Firma de venta desde/hasta, país del cliente, tipo de cliente | Ranking por vendido USD descendente y cliente ID; conteos y saldos de la población |
 | R06 `propiedades-por-estado` | Bien `(origen,id)`: código, propiedad, tipo, ciudad, estado actual, fecha de entrada conocida y días en estado | País, ciudad, tipo, estado, corte hoy | Conteos por estado/tipo; antigüedad media solo de fechas conocidas y cantidad sin historia |
 | R08 `evolucion-avaluos` | Avalúo: propiedad, fecha, perito, valor, moneda, anterior comparable y variación | Propiedad, país, fechas, moneda | Cantidad, primera/última valuación por propiedad/moneda y variación comparable |
@@ -122,14 +122,12 @@ detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
    anulado / total de la cohorte del reporte × 100. Denominador cero produce
    `null`. Las ventas directas se muestran aparte y no inflan esa conversión.
    R02 distingue ventas por fecha de firma de las conversiones de la cohorte.
-10. R03 calcula tiempos por etapa desde los registros de creación, envío,
-    aprobación y rechazo en auditoría, ordenados por `(fecha,id)`. El tiempo
-    de una etapa cerrada es la diferencia entre entrada y siguiente transición;
-    la media incluye solo duraciones documentadas, con su conteo de cobertura.
-    La etapa abierta se informa aparte y no se mezcla en la media de cerradas.
-    Sin eventos suficientes se informa «sin historial», nunca duración cero.
-    Si se acuerda recortar esta métrica por plazo, se registra expresamente
-    antes de considerar completo R03.
+10. R03 conserva detalle, filtros, conteos por estado y tasas de cohorte.
+    Los tiempos por etapa desde auditoría quedan fuera de esta entrega, por
+    el recorte propuesto por A y aceptado expresamente por B en el PR #78.
+    No se muestran duraciones cero ni estimaciones basadas en el estado actual.
+    Se mantiene la posibilidad de calcularlos en un incremento posterior con
+    eventos de entrada/salida y cobertura documentada.
 11. R04: el ranking usa ventas USD, no mezcla precio de venta con renta
     mensual. Saldos y arrendamientos son actuales y se etiquetan así; el
     intervalo filtra ventas. Esta precisión del «monto total transado» del
@@ -356,7 +354,7 @@ atribuidas a un usuario de negocio.
 | Selectores | 0/1/muchas filas, rangos inclusivos, dos monedas, edificios/unidades, varias cuotas por contrato, cartera ajena |
 | Métricas | Cohorte y venta directa, anterior de avalúo fuera del filtro, nulos, mora 0/1/30/31/60/61/90/91 días, renta rescindida pendiente |
 | Cobros | Dos abonos en meses y tasas diferentes; contado, enganche y renta con recargo; log incompleto; conciliación sin duplicación |
-| Comercial | Cliente reasignado y fila propia de R02; borradores distintos en R02/R03; tiempos documentados por transición; contrato de doce meses sin deuda de rentas futuras; cuotas anuladas excluidas; renovación rescindida antes de comenzar; contado/enganche por firma y renta sin duplicar recargo |
+| Comercial | Cliente reasignado y fila propia de R02; borradores distintos en R02/R03; conteos y tasas de cohorte sin tiempos por etapa; contrato de doce meses sin deuda de rentas futuras; cuotas anuladas excluidas; renovación rescindida antes de comenzar; contado/enganche por firma y renta sin duplicar recargo |
 | Servicios/API | Matriz de cinco roles, filtros inválidos, páginas, totales completos, rechazo de 5,001 filas antes de cargar detalle |
 | Exportación | Columnas y totales equivalentes, tipos XLSX, fórmulas literales, PDF multipágina, cobertura desconocida |
 | Migración/SQL | Aplicar/revertir las cuatro vistas, dependencias de migraciones, cambio de columna con recreación reversible, unicidad de grano, claves a dimensiones, permisos reales y conciliación de ventas |
@@ -400,9 +398,10 @@ Orden propuesto, sin comprometer fechas por otros integrantes:
 
 Se adopta el recorte de BI propuesto por A, sin simplificar por ahora R12 ni
 sus abonos históricos: asignar el acumulado al último mes daría resultados
-incorrectos. Los tiempos por etapa de R03 permanecen como en la regla 10;
-si B acuerda recortarlos por plazo, debe registrarse antes de cerrar su bloque.
-No se considera que una simplificación esté aprobada por mencionarla como opción.
+incorrectos. Marco aceptó el reparto y quitar los tiempos por etapa de R03
+en su comentario del PR #78: la regla 10 registra ese recorte, manteniendo
+conteos por estado, tasas de cohorte y ambas exportaciones. No se simplifican
+otros cálculos sin un acuerdo explícito y registrado.
 
 Son doce reportes adicionales propuestos, no doce terminados ni una promesa
 confirmada para el lunes 2 de noviembre. Si el equipo divide implementación,
@@ -455,3 +454,11 @@ entrega. Se añadieron dependencias y recreación reversible de vistas ante
 cambios de columnas, y prueba temprana de conexión segura a Neon con un rol
 de lectura sin publicar credenciales. La revisión de A sigue pendiente de
 aprobación formal sobre esta actualización; no se asume por su comentario.
+
+### Confirmación del reparto y recorte de R03 por B
+
+Marco confirmó en el PR #78 que toma R01/R02/R03/R04/R10/R11 y aceptó retirar
+los tiempos por etapa de R03 para esta entrega. Se actualizaron regla 10,
+tabla de reportes, pruebas y decisiones para evitar que su implementación
+tenga que cumplir una métrica recortada. Indicó que trabaja sobre la capa del
+PR #77 y en archivos de selectores separados para reducir conflictos.
