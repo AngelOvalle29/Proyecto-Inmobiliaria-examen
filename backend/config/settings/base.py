@@ -10,6 +10,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # backend/
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -165,6 +166,53 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
+# ---------- Archivos subidos (spec 011) ----------
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Dónde se guardan los documentos oficiales. "local" en desarrollo y pruebas;
+# "s3" en producción, contra el bucket privado de Supabase (spec 011, §6).
+STORAGE_BACKEND = env("STORAGE_BACKEND", default="local")
+if STORAGE_BACKEND not in {"local", "s3"}:
+    raise ImproperlyConfigured(
+        f"STORAGE_BACKEND desconocido: {STORAGE_BACKEND!r}. Use 'local' o 's3'."
+    )
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Se declara también aquí para no perderlo al definir STORAGES: en
+    # producción prod.py lo cambia por el de WhiteNoise (spec 002, §5.3).
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
+if STORAGE_BACKEND == "s3":
+    # Supabase Storage habla el protocolo S3, así que se usa el backend estándar
+    # de django-storages en vez de escribir uno propio (spec 011, §10).
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "endpoint_url": env("STORAGE_ENDPOINT_URL"),
+            "bucket_name": env("STORAGE_BUCKET"),
+            "access_key": env("STORAGE_ACCESS_KEY"),
+            "secret_key": env("STORAGE_SECRET_KEY"),
+            "region_name": env("STORAGE_REGION"),
+            # El bucket es privado (regla 10): sin ACL pública, y cada descarga
+            # pide una URL firmada que vence a los 5 minutos.
+            "default_acl": None,
+            "querystring_auth": True,
+            "querystring_expire": 300,
+            # Supabase no publica un subdominio por bucket: la ruta lleva el
+            # nombre del bucket en vez del estilo bucket.host.
+            "addressing_style": "path",
+            "signature_version": "s3v4",
+            # El nombre del archivo ya es un uuid (regla 8); si se repitiera,
+            # es mejor fallar que pisar el de otro.
+            "file_overwrite": False,
+        },
+    }
+
+
 # ---------- API (Django REST Framework) ----------
 
 REST_FRAMEWORK = {
@@ -186,9 +234,16 @@ REST_FRAMEWORK = {
     # Toda respuesta de error sale en el formato uniforme.
     "EXCEPTION_HANDLER": "apps.core.manejador_errores.manejar_excepcion",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # Límite de peticiones por IP. Solo lo usan las vistas que declaran
-    # throttle_scope = "auth": login y renovación de token (arquitectura.md §9).
-    "DEFAULT_THROTTLE_RATES": {"auth": "10/min"},
+    # Límite de peticiones por IP (arquitectura.md §9). Solo lo usan las vistas
+    # que declaran su throttle_scope. Login y renovación tienen límites
+    # separados: detrás de una misma IP pública (la red de la universidad en la
+    # defensa) entran varias personas a la vez, y renovar el token no debe
+    # gastar los intentos de login de nadie (spec 001, §5).
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "30/min",
+        "agente": "10/min",
+        "renovacion": "60/min",
+    },
     # Cuántos proxies propios hay delante de Django. Define qué IP es la real:
     # 0 (desarrollo) ignora X-Forwarded-For, que cualquier cliente puede
     # inventar; en producción (Render) hay tres y se configura NUM_PROXIES=3
@@ -233,6 +288,20 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "EstadoSaludEnum": "apps.core.serializers.ESTADOS_SALUD",
         "EstadoPropiedadEnum": "apps.catalogo.enums.EstadoPropiedad",
+        "TipoDocumentoEnum": "apps.catalogo.enums.TipoDocumento",
+        "TipoClienteEnum": "apps.crm.enums.TipoCliente",
+        "TipoProveedorEnum": "apps.compras.enums.TipoProveedor",
+        "EstadoCotizacionEnum": "apps.crm.enums.EstadoCotizacion",
+        "EstadoContratoEnum": "apps.ventas.enums.EstadoContrato",
+        "EstadoCuotaEnum": "apps.ventas.enums.EstadoCuota",
+        "EstadoArrendamientoEnum": "apps.arrendamientos.enums.EstadoArrendamiento",
+        "EstadoPagoRentaEnum": "apps.arrendamientos.enums.EstadoPagoRenta",
+        "TipoDocumentoRAGEnum": "apps.ia.enums.TipoDocumentoRAG",
+        "EstadoIndexacionEnum": "apps.ia.enums.EstadoIndexacion",
+        "EstadoContratoCompraEnum": "apps.compras.enums.EstadoContratoCompra",
+        "EstadoProyectoEnum": "apps.construccion.enums.EstadoProyecto",
+        "TipoPagoConstructoraEnum": "apps.construccion.enums.TipoPagoConstructora",
+        "EstadoPagoConstructoraEnum": "apps.construccion.enums.EstadoPago",
     },
 }
 
@@ -242,6 +311,8 @@ SPECTACULAR_SETTINGS = {
 # Solo el frontend puede llamar a la API desde un navegador
 # (arquitectura.md §9). Vacío por defecto: ningún otro origen.
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+# Permite al frontend leer el nombre de las descargas autenticadas (spec 016).
+CORS_EXPOSE_HEADERS = ["Content-Disposition"]
 
 
 # ---------- Celery (spec 002, §5.5) ----------
@@ -265,3 +336,24 @@ CELERY_WORKER_SEND_TASK_EVENTS = False
 # Si RabbitMQ no está listo cuando arranca el worker, reintenta en lugar de
 # terminar: en Render, el contenedor puede despertar antes que la conexión.
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# Colas por flujo (arquitectura §6). Las tareas de ia van a "documentos"; las
+# demás, como el diagnóstico de core, a la cola por defecto ("celery"). El
+# worker debe consumir las dos (scripts/iniciar.sh, spec 020).
+CELERY_TASK_ROUTES = {"ia.*": {"queue": "documentos"}}
+# ---------- Agente de IA (spec 005) ----------
+
+# La llave es opcional: sin ella el agente responde 503 y el resto del sistema
+# funciona igual. Así nadie necesita una llave de Gemini para correr las
+# pruebas, que usan un proveedor falso.
+IA_PROVEEDOR = env("IA_PROVEEDOR", default="gemini")
+IA_API_KEY = env("IA_API_KEY", default="")
+IA_MODELO = env("IA_MODELO", default="gemini-3.5-flash-lite")
+IA_MODELO_EMBEDDINGS = env("IA_MODELO_EMBEDDINGS", default="gemini-embedding-001")
+# Debe coincidir con DIMENSION_EMBEDDINGS de apps/ia/models.py.
+IA_DIMENSION_EMBEDDINGS = env.int("IA_DIMENSION_EMBEDDINGS", default=768)
+IA_MAX_TOKENS_RESPUESTA = env.int("IA_MAX_TOKENS_RESPUESTA", default=1024)
+# Distancia de coseno máxima para usar un fragmento (0 = mismo significado).
+# 0.42: en la prueba real del 2026-10-31 las preguntas relevantes quedaron
+# entre 0.19 y 0.38 y las ajenas desde 0.47.
+IA_DISTANCIA_MAXIMA = env.float("IA_DISTANCIA_MAXIMA", default=0.42)

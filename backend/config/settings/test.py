@@ -5,9 +5,16 @@ Usa la misma PostgreSQL que desarrollo: pytest-django crea una base aparte
 (test_<nombre>) y la destruye al terminar.
 """
 
+import tempfile
+
 from .base import *
 
 DEBUG = False
+
+# Las pruebas nunca tocan Supabase (spec 011, §9): se fuerza el disco local
+# aunque el .env diga s3, en una carpeta temporal que no se versiona.
+STORAGES["default"] = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+MEDIA_ROOT = tempfile.mkdtemp(prefix="inmobiliaria-media-")
 
 # El algoritmo por defecto es lento a propósito, para resistir ataques de
 # fuerza bruta. En pruebas no hay nada que proteger y cada usuario creado
@@ -24,3 +31,5 @@ WHITENOISE_AUTOREFRESH = True
 # hace que un error dentro de la tarea falle la prueba en vez de perderse.
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
+# Las pruebas nunca llaman a Gemini, aunque el .env local tenga una llave real.
+IA_API_KEY = ""

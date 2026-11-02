@@ -52,3 +52,25 @@ services:
         sync: false
       - key: DJANGO_SUPERUSER_PASSWORD
         sync: false
+      # Documentos oficiales en el bucket privado de Supabase (spec 011, §6).
+      # Con el valor por defecto ("local") la API arrancaría igual, pero
+      # guardaría los archivos en el disco del contenedor, que Render borra en
+      # cada despliegue: por eso queda fijo aquí.
+      - key: STORAGE_BACKEND
+        value: s3
+      # https://<proyecto>.supabase.co/storage/v1/s3
+      - key: STORAGE_ENDPOINT_URL
+        sync: false
+      - key: STORAGE_BUCKET
+        sync: false
+      - key: STORAGE_REGION
+        sync: false
+      - key: STORAGE_ACCESS_KEY
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
+      # Llave de Gemini para el agente y los embeddings (spec 005). Sin ella,
+      # cargar_demo_ia carga los documentos sin indexar y el agente responde
+      # 503. Los demás IA_* tienen valores por defecto en settings.
+      - key: IA_API_KEY
+        sync: false

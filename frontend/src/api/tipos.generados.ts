@@ -4,6 +4,75 @@
  */
 
 export interface paths {
+    "/api/v1/agente/consultas/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preguntar al agente de IA
+         * @description POST /api/v1/agente/consultas/: el agente público (spec 005, §5).
+         *
+         *     Público a propósito: lo usa cualquier visitante del sitio. Por eso lleva
+         *     límite de peticiones por IP, que además protege la cuota de Gemini.
+         */
+        post: operations["v1_agente_consultas_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agentes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/agentes/ */
+        get: operations["v1_agentes_list"];
+        put?: never;
+        /**
+         * Crear el perfil de agente de un usuario
+         * @description GET y POST /api/v1/agentes/
+         */
+        post: operations["v1_agentes_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agentes/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/agentes/{id}/ */
+        get: operations["v1_agentes_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * Desactivar un agente
+         * @description GET, PATCH y DELETE /api/v1/agentes/{id}/
+         */
+        delete: operations["v1_agentes_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar comisión o fecha de ingreso
+         * @description GET, PATCH y DELETE /api/v1/agentes/{id}/
+         */
+        patch: operations["v1_agentes_partial_update"];
+        trace?: never;
+    };
     "/api/v1/auth/login/": {
         parameters: {
             query?: never;
@@ -36,7 +105,12 @@ export interface paths {
         /**
          * @description POST /api/v1/auth/refresh/ — nuevo token de acceso a cambio del de refresco.
          *
-         *     Es la vista de SimpleJWT sin cambios, salvo el límite de peticiones.
+         *     Es la vista de SimpleJWT con dos cambios:
+         *     - Un límite de peticiones propio y más alto que el login: el token de
+         *       refresco es una firma que no se puede adivinar, así que el límite solo
+         *       frena abusos, no ataques a contraseñas.
+         *     - RenovarTokenSerializer, que responde 401 y no 500 si el usuario del token
+         *       ya no existe.
          */
         post: operations["v1_auth_refresh_create"];
         delete?: never;
@@ -65,6 +139,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/avaluos/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y DELETE /api/v1/avaluos/{id}/ — DELETE desactiva (regla 3). */
+        get: operations["v1_avaluos_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET y DELETE /api/v1/avaluos/{id}/ — DELETE desactiva (regla 3). */
+        delete: operations["v1_avaluos_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ciudades/": {
         parameters: {
             query?: never;
@@ -74,6 +166,638 @@ export interface paths {
         };
         /** @description GET /api/v1/ciudades/?pais=<id> */
         get: operations["v1_ciudades_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clientes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/clientes/ */
+        get: operations["v1_clientes_list"];
+        put?: never;
+        /**
+         * Registrar un cliente
+         * @description GET y POST /api/v1/clientes/
+         */
+        post: operations["v1_clientes_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/clientes/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET, PATCH y DELETE /api/v1/clientes/{id}/
+         *
+         *     get_object busca dentro de los clientes visibles: el cliente de otro
+         *     agente no se encuentra y la respuesta es 404, no 403 (regla 14).
+         */
+        get: operations["v1_clientes_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * Desactivar un cliente
+         * @description GET, PATCH y DELETE /api/v1/clientes/{id}/
+         *
+         *     get_object busca dentro de los clientes visibles: el cliente de otro
+         *     agente no se encuentra y la respuesta es 404, no 403 (regla 14).
+         */
+        delete: operations["v1_clientes_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar los datos de un cliente (no su agente)
+         * @description GET, PATCH y DELETE /api/v1/clientes/{id}/
+         *
+         *     get_object busca dentro de los clientes visibles: el cliente de otro
+         *     agente no se encuentra y la respuesta es 404, no 403 (regla 14).
+         */
+        patch: operations["v1_clientes_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/clientes/{id}/reasignar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pasar el cliente a otro agente
+         * @description POST /api/v1/clientes/{id}/reasignar/
+         */
+        post: operations["v1_clientes_reasignar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/constructoras/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/constructoras/ */
+        get: operations["v1_constructoras_list"];
+        put?: never;
+        /**
+         * Registrar una constructora
+         * @description GET y POST /api/v1/constructoras/
+         */
+        post: operations["v1_constructoras_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/constructoras/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET, PATCH y DELETE /api/v1/constructoras/{id}/
+         *
+         *     get_object busca entre las constructoras activas: una desactivada responde
+         *     404, igual que una que no existe.
+         */
+        get: operations["v1_constructoras_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * Desactivar una constructora
+         * @description GET, PATCH y DELETE /api/v1/constructoras/{id}/
+         *
+         *     get_object busca entre las constructoras activas: una desactivada responde
+         *     404, igual que una que no existe.
+         */
+        delete: operations["v1_constructoras_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar los datos de una constructora
+         * @description GET, PATCH y DELETE /api/v1/constructoras/{id}/
+         *
+         *     get_object busca entre las constructoras activas: una desactivada responde
+         *     404, igual que una que no existe.
+         */
+        patch: operations["v1_constructoras_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/contratos-arrendamiento/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/contratos-arrendamiento/ */
+        get: operations["v1_contratos_arrendamiento_list"];
+        put?: never;
+        /**
+         * Firmar un contrato de arrendamiento
+         * @description GET y POST /api/v1/contratos-arrendamiento/
+         */
+        post: operations["v1_contratos_arrendamiento_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-arrendamiento/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET /api/v1/contratos-arrendamiento/{id}/ (con su calendario de pagos). */
+        get: operations["v1_contratos_arrendamiento_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-arrendamiento/{id}/documento/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vincular o cambiar el documento de un contrato
+         * @description POST /api/v1/contratos-arrendamiento/{id}/documento/ (reglas 17 y 18).
+         */
+        post: operations["v1_contratos_arrendamiento_documento_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-arrendamiento/{id}/finalizar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalizar un contrato cuya fecha de fin ya pasó
+         * @description POST /api/v1/contratos-arrendamiento/{id}/finalizar/ (regla 11).
+         */
+        post: operations["v1_contratos_arrendamiento_finalizar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-arrendamiento/{id}/renovar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renovar: crea el contrato siguiente
+         * @description POST /api/v1/contratos-arrendamiento/{id}/renovar/ (regla 9).
+         */
+        post: operations["v1_contratos_arrendamiento_renovar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-arrendamiento/{id}/rescindir/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rescindir: el inquilino se va antes de terminar
+         * @description POST /api/v1/contratos-arrendamiento/{id}/rescindir/ (regla 10).
+         */
+        post: operations["v1_contratos_arrendamiento_rescindir_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-compra/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/contratos-compra/ */
+        get: operations["v1_contratos_compra_list"];
+        put?: never;
+        /**
+         * Registrar un contrato de compra
+         * @description GET y POST /api/v1/contratos-compra/
+         */
+        post: operations["v1_contratos_compra_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-compra/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET /api/v1/contratos-compra/{id}/ (sin edición, spec 017 §10). */
+        get: operations["v1_contratos_compra_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-compra/{id}/anular/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Anular un contrato de compra en proceso
+         * @description POST /api/v1/contratos-compra/{id}/anular/ (regla 7).
+         */
+        post: operations["v1_contratos_compra_anular_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-compra/{id}/completar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Completar una compra: la propiedad pasa a ADQUIRIDA
+         * @description POST /api/v1/contratos-compra/{id}/completar/ (regla 6).
+         */
+        post: operations["v1_contratos_compra_completar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-venta/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/contratos-venta/ */
+        get: operations["v1_contratos_venta_list"];
+        put?: never;
+        /**
+         * Firmar un contrato de venta, con o sin cotización
+         * @description GET y POST /api/v1/contratos-venta/
+         */
+        post: operations["v1_contratos_venta_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-venta/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET /api/v1/contratos-venta/{id}/ (con sus cuotas y su mora). */
+        get: operations["v1_contratos_venta_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-venta/{id}/anular/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/contratos-venta/{id}/anular/ (regla 15). */
+        post: operations["v1_contratos_venta_anular_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-venta/{id}/documento/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vincular o cambiar el documento de un contrato
+         * @description POST /api/v1/contratos-venta/{id}/documento/ (reglas 23 y 24).
+         */
+        post: operations["v1_contratos_venta_documento_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cotizaciones/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/cotizaciones/ */
+        get: operations["v1_cotizaciones_list"];
+        put?: never;
+        /**
+         * Emitir una cotización en borrador
+         * @description GET y POST /api/v1/cotizaciones/
+         */
+        post: operations["v1_cotizaciones_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cotizaciones/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y PATCH /api/v1/cotizaciones/{id}/ (PATCH solo en borrador). */
+        get: operations["v1_cotizaciones_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Editar una cotización en borrador
+         * @description GET y PATCH /api/v1/cotizaciones/{id}/ (PATCH solo en borrador).
+         */
+        patch: operations["v1_cotizaciones_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/cotizaciones/{id}/aprobar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/cotizaciones/{id}/aprobar/ (reserva el bien, regla 6). */
+        post: operations["v1_cotizaciones_aprobar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cotizaciones/{id}/enviar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/cotizaciones/{id}/enviar/ */
+        post: operations["v1_cotizaciones_enviar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cotizaciones/{id}/rechazar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/cotizaciones/{id}/rechazar/ (libera el bien si estaba aprobada). */
+        post: operations["v1_cotizaciones_rechazar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cuotas/{id}/pagos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar un pago, total o parcial, de una cuota
+         * @description POST /api/v1/cuotas/{id}/pagos/ (reglas 16 a 18).
+         */
+        post: operations["v1_cuotas_pagos_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documentos-agente/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET y POST /api/v1/documentos-agente/ (spec 020). POST multipart: sube un
+         *     .md y encola su indexación; responde 201 con el documento PENDIENTE.
+         */
+        get: operations["v1_documentos_agente_list"];
+        put?: never;
+        /**
+         * Subir un documento del agente
+         * @description GET y POST /api/v1/documentos-agente/ (spec 020). POST multipart: sube un
+         *     .md y encola su indexación; responde 201 con el documento PENDIENTE.
+         */
+        post: operations["v1_documentos_agente_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documentos-agente/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET, PATCH y DELETE /api/v1/documentos-agente/{id}/. PATCH multipart
+         *     reemplaza el archivo (regla 2); DELETE desactiva (regla 13).
+         */
+        get: operations["v1_documentos_agente_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description GET, PATCH y DELETE /api/v1/documentos-agente/{id}/. PATCH multipart
+         *     reemplaza el archivo (regla 2); DELETE desactiva (regla 13).
+         */
+        delete: operations["v1_documentos_agente_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Reemplazar el archivo de un documento del agente
+         * @description GET, PATCH y DELETE /api/v1/documentos-agente/{id}/. PATCH multipart
+         *     reemplaza el archivo (regla 2); DELETE desactiva (regla 13).
+         */
+        patch: operations["v1_documentos_agente_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/documentos-agente/{id}/reindexar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Volver a encolar la indexación de un documento
+         * @description POST /api/v1/documentos-agente/{id}/reindexar/ (regla 12). 202: solo
+         *     encola, la indexación la hace el worker.
+         */
+        post: operations["v1_documentos_agente_reindexar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documentos/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/documentos/{id}/ — DELETE desactiva. */
+        get: operations["v1_documentos_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET, PATCH y DELETE /api/v1/documentos/{id}/ — DELETE desactiva. */
+        delete: operations["v1_documentos_destroy"];
+        options?: never;
+        head?: never;
+        /** @description GET, PATCH y DELETE /api/v1/documentos/{id}/ — DELETE desactiva. */
+        patch: operations["v1_documentos_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/documentos/{id}/descarga/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener la URL de descarga de un documento
+         * @description GET /api/v1/documentos/{id}/descarga/ — URL firmada por 5 minutos.
+         */
+        get: operations["v1_documentos_descarga_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -123,6 +847,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pagos-constructora/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET /api/v1/pagos-constructora/ (todos los pagos, con filtros). */
+        get: operations["v1_pagos_constructora_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pagos-constructora/{id}/anular/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/pagos-constructora/{id}/anular/ (regla 21). */
+        post: operations["v1_pagos_constructora_anular_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pagos-constructora/{id}/pagar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/pagos-constructora/{id}/pagar/ (regla 21). */
+        post: operations["v1_pagos_constructora_pagar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pagos-renta/{id}/pagar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar el pago de un mes de renta
+         * @description POST /api/v1/pagos-renta/{id}/pagar/ (reglas 6 y 7).
+         */
+        post: operations["v1_pagos_renta_pagar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/paises/": {
         parameters: {
             query?: never;
@@ -132,6 +927,421 @@ export interface paths {
         };
         /** @description GET /api/v1/paises/ */
         get: operations["v1_paises_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propiedades/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/propiedades/ — con los filtros de PropiedadFilter. */
+        get: operations["v1_propiedades_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/propiedades/ — con los filtros de PropiedadFilter. */
+        post: operations["v1_propiedades_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/propiedades/{id}/ — DELETE desactiva. */
+        get: operations["v1_propiedades_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET, PATCH y DELETE /api/v1/propiedades/{id}/ — DELETE desactiva. */
+        delete: operations["v1_propiedades_destroy"];
+        options?: never;
+        head?: never;
+        /** @description GET, PATCH y DELETE /api/v1/propiedades/{id}/ — DELETE desactiva. */
+        patch: operations["v1_propiedades_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/avaluos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/propiedades/{id}/avaluos/ — el historial de plusvalía. */
+        get: operations["v1_propiedades_avaluos_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/propiedades/{id}/avaluos/ — el historial de plusvalía. */
+        post: operations["v1_propiedades_avaluos_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/cambiar-estado/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cambiar el estado de una propiedad
+         * @description POST /api/v1/propiedades/{id}/cambiar-estado/
+         */
+        post: operations["v1_propiedades_cambiar_estado_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/documentos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/propiedades/{id}/documentos/ — POST multipart. */
+        get: operations["v1_propiedades_documentos_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/propiedades/{id}/documentos/ — POST multipart. */
+        post: operations["v1_propiedades_documentos_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/unidades/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/propiedades/{id}/unidades/?buscar= (código) */
+        get: operations["v1_propiedades_unidades_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/propiedades/{id}/unidades/?buscar= (código) */
+        post: operations["v1_propiedades_unidades_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proveedores/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/proveedores/ */
+        get: operations["v1_proveedores_list"];
+        put?: never;
+        /**
+         * Registrar un proveedor
+         * @description GET y POST /api/v1/proveedores/
+         */
+        post: operations["v1_proveedores_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proveedores/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET, PATCH y DELETE /api/v1/proveedores/{id}/
+         *
+         *     get_object busca entre los proveedores activos: uno desactivado responde
+         *     404, igual que uno que no existe.
+         */
+        get: operations["v1_proveedores_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * Desactivar un proveedor
+         * @description GET, PATCH y DELETE /api/v1/proveedores/{id}/
+         *
+         *     get_object busca entre los proveedores activos: uno desactivado responde
+         *     404, igual que uno que no existe.
+         */
+        delete: operations["v1_proveedores_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar los datos de un proveedor
+         * @description GET, PATCH y DELETE /api/v1/proveedores/{id}/
+         *
+         *     get_object busca entre los proveedores activos: uno desactivado responde
+         *     404, igual que uno que no existe.
+         */
+        patch: operations["v1_proveedores_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/proyectos-construccion/ */
+        get: operations["v1_proyectos_construccion_list"];
+        put?: never;
+        /**
+         * Registrar un proyecto de construcción
+         * @description GET y POST /api/v1/proyectos-construccion/
+         */
+        post: operations["v1_proyectos_construccion_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET y PATCH /api/v1/proyectos-construccion/{id}/ (regla 17).
+         *
+         *     El detalle trae total_comprometido y disponible (§5). Después de editar se
+         *     vuelve a leer con el selector, para responder los totales al día.
+         */
+        get: operations["v1_proyectos_construccion_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Editar el nombre, la fecha de fin estimada o el presupuesto
+         * @description GET y PATCH /api/v1/proyectos-construccion/{id}/ (regla 17).
+         *
+         *     El detalle trae total_comprometido y disponible (§5). Después de editar se
+         *     vuelve a leer con el selector, para responder los totales al día.
+         */
+        patch: operations["v1_proyectos_construccion_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/avance/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/avance/ (regla 13). */
+        post: operations["v1_proyectos_construccion_avance_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/cancelar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/cancelar/ (regla 16). */
+        post: operations["v1_proyectos_construccion_cancelar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/finalizar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/finalizar/ (regla 15). */
+        post: operations["v1_proyectos_construccion_finalizar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/iniciar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/iniciar/ (regla 12). */
+        post: operations["v1_proyectos_construccion_iniciar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/pagos/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET y POST /api/v1/proyectos-construccion/{id}/pagos/
+         *
+         *     Los pagos de un proyecto, para la tabla de su detalle, y programar uno
+         *     nuevo (reglas 19 y 20). El proyecto se busca entre los visibles: uno que
+         *     no existe responde 404.
+         */
+        get: operations["v1_proyectos_construccion_pagos_list"];
+        put?: never;
+        /**
+         * Programar un pago a la constructora del proyecto
+         * @description GET y POST /api/v1/proyectos-construccion/{id}/pagos/
+         *
+         *     Los pagos de un proyecto, para la tabla de su detalle, y programar uno
+         *     nuevo (reglas 19 y 20). El proyecto se busca entre los visibles: uno que
+         *     no existe responde 404.
+         */
+        post: operations["v1_proyectos_construccion_pagos_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/reanudar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/reanudar/ (regla 14). */
+        post: operations["v1_proyectos_construccion_reanudar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/suspender/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/suspender/ (regla 14). */
+        post: operations["v1_proyectos_construccion_suspender_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reportes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_reportes_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reportes/{slug}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_reportes_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reportes/{slug}/excel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_reportes_excel_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reportes/{slug}/pdf/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_reportes_pdf_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -157,16 +1367,661 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tipos-propiedad/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/tipos-propiedad/ */
+        get: operations["v1_tipos_propiedad_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/tipos-propiedad/ */
+        post: operations["v1_tipos_propiedad_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tipos-propiedad/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/tipos-propiedad/{id}/ */
+        get: operations["v1_tipos_propiedad_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET, PATCH y DELETE /api/v1/tipos-propiedad/{id}/ */
+        delete: operations["v1_tipos_propiedad_destroy"];
+        options?: never;
+        head?: never;
+        /** @description GET, PATCH y DELETE /api/v1/tipos-propiedad/{id}/ */
+        patch: operations["v1_tipos_propiedad_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/unidades/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/unidades/{id}/ — DELETE desactiva. */
+        get: operations["v1_unidades_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET, PATCH y DELETE /api/v1/unidades/{id}/ — DELETE desactiva. */
+        delete: operations["v1_unidades_destroy"];
+        options?: never;
+        head?: never;
+        /** @description GET, PATCH y DELETE /api/v1/unidades/{id}/ — DELETE desactiva. */
+        patch: operations["v1_unidades_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/unidades/{id}/cambiar-estado/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cambiar el estado de una unidad
+         * @description POST /api/v1/unidades/{id}/cambiar-estado/
+         */
+        post: operations["v1_unidades_cambiar_estado_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/usuarios/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/usuarios/?rol=&buscar= — usuarios activos, para elegir el de un
+         *     agente nuevo (spec 013).
+         *
+         *     Solo administración y gerencia: son quienes crean agentes, y el listado
+         *     tiene correos y nombres de todo el personal. Como GET queda declarado en
+         *     roles_por_metodo, TieneRol ya no lo deja abierto a cualquier autenticado.
+         */
+        get: operations["v1_usuarios_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Salida de un agente. Teléfono y país son los de su usuario (regla 2). */
+        Agente: {
+            readonly id: number;
+            codigo?: string | null;
+            usuario: components["schemas"]["UsuarioResumen"];
+            telefono: string;
+            pais: components["schemas"]["PaisResumen"] | null;
+            /** Format: decimal */
+            porcentaje_comision: string;
+            /** Format: date */
+            fecha_ingreso: string;
+            readonly clientes_activos: number;
+        };
+        AgenteCrear: {
+            usuario: number;
+            /** Format: decimal */
+            porcentaje_comision: string;
+            /** Format: date */
+            fecha_ingreso: string;
+        };
+        AgenteResumen: {
+            id: number;
+            codigo: string;
+            nombre_completo: string;
+        };
+        /** @description Salida de un contrato en el listado (sin sus pagos). */
+        Arrendamiento: {
+            readonly id: number;
+            codigo?: string | null;
+            cliente: components["schemas"]["ClienteResumen"];
+            agente: components["schemas"]["AgenteResumen"];
+            propiedad: components["schemas"]["PropiedadResumen"] | null;
+            unidad: components["schemas"]["UnidadResumen"] | null;
+            /** Format: date */
+            fecha_inicio: string;
+            duracion_meses: number;
+            /** Format: date */
+            fecha_fin: string;
+            /** Format: decimal */
+            renta_mensual: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: decimal */
+            tasa_a_usd: string;
+            /** Format: decimal */
+            deposito?: string;
+            dia_cobro: number;
+            dias_gracia: number;
+            /** Format: decimal */
+            porcentaje_mora: string;
+            estado?: components["schemas"]["EstadoArrendamientoEnum"];
+            /** Format: date */
+            fecha_rescision?: string | null;
+            contrato_anterior?: number | null;
+            documento: components["schemas"]["DocumentoOficialResumen"] | null;
+        };
+        /** @description El detalle trae además sus pagos de renta: el calendario de cobros. */
+        ArrendamientoDetalle: {
+            readonly id: number;
+            codigo?: string | null;
+            cliente: components["schemas"]["ClienteResumen"];
+            agente: components["schemas"]["AgenteResumen"];
+            propiedad: components["schemas"]["PropiedadResumen"] | null;
+            unidad: components["schemas"]["UnidadResumen"] | null;
+            /** Format: date */
+            fecha_inicio: string;
+            duracion_meses: number;
+            /** Format: date */
+            fecha_fin: string;
+            /** Format: decimal */
+            renta_mensual: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: decimal */
+            tasa_a_usd: string;
+            /** Format: decimal */
+            deposito?: string;
+            dia_cobro: number;
+            dias_gracia: number;
+            /** Format: decimal */
+            porcentaje_mora: string;
+            estado?: components["schemas"]["EstadoArrendamientoEnum"];
+            /** Format: date */
+            fecha_rescision?: string | null;
+            contrato_anterior?: number | null;
+            documento: components["schemas"]["DocumentoOficialResumen"] | null;
+            readonly pagos: components["schemas"]["PagoRenta"][];
+        };
+        Avaluo: {
+            readonly id: number;
+            readonly propiedad: components["schemas"]["PropiedadResumen"];
+            /** Format: date */
+            fecha: string;
+            /** Format: decimal */
+            valor: string;
+            readonly moneda: components["schemas"]["MonedaResumen"];
+            moneda_id: number;
+            perito: string;
+            metodologia: string;
+            readonly documento: components["schemas"]["DocumentoOficialResumen"] | null;
+            documento_id?: number | null;
+            observaciones?: string;
+        };
+        /** @description Entrada de /avance/ (regla 13). Que no baje lo revisa el servicio. */
+        Avance: {
+            porcentaje: number;
+            descripcion: string;
+        };
+        /** @description Entrada de /propiedades/{id}/cambiar-estado/ y /unidades/{id}/cambiar-estado/. */
+        CambiarEstado: {
+            estado: components["schemas"]["EstadoPropiedadEnum"];
+            motivo: string;
+        };
+        CatalogoReporte: {
+            slug: string;
+            codigo: string;
+            titulo: string;
+            roles: string[];
+            columnas: components["schemas"]["ColumnaReporte"][];
+            filtros: components["schemas"]["FiltroReporte"][];
+        };
+        Cita: {
+            numero: number;
+            documento: string;
+            seccion: string;
+            tipo: string;
+            extracto: string;
+        };
         Ciudad: {
             readonly id: number;
             nombre: string;
             region?: string;
             pais: components["schemas"]["PaisResumen"];
         };
+        CiudadConPais: {
+            id: number;
+            nombre: string;
+            pais: components["schemas"]["PaisResumen"];
+        };
+        CiudadProveedorResumen: {
+            id: number;
+            nombre: string;
+        };
+        CiudadResumen: {
+            id: number;
+            nombre: string;
+        };
+        /** @description Salida de un cliente (spec 004, §5). */
+        Cliente: {
+            readonly id: number;
+            codigo?: string | null;
+            tipo: components["schemas"]["TipoClienteEnum"];
+            nombre?: string;
+            apellidos?: string;
+            razon_social?: string;
+            /** @default  */
+            documento_identidad: string;
+            /** @default  */
+            nit: string;
+            email?: string;
+            telefono?: string;
+            pais: components["schemas"]["PaisResumen"];
+            ciudad: components["schemas"]["CiudadResumen"] | null;
+            direccion?: string;
+            agente_asignado: components["schemas"]["AgenteResumen"];
+            notas?: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+        };
+        /**
+         * @description Entrada para crear (todos los obligatorios) o editar (PATCH, solo lo que
+         *     cambia) un cliente.
+         *
+         *     Valida el formato: tipos, longitudes, que los ids existan y que estén los
+         *     datos que exige el tipo (regla 6), combinando lo que llega con lo que el
+         *     cliente ya tenía al editar. Las reglas que comparan con otros registros
+         *     (duplicados, ciudad del país, cartera) son del servicio.
+         */
+        ClienteEntrada: {
+            tipo: components["schemas"]["TipoClienteEnum"];
+            nombre?: string;
+            apellidos?: string;
+            documento_identidad?: string;
+            razon_social?: string;
+            nit?: string;
+            email?: string;
+            telefono?: string;
+            pais: number;
+            ciudad?: number | null;
+            direccion?: string;
+            notas?: string;
+            agente_asignado?: number;
+        };
+        ClienteResumen: {
+            id: number;
+            codigo: string;
+            nombre: string;
+        };
+        ColumnaReporte: {
+            nombre: string;
+            etiqueta: string;
+            tipo: string;
+            formato: string;
+            alineacion: string;
+        };
+        /** @description Salida de una constructora, con su país resumido. */
+        Constructora: {
+            readonly id: number;
+            codigo?: string | null;
+            nombre: string;
+            nit: string;
+            contacto?: string;
+            email?: string;
+            telefono?: string;
+            pais: components["schemas"]["PaisResumen"];
+            calificacion?: number | null;
+            activo?: boolean;
+        };
+        /** @description Entrada para crear (POST) o editar (PATCH, parcial) una constructora. */
+        ConstructoraEntrada: {
+            nombre: string;
+            nit: string;
+            /** @default  */
+            contacto: string;
+            email?: string;
+            /** @default  */
+            telefono: string;
+            pais: number;
+            calificacion?: number | null;
+        };
+        ConstructoraResumen: {
+            id: number;
+            codigo: string;
+            nombre: string;
+        };
+        ConsultaAgente: {
+            pregunta: string;
+        };
+        /** @description Salida de un contrato de compra, con proveedor, propiedad y moneda. */
+        ContratoCompra: {
+            readonly id: number;
+            codigo?: string | null;
+            proveedor: components["schemas"]["ProveedorResumen"];
+            propiedad: components["schemas"]["PropiedadResumen"];
+            /** Format: date */
+            fecha_compra: string;
+            /** Format: decimal */
+            monto: string;
+            /** Format: decimal */
+            gastos_legales?: string;
+            /** Format: decimal */
+            impuestos?: string;
+            /** Format: decimal */
+            costo_total: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: decimal */
+            tasa_a_usd: string;
+            /** Format: decimal */
+            costo_total_usd: string;
+            /** @default EN_PROCESO */
+            estado: components["schemas"]["EstadoContratoCompraEnum"];
+            observaciones?: string;
+        };
+        /**
+         * @description Entrada para registrar un contrato (POST). Solo valida el formato: que la
+         *     propiedad esté en negociación y sin otro contrato, la fecha y la tasa los
+         *     revisa el servicio (spec 017, reglas 1 a 5).
+         *
+         *     El proveedor se busca entre los activos: uno desactivado responde 400 como
+         *     si no existiera (regla 1). costo_total no se recibe: lo calcula el sistema.
+         */
+        ContratoCompraEntrada: {
+            proveedor: number;
+            propiedad: number;
+            /** Format: date */
+            fecha_compra: string;
+            /** Format: decimal */
+            monto: string;
+            /**
+             * Format: decimal
+             * @default 0.00
+             */
+            gastos_legales: string;
+            /**
+             * Format: decimal
+             * @default 0.00
+             */
+            impuestos: string;
+            moneda: number;
+            /** @default  */
+            observaciones: string;
+        };
+        /** @description Salida de un contrato en el listado (sin sus cuotas). */
+        ContratoVenta: {
+            readonly id: number;
+            codigo?: string | null;
+            cotizacion?: number | null;
+            cliente: components["schemas"]["ClienteResumen"];
+            agente: components["schemas"]["AgenteResumen"];
+            propiedad: components["schemas"]["PropiedadResumen"] | null;
+            unidad: components["schemas"]["UnidadResumen"] | null;
+            /** Format: date */
+            fecha_firma: string;
+            /** Format: decimal */
+            monto_total: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: decimal */
+            tasa_a_usd: string;
+            /** Format: decimal */
+            monto_total_usd: string;
+            modalidad: components["schemas"]["ModalidadEnum"];
+            /** Format: decimal */
+            enganche?: string;
+            numero_cuotas?: number | null;
+            /** Format: decimal */
+            tasa_interes_anual?: string | null;
+            /** Format: date */
+            fecha_primera_cuota?: string | null;
+            /** Format: decimal */
+            comision_agente: string;
+            estado?: components["schemas"]["EstadoContratoEnum"];
+            observaciones?: string;
+            documento: components["schemas"]["DocumentoOficialResumen"] | null;
+        };
+        /** @description El detalle trae además sus cuotas (vacío en un contrato de contado). */
+        ContratoVentaDetalle: {
+            readonly id: number;
+            codigo?: string | null;
+            cotizacion?: number | null;
+            cliente: components["schemas"]["ClienteResumen"];
+            agente: components["schemas"]["AgenteResumen"];
+            propiedad: components["schemas"]["PropiedadResumen"] | null;
+            unidad: components["schemas"]["UnidadResumen"] | null;
+            /** Format: date */
+            fecha_firma: string;
+            /** Format: decimal */
+            monto_total: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: decimal */
+            tasa_a_usd: string;
+            /** Format: decimal */
+            monto_total_usd: string;
+            modalidad: components["schemas"]["ModalidadEnum"];
+            /** Format: decimal */
+            enganche?: string;
+            numero_cuotas?: number | null;
+            /** Format: decimal */
+            tasa_interes_anual?: string | null;
+            /** Format: date */
+            fecha_primera_cuota?: string | null;
+            /** Format: decimal */
+            comision_agente: string;
+            estado?: components["schemas"]["EstadoContratoEnum"];
+            observaciones?: string;
+            documento: components["schemas"]["DocumentoOficialResumen"] | null;
+            readonly cuotas: components["schemas"]["Cuota"][];
+        };
+        /** @description Salida de una cotización. vencida se calcula (regla 4). */
+        Cotizacion: {
+            readonly id: number;
+            codigo?: string | null;
+            cliente: components["schemas"]["ClienteResumen"];
+            agente: components["schemas"]["AgenteResumen"];
+            propiedad: components["schemas"]["PropiedadResumen"] | null;
+            unidad: components["schemas"]["UnidadResumen"] | null;
+            /** Format: date */
+            fecha_emision: string;
+            /** Format: date */
+            fecha_vencimiento: string;
+            estado?: components["schemas"]["EstadoCotizacionEnum"];
+            /** Format: decimal */
+            precio: string;
+            /** Format: decimal */
+            descuento?: string;
+            /** Format: decimal */
+            total: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            observaciones?: string;
+            readonly vencida: boolean;
+        };
+        /**
+         * @description Entrada para emitir una cotización. El cliente solo se puede elegir entre
+         *     los visibles para quien cotiza: un agente no cotiza a clientes de otro
+         *     (regla 19), y un cliente ajeno responde "no existe", como en la spec 004.
+         */
+        CotizacionCrear: {
+            cliente: number;
+            propiedad?: number;
+            unidad?: number;
+            /** Format: date */
+            fecha_vencimiento: string;
+            /** Format: decimal */
+            descuento?: string;
+            observaciones?: string;
+        };
+        /** @description Una cuota, con lo que falta pagar y si está en mora (regla 17). */
+        Cuota: {
+            readonly id: number;
+            numero: number;
+            /** Format: date */
+            fecha_vencimiento: string;
+            /** Format: decimal */
+            monto_capital: string;
+            /** Format: decimal */
+            monto_interes: string;
+            /** Format: decimal */
+            monto_total: string;
+            estado?: components["schemas"]["EstadoCuotaEnum"];
+            /** Format: decimal */
+            monto_pagado?: string;
+            /** Format: decimal */
+            readonly saldo: string;
+            readonly en_mora: boolean;
+            /** Format: date */
+            fecha_ultimo_pago?: string | null;
+            referencia_ultimo_pago?: string;
+            /** Format: decimal */
+            tasa_a_usd_ultimo_pago?: string | null;
+        };
+        DescargaDocumento: {
+            url: string;
+            vence_en_segundos: number;
+        };
+        /**
+         * @description Un documento del agente en la lista y el detalle (spec 020, §5). Sin el
+         *     texto completo: ninguna pantalla lo necesita.
+         */
+        DocumentoAgente: {
+            readonly id: number;
+            readonly titulo: string;
+            readonly tipo: components["schemas"]["TipoDocumentoRAGEnum"];
+            pais: components["schemas"]["PaisResumen"] | null;
+            readonly version: number;
+            readonly estado_indexacion: components["schemas"]["EstadoIndexacionEnum"];
+            readonly error_indexacion: string;
+            /** Format: date-time */
+            readonly fecha_indexacion: string | null;
+            fragmentos: number;
+            /** Format: date-time */
+            readonly actualizado_en: string;
+        };
+        DocumentoOficial: {
+            readonly id: number;
+            readonly propiedad: components["schemas"]["PropiedadResumen"];
+            readonly tipo: components["schemas"]["TipoDocumentoEnum"];
+            nombre: string;
+            readonly nombre_original: string;
+            readonly tipo_contenido: string;
+            readonly tamano_bytes: number;
+            /** Format: date */
+            fecha_emision: string;
+            /** Format: date */
+            fecha_vencimiento?: string | null;
+            emisor: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+        };
+        DocumentoOficialResumen: {
+            id: number;
+            nombre: string;
+            tipo: string;
+        };
+        /** @description Entrada de la subida: multipart con el archivo y sus datos (regla 5). */
+        DocumentoSubir: {
+            /** Format: uri */
+            archivo: string;
+            tipo: components["schemas"]["TipoDocumentoEnum"];
+            nombre: string;
+            /** Format: date */
+            fecha_emision: string;
+            /** Format: date */
+            fecha_vencimiento?: string | null;
+            emisor: string;
+        };
+        /**
+         * @description * `VIGENTE` - Vigente
+         *     * `VENCIDO` - Vencido
+         *     * `RESCINDIDO` - Rescindido
+         *     * `RENOVADO` - Renovado
+         * @enum {string}
+         */
+        EstadoArrendamientoEnum: "VIGENTE" | "VENCIDO" | "RESCINDIDO" | "RENOVADO";
+        /**
+         * @description * `EN_PROCESO` - En proceso
+         *     * `COMPLETADO` - Completado
+         *     * `ANULADO` - Anulado
+         * @enum {string}
+         */
+        EstadoContratoCompraEnum: "EN_PROCESO" | "COMPLETADO" | "ANULADO";
+        /**
+         * @description * `VIGENTE` - Vigente
+         *     * `LIQUIDADO` - Liquidado
+         *     * `ANULADO` - Anulado
+         * @enum {string}
+         */
+        EstadoContratoEnum: "VIGENTE" | "LIQUIDADO" | "ANULADO";
+        /**
+         * @description * `BORRADOR` - Borrador
+         *     * `ENVIADA` - Enviada
+         *     * `APROBADA` - Aprobada
+         *     * `RECHAZADA` - Rechazada
+         * @enum {string}
+         */
+        EstadoCotizacionEnum: "BORRADOR" | "ENVIADA" | "APROBADA" | "RECHAZADA";
+        /**
+         * @description * `PENDIENTE` - Pendiente
+         *     * `PARCIAL` - Pago parcial
+         *     * `PAGADA` - Pagada
+         * @enum {string}
+         */
+        EstadoCuotaEnum: "PENDIENTE" | "PARCIAL" | "PAGADA";
+        /**
+         * @description * `PENDIENTE` - Pendiente
+         *     * `INDEXADO` - Indexado
+         *     * `ERROR` - Error
+         * @enum {string}
+         */
+        EstadoIndexacionEnum: "PENDIENTE" | "INDEXADO" | "ERROR";
+        /**
+         * @description * `PROGRAMADO` - Programado
+         *     * `PAGADO` - Pagado
+         *     * `ANULADO` - Anulado
+         * @enum {string}
+         */
+        EstadoPagoConstructoraEnum: "PROGRAMADO" | "PAGADO" | "ANULADO";
+        /**
+         * @description * `PENDIENTE` - Pendiente
+         *     * `PAGADO` - Pagado
+         *     * `CANCELADO` - Cancelado
+         * @enum {string}
+         */
+        EstadoPagoRentaEnum: "PENDIENTE" | "PAGADO" | "CANCELADO";
+        /**
+         * @description * `EN_NEGOCIACION` - En negociación
+         *     * `ADQUIRIDA` - Adquirida
+         *     * `EN_CONSTRUCCION` - En construcción
+         *     * `DISPONIBLE` - Disponible
+         *     * `RESERVADA` - Reservada
+         *     * `VENDIDA` - Vendida
+         *     * `ARRENDADA` - Arrendada
+         *     * `BAJA` - Baja
+         * @enum {string}
+         */
+        EstadoPropiedadEnum: "EN_NEGOCIACION" | "ADQUIRIDA" | "EN_CONSTRUCCION" | "DISPONIBLE" | "RESERVADA" | "VENDIDA" | "ARRENDADA" | "BAJA";
+        /**
+         * @description * `PLANIFICADO` - Planificado
+         *     * `EN_EJECUCION` - En ejecución
+         *     * `SUSPENDIDO` - Suspendido
+         *     * `FINALIZADO` - Finalizado
+         *     * `CANCELADO` - Cancelado
+         * @enum {string}
+         */
+        EstadoProyectoEnum: "PLANIFICADO" | "EN_EJECUCION" | "SUSPENDIDO" | "FINALIZADO" | "CANCELADO";
         /**
          * @description * `ok` - ok
          *     * `error` - error
@@ -178,11 +2033,87 @@ export interface components {
             estado: components["schemas"]["EstadoSaludEnum"];
             base_datos: components["schemas"]["EstadoSaludEnum"];
         };
+        FilasReporte: {
+            count: number;
+            /** Format: uri */
+            next: string | null;
+            /** Format: uri */
+            previous: string | null;
+            results: {
+                [key: string]: unknown;
+            }[];
+        };
+        FiltroReporte: {
+            nombre: string;
+            etiqueta: string;
+            tipo: string;
+            obligatorio: boolean;
+            origen_opciones: string;
+            buscable: boolean;
+            opciones: components["schemas"]["OpcionFiltro"][];
+        };
+        /** @description Entrada para firmar (reglas 1 a 3), con los rangos de la regla 3. */
+        FirmarArrendamiento: {
+            cliente: number;
+            propiedad?: number;
+            unidad?: number;
+            /** Format: date */
+            fecha_inicio: string;
+            duracion_meses: number;
+            /** Format: decimal */
+            renta_mensual: string;
+            moneda: number;
+            /** Format: decimal */
+            deposito?: string;
+            dia_cobro: number;
+            dias_gracia: number;
+            /** Format: decimal */
+            porcentaje_mora: string;
+            documento?: number;
+        };
+        /**
+         * @description Entrada para firmar (regla 7): con `cotizacion`, o sin ella con `cliente`,
+         *     `propiedad` o `unidad`, `monto_total` y `moneda`. Con cotización, esos
+         *     cinco datos salen de ella y no se envían.
+         */
+        FirmarContrato: {
+            cotizacion?: number;
+            cliente?: number;
+            propiedad?: number;
+            unidad?: number;
+            /** Format: decimal */
+            monto_total?: string;
+            moneda?: number;
+            /** Format: date */
+            fecha_firma: string;
+            modalidad: components["schemas"]["ModalidadEnum"];
+            /** Format: decimal */
+            enganche?: string;
+            numero_cuotas?: number;
+            /** Format: decimal */
+            tasa_interes_anual?: string;
+            /** Format: date */
+            fecha_primera_cuota?: string;
+            observaciones?: string;
+            documento?: number;
+        };
+        GrupoReporte: {
+            etiqueta: string;
+            valores: {
+                [key: string]: unknown;
+            };
+        };
         Login: {
             /** Format: email */
             email: string;
             password: string;
         };
+        /**
+         * @description * `CONTADO` - Contado
+         *     * `FINANCIADO` - Financiado
+         * @enum {string}
+         */
+        ModalidadEnum: "CONTADO" | "FINANCIADO";
         Moneda: {
             readonly id: number;
             codigo: string;
@@ -192,6 +2123,94 @@ export interface components {
         MonedaResumen: {
             id: number;
             codigo: string;
+        };
+        /**
+         * @description Entrada de las acciones que solo piden un motivo: suspender o cancelar un
+         *     proyecto y anular un pago. El motivo es obligatorio y queda en la bitácora.
+         */
+        MotivoConstruccion: {
+            motivo: string;
+        };
+        /** @description Entrada de /anular/: el motivo es obligatorio (regla 7). */
+        MotivoContratoCompra: {
+            motivo: string;
+        };
+        OpcionFiltro: {
+            valor: string;
+            etiqueta: string;
+        };
+        /** @description Entrada de /pagar/ (regla 21). Las reglas de la fecha, en el servicio. */
+        Pagar: {
+            /** Format: date */
+            fecha_pago: string;
+            referencia_pago: string;
+        };
+        PagarRenta: {
+            /** Format: date */
+            fecha: string;
+            /** Format: decimal */
+            monto: string;
+            referencia: string;
+        };
+        PaginatedAgenteList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Agente"][];
+        };
+        PaginatedArrendamientoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Arrendamiento"][];
+        };
+        PaginatedAvaluoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Avaluo"][];
+        };
+        PaginatedCatalogoReporteList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["CatalogoReporte"][];
         };
         PaginatedCiudadList: {
             /** @example 123 */
@@ -208,6 +2227,111 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Ciudad"][];
         };
+        PaginatedClienteList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Cliente"][];
+        };
+        PaginatedConstructoraList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Constructora"][];
+        };
+        PaginatedContratoCompraList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ContratoCompra"][];
+        };
+        PaginatedContratoVentaList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ContratoVenta"][];
+        };
+        PaginatedCotizacionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Cotizacion"][];
+        };
+        PaginatedDocumentoAgenteList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["DocumentoAgente"][];
+        };
+        PaginatedDocumentoOficialList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["DocumentoOficial"][];
+        };
         PaginatedMonedaList: {
             /** @example 123 */
             count: number;
@@ -222,6 +2346,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Moneda"][];
+        };
+        PaginatedPagoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Pago"][];
         };
         PaginatedPaisList: {
             /** @example 123 */
@@ -238,6 +2377,51 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Pais"][];
         };
+        PaginatedPropiedadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Propiedad"][];
+        };
+        PaginatedProveedorList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Proveedor"][];
+        };
+        PaginatedProyectoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Proyecto"][];
+        };
         PaginatedTipoCambioList: {
             /** @example 123 */
             count: number;
@@ -253,6 +2437,101 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["TipoCambio"][];
         };
+        PaginatedTipoPropiedadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["TipoPropiedad"][];
+        };
+        PaginatedUnidadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Unidad"][];
+        };
+        PaginatedUsuarioListadoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["UsuarioListado"][];
+        };
+        /** @description Salida de un pago a constructora. */
+        Pago: {
+            readonly id: number;
+            codigo?: string | null;
+            proyecto: components["schemas"]["ProyectoDePago"];
+            tipo: components["schemas"]["TipoPagoConstructoraEnum"];
+            /** Format: decimal */
+            monto: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: date */
+            fecha_programada: string;
+            estado?: components["schemas"]["EstadoPagoConstructoraEnum"];
+            /** Format: date */
+            fecha_pago?: string | null;
+            referencia_pago?: string;
+            /** Format: decimal */
+            tasa_a_usd?: string | null;
+            /** Format: decimal */
+            monto_usd?: string | null;
+            documento: components["schemas"]["DocumentoOficialResumen"] | null;
+            observaciones?: string;
+        };
+        PagoCuota: {
+            /** Format: decimal */
+            monto: string;
+            /** Format: date */
+            fecha: string;
+            referencia: string;
+        };
+        /** @description Un mes de renta, con si está en mora (regla 8). */
+        PagoRenta: {
+            readonly id: number;
+            periodo_anio: number;
+            periodo_mes: number;
+            /** Format: date */
+            fecha_vencimiento: string;
+            /** Format: decimal */
+            monto: string;
+            estado?: components["schemas"]["EstadoPagoRentaEnum"];
+            readonly en_mora: boolean;
+            /** Format: date */
+            fecha_pago?: string | null;
+            /** Format: decimal */
+            monto_pagado?: string | null;
+            /** Format: decimal */
+            mora_aplicada?: string;
+            referencia_pago?: string;
+            /** Format: decimal */
+            tasa_a_usd?: string | null;
+        };
         Pais: {
             readonly id: number;
             nombre: string;
@@ -263,6 +2542,379 @@ export interface components {
             id: number;
             nombre: string;
         };
+        PatchedAgenteEditar: {
+            /** Format: decimal */
+            porcentaje_comision?: string;
+            /** Format: date */
+            fecha_ingreso?: string;
+        };
+        /**
+         * @description Entrada para crear (todos los obligatorios) o editar (PATCH, solo lo que
+         *     cambia) un cliente.
+         *
+         *     Valida el formato: tipos, longitudes, que los ids existan y que estén los
+         *     datos que exige el tipo (regla 6), combinando lo que llega con lo que el
+         *     cliente ya tenía al editar. Las reglas que comparan con otros registros
+         *     (duplicados, ciudad del país, cartera) son del servicio.
+         */
+        PatchedClienteEntrada: {
+            tipo?: components["schemas"]["TipoClienteEnum"];
+            nombre?: string;
+            apellidos?: string;
+            documento_identidad?: string;
+            razon_social?: string;
+            nit?: string;
+            email?: string;
+            telefono?: string;
+            pais?: number;
+            ciudad?: number | null;
+            direccion?: string;
+            notas?: string;
+            agente_asignado?: number;
+        };
+        /** @description Entrada para crear (POST) o editar (PATCH, parcial) una constructora. */
+        PatchedConstructoraEntrada: {
+            nombre?: string;
+            nit?: string;
+            /** @default  */
+            contacto: string;
+            email?: string;
+            /** @default  */
+            telefono: string;
+            pais?: number;
+            calificacion?: number | null;
+        };
+        /** @description Entrada para editar un borrador (regla 4). Nunca el total (regla 2). */
+        PatchedCotizacionEditar: {
+            /** Format: decimal */
+            precio?: string;
+            /** Format: decimal */
+            descuento?: string;
+            /** Format: date */
+            fecha_vencimiento?: string;
+            observaciones?: string;
+        };
+        PatchedDocumentoOficial: {
+            readonly id?: number;
+            readonly propiedad?: components["schemas"]["PropiedadResumen"];
+            readonly tipo?: components["schemas"]["TipoDocumentoEnum"];
+            nombre?: string;
+            readonly nombre_original?: string;
+            readonly tipo_contenido?: string;
+            readonly tamano_bytes?: number;
+            /** Format: date */
+            fecha_emision?: string;
+            /** Format: date */
+            fecha_vencimiento?: string | null;
+            emisor?: string;
+            /** Format: date-time */
+            readonly creado_en?: string;
+        };
+        PatchedPropiedad: {
+            readonly id?: number;
+            readonly codigo?: string | null;
+            nombre?: string;
+            readonly tipo?: components["schemas"]["TipoPropiedadResumen"];
+            tipo_id?: number;
+            readonly ciudad?: components["schemas"]["CiudadConPais"];
+            ciudad_id?: number;
+            direccion?: string;
+            /** Format: decimal */
+            latitud?: string | null;
+            /** Format: decimal */
+            longitud?: string | null;
+            /** Format: decimal */
+            area_m2?: string;
+            /** Format: decimal */
+            area_construida_m2?: string | null;
+            readonly estado?: components["schemas"]["EstadoPropiedadEnum"];
+            /** Format: decimal */
+            precio_lista?: string;
+            readonly moneda?: components["schemas"]["MonedaResumen"];
+            moneda_id?: number;
+            es_publica?: boolean;
+            descripcion?: string;
+            /** Format: date-time */
+            readonly creado_en?: string;
+            /** Format: date-time */
+            readonly actualizado_en?: string;
+        };
+        /**
+         * @description Entrada para crear (POST) o editar (PATCH, parcial) un proveedor.
+         *
+         *     El NIT llega como lo escribe el usuario; el servicio lo normaliza y decide
+         *     si es obligatorio según el tipo (spec 006, reglas 2 y 3).
+         */
+        PatchedProveedorEntrada: {
+            tipo?: components["schemas"]["TipoProveedorEnum"];
+            nombre?: string;
+            /** @default  */
+            nit: string;
+            email?: string;
+            /** @default  */
+            telefono: string;
+            pais?: number;
+            ciudad?: number | null;
+            /** @default  */
+            direccion: string;
+        };
+        /**
+         * @description Entrada de PATCH: solo los tres campos que la regla 17 deja editar. Qué se
+         *     puede cambiar según el estado del proyecto lo decide el servicio.
+         */
+        PatchedProyectoEdicion: {
+            nombre?: string;
+            /** Format: date */
+            fecha_fin_estimada?: string;
+            /** Format: decimal */
+            presupuesto_total?: string;
+        };
+        /** @description Regla 2: solo el archivo. Título, tipo y país no cambian. */
+        PatchedReemplazarDocumentoAgente: {
+            /** Format: uri */
+            archivo?: string;
+        };
+        PatchedTipoPropiedad: {
+            readonly id?: number;
+            nombre?: string;
+            descripcion?: string;
+            requiere_unidades?: boolean;
+        };
+        PatchedUnidad: {
+            readonly id?: number;
+            readonly propiedad?: components["schemas"]["PropiedadResumen"];
+            codigo?: string;
+            nivel?: number;
+            /** Format: decimal */
+            area_m2?: string;
+            habitaciones?: number;
+            banos?: number;
+            readonly estado?: components["schemas"]["EstadoPropiedadEnum"];
+            /** Format: decimal */
+            precio_lista?: string;
+            readonly moneda?: components["schemas"]["MonedaResumen"];
+            moneda_id?: number;
+        };
+        /**
+         * @description Entrada de POST /proyectos-construccion/{id}/pagos/. La moneda no se
+         *     recibe: es la del proyecto (regla 20). El presupuesto, el finiquito y que
+         *     el documento sea de la misma propiedad los revisa el servicio.
+         */
+        ProgramarPago: {
+            tipo: components["schemas"]["TipoPagoConstructoraEnum"];
+            /** Format: decimal */
+            monto: string;
+            /** Format: date */
+            fecha_programada: string;
+            documento?: number | null;
+            /** @default  */
+            observaciones: string;
+        };
+        Propiedad: {
+            readonly id: number;
+            readonly codigo: string | null;
+            nombre: string;
+            readonly tipo: components["schemas"]["TipoPropiedadResumen"];
+            tipo_id: number;
+            readonly ciudad: components["schemas"]["CiudadConPais"];
+            ciudad_id: number;
+            direccion: string;
+            /** Format: decimal */
+            latitud?: string | null;
+            /** Format: decimal */
+            longitud?: string | null;
+            /** Format: decimal */
+            area_m2: string;
+            /** Format: decimal */
+            area_construida_m2?: string | null;
+            readonly estado: components["schemas"]["EstadoPropiedadEnum"];
+            /** Format: decimal */
+            precio_lista: string;
+            readonly moneda: components["schemas"]["MonedaResumen"];
+            moneda_id: number;
+            es_publica?: boolean;
+            descripcion?: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+            /** Format: date-time */
+            readonly actualizado_en: string;
+        };
+        PropiedadResumen: {
+            id: number;
+            codigo: string;
+        };
+        /** @description Salida de un proveedor, con su país y ciudad resumidos. */
+        Proveedor: {
+            readonly id: number;
+            codigo?: string | null;
+            tipo: components["schemas"]["TipoProveedorEnum"];
+            nombre: string;
+            /** @default  */
+            nit: string;
+            email?: string;
+            telefono?: string;
+            pais: components["schemas"]["PaisResumen"];
+            ciudad: components["schemas"]["CiudadProveedorResumen"] | null;
+            direccion?: string;
+            activo?: boolean;
+        };
+        /**
+         * @description Entrada para crear (POST) o editar (PATCH, parcial) un proveedor.
+         *
+         *     El NIT llega como lo escribe el usuario; el servicio lo normaliza y decide
+         *     si es obligatorio según el tipo (spec 006, reglas 2 y 3).
+         */
+        ProveedorEntrada: {
+            tipo: components["schemas"]["TipoProveedorEnum"];
+            nombre: string;
+            /** @default  */
+            nit: string;
+            email?: string;
+            /** @default  */
+            telefono: string;
+            pais: number;
+            ciudad?: number | null;
+            /** @default  */
+            direccion: string;
+        };
+        ProveedorResumen: {
+            id: number;
+            codigo: string;
+            nombre: string;
+        };
+        /** @description Salida de un proyecto, con su propiedad, constructora y moneda. */
+        Proyecto: {
+            readonly id: number;
+            codigo?: string | null;
+            nombre: string;
+            propiedad: components["schemas"]["PropiedadResumen"];
+            constructora: components["schemas"]["ConstructoraResumen"];
+            /** Format: date */
+            fecha_inicio: string;
+            /** Format: date */
+            fecha_fin_estimada: string;
+            /** Format: date */
+            fecha_fin_real?: string | null;
+            /** Format: decimal */
+            presupuesto_total: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: decimal */
+            tasa_a_usd: string;
+            /** Format: decimal */
+            presupuesto_total_usd: string;
+            /** @default PLANIFICADO */
+            estado: components["schemas"]["EstadoProyectoEnum"];
+            porcentaje_avance?: number;
+        };
+        /** @description El proyecto de un pago, con su constructora: el pago no la repite (§10). */
+        ProyectoDePago: {
+            id: number;
+            codigo: string;
+            constructora: components["schemas"]["ConstructoraResumen"];
+        };
+        /**
+         * @description Detalle de un proyecto: lo de la lista más total_comprometido y disponible,
+         *     que calcula el selector listar_proyectos_con_totales (spec 017, §5). Así la
+         *     pantalla (spec 018) no suma los pagos por su cuenta.
+         */
+        ProyectoDetalle: {
+            readonly id: number;
+            codigo?: string | null;
+            nombre: string;
+            propiedad: components["schemas"]["PropiedadResumen"];
+            constructora: components["schemas"]["ConstructoraResumen"];
+            /** Format: date */
+            fecha_inicio: string;
+            /** Format: date */
+            fecha_fin_estimada: string;
+            /** Format: date */
+            fecha_fin_real?: string | null;
+            /** Format: decimal */
+            presupuesto_total: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: decimal */
+            tasa_a_usd: string;
+            /** Format: decimal */
+            presupuesto_total_usd: string;
+            /** @default PLANIFICADO */
+            estado: components["schemas"]["EstadoProyectoEnum"];
+            porcentaje_avance?: number;
+            /** Format: decimal */
+            readonly total_comprometido: string;
+            /** Format: decimal */
+            readonly disponible: string;
+        };
+        /**
+         * @description Entrada para registrar un proyecto (POST). Solo valida el formato: que la
+         *     propiedad esté adquirida y sin otra obra activa, las fechas y la tasa los
+         *     revisa el servicio (spec 017, reglas 9 a 11).
+         *
+         *     La constructora se busca entre las activas: una desactivada responde 400
+         *     como si no existiera (regla 9).
+         */
+        ProyectoEntrada: {
+            nombre: string;
+            propiedad: number;
+            constructora: number;
+            /** Format: date */
+            fecha_inicio: string;
+            /** Format: date */
+            fecha_fin_estimada: string;
+            /** Format: decimal */
+            presupuesto_total: string;
+            moneda: number;
+        };
+        ReasignarCliente: {
+            agente: number;
+        };
+        RenovarArrendamiento: {
+            /** Format: decimal */
+            renta_mensual: string;
+            duracion_meses: number;
+        };
+        /**
+         * @description El de SimpleJWT, salvo un caso: si el usuario del token ya no existe (por
+         *     ejemplo, se reinició la base), SimpleJWT 5.5.1 deja escapar DoesNotExist y
+         *     la API responde 500. Aquí es un 401 NO_AUTENTICADO, como un token inválido
+         *     (spec 001, §5), y el frontend cierra la sesión.
+         */
+        RenovarToken: {
+            refresh: string;
+            readonly access: string;
+        };
+        Reporte: {
+            titulo: string;
+            subtitulo: string;
+            /** Format: date-time */
+            generado_en: string;
+            generado_por: string;
+            columnas: components["schemas"]["ColumnaReporte"][];
+            totales: {
+                [key: string]: unknown;
+            };
+            agrupamientos: components["schemas"]["GrupoReporte"][];
+            filas: components["schemas"]["FilasReporte"];
+        };
+        RescindirArrendamiento: {
+            /** Format: date */
+            fecha_rescision: string;
+        };
+        RespuestaAgente: {
+            respuesta: string;
+            sin_informacion: boolean;
+            citas: components["schemas"]["Cita"][];
+        };
+        /**
+         * @description Entrada de la subida: multipart con el .md y sus datos (regla 1). El
+         *     contenido lo revisa el servicio.
+         */
+        SubirDocumentoAgente: {
+            /** Format: uri */
+            archivo: string;
+            titulo: string;
+            tipo: components["schemas"]["TipoDocumentoRAGEnum"];
+            pais?: number | null;
+        };
         TipoCambio: {
             readonly id: number;
             moneda_origen: components["schemas"]["MonedaResumen"];
@@ -272,13 +2924,82 @@ export interface components {
             /** Format: date */
             fecha: string;
         };
-        TokenRefresh: {
-            readonly access: string;
-            refresh: string;
+        /**
+         * @description * `PERSONA` - Persona
+         *     * `EMPRESA` - Empresa
+         * @enum {string}
+         */
+        TipoClienteEnum: "PERSONA" | "EMPRESA";
+        /**
+         * @description * `ESCRITURA` - Escritura
+         *     * `LICENCIA` - Licencia
+         *     * `PLANO` - Plano
+         *     * `CERTIFICACION` - Certificación
+         *     * `AVALUO` - Avalúo
+         *     * `CONTRATO` - Contrato
+         *     * `OTRO` - Otro
+         * @enum {string}
+         */
+        TipoDocumentoEnum: "ESCRITURA" | "LICENCIA" | "PLANO" | "CERTIFICACION" | "AVALUO" | "CONTRATO" | "OTRO";
+        /**
+         * @description * `POLITICA` - Política de la agencia
+         *     * `MANUAL` - Manual de procesos
+         *     * `LEGAL` - Requisito legal
+         *     * `PLANTILLA` - Plantilla
+         *     * `FICHA_PROPIEDAD` - Ficha de propiedad
+         * @enum {string}
+         */
+        TipoDocumentoRAGEnum: "POLITICA" | "MANUAL" | "LEGAL" | "PLANTILLA" | "FICHA_PROPIEDAD";
+        /**
+         * @description * `ANTICIPO` - Anticipo
+         *     * `AVANCE` - Avance
+         *     * `FINIQUITO` - Finiquito
+         *     * `EXTRA` - Extra
+         * @enum {string}
+         */
+        TipoPagoConstructoraEnum: "ANTICIPO" | "AVANCE" | "FINIQUITO" | "EXTRA";
+        TipoPropiedad: {
+            readonly id: number;
+            nombre: string;
+            descripcion?: string;
+            requiere_unidades?: boolean;
         };
+        TipoPropiedadResumen: {
+            id: number;
+            nombre: string;
+        };
+        /**
+         * @description * `PROPIETARIO_PARTICULAR` - Propietario particular
+         *     * `INMOBILIARIA` - Inmobiliaria
+         *     * `BANCO` - Banco
+         *     * `GOBIERNO` - Gobierno
+         *     * `OTRO` - Otro
+         * @enum {string}
+         */
+        TipoProveedorEnum: "PROPIETARIO_PARTICULAR" | "INMOBILIARIA" | "BANCO" | "GOBIERNO" | "OTRO";
         Tokens: {
             access: string;
             refresh: string;
+        };
+        Unidad: {
+            readonly id: number;
+            readonly propiedad: components["schemas"]["PropiedadResumen"];
+            codigo: string;
+            nivel: number;
+            /** Format: decimal */
+            area_m2: string;
+            habitaciones?: number;
+            banos?: number;
+            readonly estado: components["schemas"]["EstadoPropiedadEnum"];
+            /** Format: decimal */
+            precio_lista: string;
+            readonly moneda: components["schemas"]["MonedaResumen"];
+            moneda_id: number;
+        };
+        UnidadResumen: {
+            id: number;
+            codigo: string;
+            propiedad: components["schemas"]["PropiedadResumen"];
         };
         /** @description Respuesta de /auth/yo/ (spec 001, §5). */
         UsuarioActual: {
@@ -295,6 +3016,36 @@ export interface components {
             /** Format: date-time */
             ultimo_acceso: string | null;
         };
+        /**
+         * @description Un usuario en el listado de /usuarios/ (spec 013, regla 3). Solo lo mínimo
+         *     para elegirlo: sin teléfono, último acceso ni permisos, porque es un
+         *     listado de todo el personal.
+         */
+        UsuarioListado: {
+            readonly id: number;
+            /**
+             * Correo electrónico
+             * Format: email
+             */
+            email: string;
+            nombre_completo: string;
+            rol: string;
+            pais: components["schemas"]["PaisResumen"] | null;
+        };
+        UsuarioResumen: {
+            id: number;
+            /** Format: email */
+            email: string;
+            nombre_completo: string;
+        };
+        /** @description Vincula o cambia el documento; no acepta null: no se quita (regla 18). */
+        VincularDocumentoArrendamiento: {
+            documento: number;
+        };
+        /** @description Vincula o cambia el documento; no acepta null: no se quita (regla 24). */
+        VincularDocumentoVenta: {
+            documento: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -304,6 +3055,148 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    v1_agente_consultas_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultaAgente"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConsultaAgente"];
+                "multipart/form-data": components["schemas"]["ConsultaAgente"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaAgente"];
+                };
+            };
+        };
+    };
+    v1_agentes_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAgenteList"];
+                };
+            };
+        };
+    };
+    v1_agentes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgenteCrear"];
+                "application/x-www-form-urlencoded": components["schemas"]["AgenteCrear"];
+                "multipart/form-data": components["schemas"]["AgenteCrear"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agente"];
+                };
+            };
+        };
+    };
+    v1_agentes_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agente"];
+                };
+            };
+        };
+    };
+    v1_agentes_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_agentes_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAgenteEditar"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAgenteEditar"];
+                "multipart/form-data": components["schemas"]["PatchedAgenteEditar"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Agente"];
+                };
+            };
+        };
+    };
     v1_auth_login_create: {
         parameters: {
             query?: never;
@@ -338,9 +3231,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TokenRefresh"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenRefresh"];
-                "multipart/form-data": components["schemas"]["TokenRefresh"];
+                "application/json": components["schemas"]["RenovarToken"];
+                "application/x-www-form-urlencoded": components["schemas"]["RenovarToken"];
+                "multipart/form-data": components["schemas"]["RenovarToken"];
             };
         };
         responses: {
@@ -349,7 +3242,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenRefresh"];
+                    "application/json": components["schemas"]["RenovarToken"];
                 };
             };
         };
@@ -373,9 +3266,51 @@ export interface operations {
             };
         };
     };
+    v1_avaluos_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Avaluo"];
+                };
+            };
+        };
+    };
+    v1_avaluos_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     v1_ciudades_list: {
         parameters: {
             query?: {
+                buscar?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 pais?: number;
@@ -392,6 +3327,1140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedCiudadList"];
+                };
+            };
+        };
+    };
+    v1_clientes_list: {
+        parameters: {
+            query?: {
+                agente?: number;
+                buscar?: string;
+                ciudad?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+                /**
+                 * @description * `PERSONA` - Persona
+                 *     * `EMPRESA` - Empresa
+                 */
+                tipo?: "EMPRESA" | "PERSONA";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedClienteList"];
+                };
+            };
+        };
+    };
+    v1_clientes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClienteEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClienteEntrada"];
+                "multipart/form-data": components["schemas"]["ClienteEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cliente"];
+                };
+            };
+        };
+    };
+    v1_clientes_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cliente"];
+                };
+            };
+        };
+    };
+    v1_clientes_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_clientes_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedClienteEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedClienteEntrada"];
+                "multipart/form-data": components["schemas"]["PatchedClienteEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cliente"];
+                };
+            };
+        };
+    };
+    v1_clientes_reasignar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasignarCliente"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReasignarCliente"];
+                "multipart/form-data": components["schemas"]["ReasignarCliente"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cliente"];
+                };
+            };
+        };
+    };
+    v1_constructoras_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                calificacion_min?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedConstructoraList"];
+                };
+            };
+        };
+    };
+    v1_constructoras_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConstructoraEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConstructoraEntrada"];
+                "multipart/form-data": components["schemas"]["ConstructoraEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Constructora"];
+                };
+            };
+        };
+    };
+    v1_constructoras_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Constructora"];
+                };
+            };
+        };
+    };
+    v1_constructoras_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_constructoras_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedConstructoraEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedConstructoraEntrada"];
+                "multipart/form-data": components["schemas"]["PatchedConstructoraEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Constructora"];
+                };
+            };
+        };
+    };
+    v1_contratos_arrendamiento_list: {
+        parameters: {
+            query?: {
+                agente?: number;
+                cliente?: number;
+                /**
+                 * @description * `VIGENTE` - Vigente
+                 *     * `VENCIDO` - Vencido
+                 *     * `RESCINDIDO` - Rescindido
+                 *     * `RENOVADO` - Renovado
+                 */
+                estado?: "RENOVADO" | "RESCINDIDO" | "VENCIDO" | "VIGENTE";
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                propiedad?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedArrendamientoList"];
+                };
+            };
+        };
+    };
+    v1_contratos_arrendamiento_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FirmarArrendamiento"];
+                "application/x-www-form-urlencoded": components["schemas"]["FirmarArrendamiento"];
+                "multipart/form-data": components["schemas"]["FirmarArrendamiento"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrendamientoDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_arrendamiento_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrendamientoDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_arrendamiento_documento_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VincularDocumentoArrendamiento"];
+                "application/x-www-form-urlencoded": components["schemas"]["VincularDocumentoArrendamiento"];
+                "multipart/form-data": components["schemas"]["VincularDocumentoArrendamiento"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrendamientoDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_arrendamiento_finalizar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrendamientoDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_arrendamiento_renovar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenovarArrendamiento"];
+                "application/x-www-form-urlencoded": components["schemas"]["RenovarArrendamiento"];
+                "multipart/form-data": components["schemas"]["RenovarArrendamiento"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrendamientoDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_arrendamiento_rescindir_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescindirArrendamiento"];
+                "application/x-www-form-urlencoded": components["schemas"]["RescindirArrendamiento"];
+                "multipart/form-data": components["schemas"]["RescindirArrendamiento"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArrendamientoDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_list: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `EN_PROCESO` - En proceso
+                 *     * `COMPLETADO` - Completado
+                 *     * `ANULADO` - Anulado
+                 */
+                estado?: "ANULADO" | "COMPLETADO" | "EN_PROCESO";
+                fecha_desde?: string;
+                fecha_hasta?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                propiedad?: number;
+                proveedor?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedContratoCompraList"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContratoCompraEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ContratoCompraEntrada"];
+                "multipart/form-data": components["schemas"]["ContratoCompraEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoCompra"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoCompra"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_anular_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MotivoContratoCompra"];
+                "application/x-www-form-urlencoded": components["schemas"]["MotivoContratoCompra"];
+                "multipart/form-data": components["schemas"]["MotivoContratoCompra"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoCompra"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_completar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoCompra"];
+                };
+            };
+        };
+    };
+    v1_contratos_venta_list: {
+        parameters: {
+            query?: {
+                agente?: number;
+                cliente?: number;
+                /**
+                 * @description * `VIGENTE` - Vigente
+                 *     * `LIQUIDADO` - Liquidado
+                 *     * `ANULADO` - Anulado
+                 */
+                estado?: "ANULADO" | "LIQUIDADO" | "VIGENTE";
+                /**
+                 * @description * `CONTADO` - Contado
+                 *     * `FINANCIADO` - Financiado
+                 */
+                modalidad?: "CONTADO" | "FINANCIADO";
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedContratoVentaList"];
+                };
+            };
+        };
+    };
+    v1_contratos_venta_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FirmarContrato"];
+                "application/x-www-form-urlencoded": components["schemas"]["FirmarContrato"];
+                "multipart/form-data": components["schemas"]["FirmarContrato"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoVentaDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_venta_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoVentaDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_venta_anular_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoVentaDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_venta_documento_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VincularDocumentoVenta"];
+                "application/x-www-form-urlencoded": components["schemas"]["VincularDocumentoVenta"];
+                "multipart/form-data": components["schemas"]["VincularDocumentoVenta"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoVentaDetalle"];
+                };
+            };
+        };
+    };
+    v1_cotizaciones_list: {
+        parameters: {
+            query?: {
+                agente?: number;
+                cliente?: number;
+                /**
+                 * @description * `BORRADOR` - Borrador
+                 *     * `ENVIADA` - Enviada
+                 *     * `APROBADA` - Aprobada
+                 *     * `RECHAZADA` - Rechazada
+                 */
+                estado?: "APROBADA" | "BORRADOR" | "ENVIADA" | "RECHAZADA";
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedCotizacionList"];
+                };
+            };
+        };
+    };
+    v1_cotizaciones_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CotizacionCrear"];
+                "application/x-www-form-urlencoded": components["schemas"]["CotizacionCrear"];
+                "multipart/form-data": components["schemas"]["CotizacionCrear"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cotizacion"];
+                };
+            };
+        };
+    };
+    v1_cotizaciones_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cotizacion"];
+                };
+            };
+        };
+    };
+    v1_cotizaciones_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedCotizacionEditar"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCotizacionEditar"];
+                "multipart/form-data": components["schemas"]["PatchedCotizacionEditar"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cotizacion"];
+                };
+            };
+        };
+    };
+    v1_cotizaciones_aprobar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cotizacion"];
+                };
+            };
+        };
+    };
+    v1_cotizaciones_enviar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cotizacion"];
+                };
+            };
+        };
+    };
+    v1_cotizaciones_rechazar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cotizacion"];
+                };
+            };
+        };
+    };
+    v1_cuotas_pagos_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PagoCuota"];
+                "application/x-www-form-urlencoded": components["schemas"]["PagoCuota"];
+                "multipart/form-data": components["schemas"]["PagoCuota"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cuota"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                /**
+                 * @description * `PENDIENTE` - Pendiente
+                 *     * `INDEXADO` - Indexado
+                 *     * `ERROR` - Error
+                 */
+                estado_indexacion?: "ERROR" | "INDEXADO" | "PENDIENTE";
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /**
+                 * @description * `POLITICA` - Política de la agencia
+                 *     * `MANUAL` - Manual de procesos
+                 *     * `LEGAL` - Requisito legal
+                 *     * `PLANTILLA` - Plantilla
+                 *     * `FICHA_PROPIEDAD` - Ficha de propiedad
+                 */
+                tipo?: "FICHA_PROPIEDAD" | "LEGAL" | "MANUAL" | "PLANTILLA" | "POLITICA";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDocumentoAgenteList"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["SubirDocumentoAgente"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoAgente"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoAgente"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_documentos_agente_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["PatchedReemplazarDocumentoAgente"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoAgente"];
+                };
+            };
+        };
+    };
+    v1_documentos_agente_reindexar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoAgente"];
+                };
+            };
+        };
+    };
+    v1_documentos_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoOficial"];
+                };
+            };
+        };
+    };
+    v1_documentos_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_documentos_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDocumentoOficial"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDocumentoOficial"];
+                "multipart/form-data": components["schemas"]["PatchedDocumentoOficial"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoOficial"];
+                };
+            };
+        };
+    };
+    v1_documentos_descarga_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DescargaDocumento"];
                 };
             };
         };
@@ -445,6 +4514,123 @@ export interface operations {
             };
         };
     };
+    v1_pagos_constructora_list: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `PROGRAMADO` - Programado
+                 *     * `PAGADO` - Pagado
+                 *     * `ANULADO` - Anulado
+                 */
+                estado?: "ANULADO" | "PAGADO" | "PROGRAMADO";
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                proyecto?: number;
+                /**
+                 * @description * `ANTICIPO` - Anticipo
+                 *     * `AVANCE` - Avance
+                 *     * `FINIQUITO` - Finiquito
+                 *     * `EXTRA` - Extra
+                 */
+                tipo?: "ANTICIPO" | "AVANCE" | "EXTRA" | "FINIQUITO";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPagoList"];
+                };
+            };
+        };
+    };
+    v1_pagos_constructora_anular_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MotivoConstruccion"];
+                "application/x-www-form-urlencoded": components["schemas"]["MotivoConstruccion"];
+                "multipart/form-data": components["schemas"]["MotivoConstruccion"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pago"];
+                };
+            };
+        };
+    };
+    v1_pagos_constructora_pagar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Pagar"];
+                "application/x-www-form-urlencoded": components["schemas"]["Pagar"];
+                "multipart/form-data": components["schemas"]["Pagar"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pago"];
+                };
+            };
+        };
+    };
+    v1_pagos_renta_pagar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PagarRenta"];
+                "application/x-www-form-urlencoded": components["schemas"]["PagarRenta"];
+                "multipart/form-data": components["schemas"]["PagarRenta"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagoRenta"];
+                };
+            };
+        };
+    };
     v1_paises_list: {
         parameters: {
             query?: {
@@ -463,6 +4649,979 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedPaisList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                ciudad?: number;
+                es_publica?: boolean;
+                /**
+                 * @description * `EN_NEGOCIACION` - En negociación
+                 *     * `ADQUIRIDA` - Adquirida
+                 *     * `EN_CONSTRUCCION` - En construcción
+                 *     * `DISPONIBLE` - Disponible
+                 *     * `RESERVADA` - Reservada
+                 *     * `VENDIDA` - Vendida
+                 *     * `ARRENDADA` - Arrendada
+                 *     * `BAJA` - Baja
+                 */
+                estado?: "ADQUIRIDA" | "ARRENDADA" | "BAJA" | "DISPONIBLE" | "EN_CONSTRUCCION" | "EN_NEGOCIACION" | "RESERVADA" | "VENDIDA";
+                moneda?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+                precio_max?: number;
+                precio_min?: number;
+                tipo?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPropiedadList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Propiedad"];
+                "application/x-www-form-urlencoded": components["schemas"]["Propiedad"];
+                "multipart/form-data": components["schemas"]["Propiedad"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Propiedad"];
+                };
+            };
+        };
+    };
+    v1_propiedades_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Propiedad"];
+                };
+            };
+        };
+    };
+    v1_propiedades_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_propiedades_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPropiedad"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPropiedad"];
+                "multipart/form-data": components["schemas"]["PatchedPropiedad"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Propiedad"];
+                };
+            };
+        };
+    };
+    v1_propiedades_avaluos_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedAvaluoList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_avaluos_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Avaluo"];
+                "application/x-www-form-urlencoded": components["schemas"]["Avaluo"];
+                "multipart/form-data": components["schemas"]["Avaluo"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Avaluo"];
+                };
+            };
+        };
+    };
+    v1_propiedades_cambiar_estado_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarEstado"];
+                "application/x-www-form-urlencoded": components["schemas"]["CambiarEstado"];
+                "multipart/form-data": components["schemas"]["CambiarEstado"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Propiedad"];
+                };
+            };
+        };
+    };
+    v1_propiedades_documentos_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /**
+                 * @description * `ESCRITURA` - Escritura
+                 *     * `LICENCIA` - Licencia
+                 *     * `PLANO` - Plano
+                 *     * `CERTIFICACION` - Certificación
+                 *     * `AVALUO` - Avalúo
+                 *     * `CONTRATO` - Contrato
+                 *     * `OTRO` - Otro
+                 */
+                tipo?: "AVALUO" | "CERTIFICACION" | "CONTRATO" | "ESCRITURA" | "LICENCIA" | "OTRO" | "PLANO";
+                vence_antes?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDocumentoOficialList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_documentos_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentoSubir"];
+                "application/x-www-form-urlencoded": components["schemas"]["DocumentoSubir"];
+                "multipart/form-data": components["schemas"]["DocumentoSubir"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentoOficial"];
+                };
+            };
+        };
+    };
+    v1_propiedades_unidades_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUnidadList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_unidades_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Unidad"];
+                "application/x-www-form-urlencoded": components["schemas"]["Unidad"];
+                "multipart/form-data": components["schemas"]["Unidad"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
+    v1_proveedores_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                ciudad?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+                /**
+                 * @description * `PROPIETARIO_PARTICULAR` - Propietario particular
+                 *     * `INMOBILIARIA` - Inmobiliaria
+                 *     * `BANCO` - Banco
+                 *     * `GOBIERNO` - Gobierno
+                 *     * `OTRO` - Otro
+                 */
+                tipo?: "BANCO" | "GOBIERNO" | "INMOBILIARIA" | "OTRO" | "PROPIETARIO_PARTICULAR";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedProveedorList"];
+                };
+            };
+        };
+    };
+    v1_proveedores_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProveedorEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProveedorEntrada"];
+                "multipart/form-data": components["schemas"]["ProveedorEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proveedor"];
+                };
+            };
+        };
+    };
+    v1_proveedores_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proveedor"];
+                };
+            };
+        };
+    };
+    v1_proveedores_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_proveedores_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedProveedorEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedProveedorEntrada"];
+                "multipart/form-data": components["schemas"]["PatchedProveedorEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proveedor"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_list: {
+        parameters: {
+            query?: {
+                constructora?: number;
+                /**
+                 * @description * `PLANIFICADO` - Planificado
+                 *     * `EN_EJECUCION` - En ejecución
+                 *     * `SUSPENDIDO` - Suspendido
+                 *     * `FINALIZADO` - Finalizado
+                 *     * `CANCELADO` - Cancelado
+                 */
+                estado?: "CANCELADO" | "EN_EJECUCION" | "FINALIZADO" | "PLANIFICADO" | "SUSPENDIDO";
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                propiedad?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedProyectoList"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProyectoEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProyectoEntrada"];
+                "multipart/form-data": components["schemas"]["ProyectoEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProyectoDetalle"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedProyectoEdicion"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedProyectoEdicion"];
+                "multipart/form-data": components["schemas"]["PatchedProyectoEdicion"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProyectoDetalle"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_avance_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Avance"];
+                "application/x-www-form-urlencoded": components["schemas"]["Avance"];
+                "multipart/form-data": components["schemas"]["Avance"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_cancelar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MotivoConstruccion"];
+                "application/x-www-form-urlencoded": components["schemas"]["MotivoConstruccion"];
+                "multipart/form-data": components["schemas"]["MotivoConstruccion"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_finalizar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_iniciar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_pagos_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPagoList"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_pagos_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgramarPago"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProgramarPago"];
+                "multipart/form-data": components["schemas"]["ProgramarPago"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pago"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_reanudar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_suspender_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MotivoConstruccion"];
+                "application/x-www-form-urlencoded": components["schemas"]["MotivoConstruccion"];
+                "multipart/form-data": components["schemas"]["MotivoConstruccion"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_reportes_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedCatalogoReporteList"];
+                };
+            };
+        };
+    };
+    v1_reportes_retrieve: {
+        parameters: {
+            query?: {
+                /** @description R17: acción de auditoría */
+                accion?: string;
+                /** @description R01/R02/R03/R10/R11: ID del agente */
+                agente?: number;
+                /** @description R05: decimal inclusivo */
+                area_max?: string;
+                /** @description R05: decimal inclusivo */
+                area_min?: string;
+                /** @description R05: ID de ciudad */
+                ciudad?: number;
+                /** @description R10: ID del cliente */
+                cliente?: number;
+                /** @description R16: 0 a 365, por defecto 30 */
+                dias_anticipacion?: number;
+                /** @description R17: entidad exacta */
+                entidad?: string;
+                /** @description R03/R10: estado */
+                estado?: string;
+                /** @description Día ISO de Guatemala, inclusivo */
+                fecha_desde?: string;
+                /** @description Día ISO de Guatemala, inclusivo */
+                fecha_hasta?: string;
+                /** @description R01: CONTADO o FINANCIADO */
+                modalidad?: string;
+                /** @description R05: código ISO de moneda */
+                moneda?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_min?: string;
+                page?: number;
+                /** @description R05/R16: ID del país */
+                pais?: number;
+                /** @description R05: decimal inclusivo */
+                precio_max?: string;
+                /** @description R05: decimal inclusivo */
+                precio_min?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_min?: string;
+                /** @description R05: ID de tipo; R16: código de documento */
+                tipo?: string;
+                /** @description R17: ID del usuario */
+                usuario?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Reporte"];
+                };
+            };
+        };
+    };
+    v1_reportes_excel_retrieve: {
+        parameters: {
+            query?: {
+                /** @description R17: acción de auditoría */
+                accion?: string;
+                /** @description R01/R02/R03/R10/R11: ID del agente */
+                agente?: number;
+                /** @description R05: decimal inclusivo */
+                area_max?: string;
+                /** @description R05: decimal inclusivo */
+                area_min?: string;
+                /** @description R05: ID de ciudad */
+                ciudad?: number;
+                /** @description R10: ID del cliente */
+                cliente?: number;
+                /** @description R16: 0 a 365, por defecto 30 */
+                dias_anticipacion?: number;
+                /** @description R17: entidad exacta */
+                entidad?: string;
+                /** @description R03/R10: estado */
+                estado?: string;
+                /** @description Día ISO de Guatemala, inclusivo */
+                fecha_desde?: string;
+                /** @description Día ISO de Guatemala, inclusivo */
+                fecha_hasta?: string;
+                /** @description R01: CONTADO o FINANCIADO */
+                modalidad?: string;
+                /** @description R05: código ISO de moneda */
+                moneda?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_min?: string;
+                /** @description R05/R16: ID del país */
+                pais?: number;
+                /** @description R05: decimal inclusivo */
+                precio_max?: string;
+                /** @description R05: decimal inclusivo */
+                precio_min?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_min?: string;
+                /** @description R05: ID de tipo; R16: código de documento */
+                tipo?: string;
+                /** @description R17: ID del usuario */
+                usuario?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+        };
+    };
+    v1_reportes_pdf_retrieve: {
+        parameters: {
+            query?: {
+                /** @description R17: acción de auditoría */
+                accion?: string;
+                /** @description R01/R02/R03/R10/R11: ID del agente */
+                agente?: number;
+                /** @description R05: decimal inclusivo */
+                area_max?: string;
+                /** @description R05: decimal inclusivo */
+                area_min?: string;
+                /** @description R05: ID de ciudad */
+                ciudad?: number;
+                /** @description R10: ID del cliente */
+                cliente?: number;
+                /** @description R16: 0 a 365, por defecto 30 */
+                dias_anticipacion?: number;
+                /** @description R17: entidad exacta */
+                entidad?: string;
+                /** @description R03/R10: estado */
+                estado?: string;
+                /** @description Día ISO de Guatemala, inclusivo */
+                fecha_desde?: string;
+                /** @description Día ISO de Guatemala, inclusivo */
+                fecha_hasta?: string;
+                /** @description R01: CONTADO o FINANCIADO */
+                modalidad?: string;
+                /** @description R05: código ISO de moneda */
+                moneda?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_min?: string;
+                /** @description R05/R16: ID del país */
+                pais?: number;
+                /** @description R05: decimal inclusivo */
+                precio_max?: string;
+                /** @description R05: decimal inclusivo */
+                precio_min?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_min?: string;
+                /** @description R05: ID de tipo; R16: código de documento */
+                tipo?: string;
+                /** @description R17: ID del usuario */
+                usuario?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
                 };
             };
         };
@@ -490,6 +5649,247 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedTipoCambioList"];
+                };
+            };
+        };
+    };
+    v1_tipos_propiedad_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedTipoPropiedadList"];
+                };
+            };
+        };
+    };
+    v1_tipos_propiedad_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TipoPropiedad"];
+                "application/x-www-form-urlencoded": components["schemas"]["TipoPropiedad"];
+                "multipart/form-data": components["schemas"]["TipoPropiedad"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipoPropiedad"];
+                };
+            };
+        };
+    };
+    v1_tipos_propiedad_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipoPropiedad"];
+                };
+            };
+        };
+    };
+    v1_tipos_propiedad_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_tipos_propiedad_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedTipoPropiedad"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedTipoPropiedad"];
+                "multipart/form-data": components["schemas"]["PatchedTipoPropiedad"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TipoPropiedad"];
+                };
+            };
+        };
+    };
+    v1_unidades_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
+    v1_unidades_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_unidades_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUnidad"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUnidad"];
+                "multipart/form-data": components["schemas"]["PatchedUnidad"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
+    v1_unidades_cambiar_estado_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarEstado"];
+                "application/x-www-form-urlencoded": components["schemas"]["CambiarEstado"];
+                "multipart/form-data": components["schemas"]["CambiarEstado"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
+    v1_usuarios_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                /**
+                 * @description * `ADMINISTRADOR` - Administrador
+                 *     * `GERENTE` - Gerente
+                 *     * `AGENTE` - Agente de ventas
+                 *     * `CONTABILIDAD` - Contabilidad
+                 *     * `CONSULTA` - Consulta
+                 */
+                rol?: "ADMINISTRADOR" | "AGENTE" | "CONSULTA" | "CONTABILIDAD" | "GERENTE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedUsuarioListadoList"];
                 };
             };
         };

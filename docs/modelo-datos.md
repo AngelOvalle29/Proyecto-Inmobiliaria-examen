@@ -60,18 +60,28 @@ Apartamentos o locales dentro de una propiedad tipo edificio.
 `metodologia` · `documento` (FK DocumentoOficial, opcional) · `observaciones`
 
 *Regla:* el historial de avalúos permite medir plusvalía en el tiempo. No se
-borran, se agregan.
+editan ni se borran: si uno tiene un error, se desactiva y se registra el
+correcto. La fecha no puede ser futura y el documento adjunto, si lo hay, debe
+ser de la misma propiedad.
 
 ### DocumentoOficial ★
-`id` · `propiedad` (FK, opcional) · `contrato_venta` (FK, opcional) ·
-`contrato_compra` (FK, opcional) · `tipo` (enum: ESCRITURA, LICENCIA, PLANO,
-CERTIFICACION, AVALUO, CONTRATO, OTRO) · `nombre` · `archivo_url` ·
-`fecha_emision` · `fecha_vencimiento` · `emisor` · `estado_indexacion` (enum:
-PENDIENTE, PROCESANDO, INDEXADO, ERROR) · `subido_por` (FK Usuario) ·
-`fecha_carga` · `activo`
+`id` · `propiedad` (FK) · `tipo` (enum: ESCRITURA, LICENCIA, PLANO,
+CERTIFICACION, AVALUO, CONTRATO, OTRO) · `nombre` · `archivo` (FileField) ·
+`nombre_original` · `tipo_contenido` · `tamano_bytes` · `fecha_emision` ·
+`fecha_vencimiento` (opcional) · `emisor` · `activo`
 
-*Regla:* al crear un documento se encola su procesamiento para el RAG. Los
-documentos con `fecha_vencimiento` próxima alimentan un reporte de alertas.
+*Regla:* el archivo se guarda como
+`documentos/<código de propiedad>/<uuid>.<extensión>`, en un bucket privado, y
+se descarga con una URL firmada de 5 minutos. Se aceptan PDF, JPG y PNG de
+hasta 10 MB, comprobados por el contenido. El archivo no se reemplaza: una
+versión nueva es otro documento y el anterior se desactiva. Los documentos con
+`fecha_vencimiento` próxima alimentan un reporte de alertas.
+
+*Cambios respecto de la versión original:* `archivo_url` pasa a `archivo`
+(se guarda la ruta, no la URL); `subido_por` y `fecha_carga` se reemplazan por
+`creado_por` y `creado_en` de `ModeloBase`; `estado_indexacion` se pospone con
+el RAG; y se quitan `contrato_venta` y `contrato_compra` porque la relación va
+al revés, desde el contrato.
 
 ### EventoPropiedad ★
 Línea de tiempo de cada propiedad. Es el "historial" que pide el enunciado.
@@ -127,7 +137,8 @@ edita directamente.
 `propiedad` (FK, opcional) · `unidad` (FK, opcional) · `agente` (FK) ·
 `fecha_firma` · `monto_total` · `moneda` (FK) · `enganche` ·
 `modalidad` (CONTADO, FINANCIADO) · `estado` (VIGENTE, LIQUIDADO, ANULADO) ·
-`comision_agente` · `observaciones` · `activo`
+`comision_agente` · `observaciones` · `documento` (FK DocumentoOficial,
+opcional) · `activo`
 
 *Reglas:*
 - Exactamente uno de `propiedad` o `unidad` debe estar presente.
@@ -155,7 +166,7 @@ como mora. Es la base del reporte de morosidad.
 `unidad` (FK, opcional) · `agente` (FK) · `fecha_inicio` · `fecha_fin` ·
 `renta_mensual` · `moneda` (FK) · `deposito` · `dia_cobro` ·
 `estado` (VIGENTE, VENCIDO, RESCINDIDO, RENOVADO) · `renovacion_automatica` ·
-`activo`
+`documento` (FK DocumentoOficial, opcional) · `activo`
 
 ### PagoRenta ★
 `id` · `contrato` (FK) · `periodo_anio` · `periodo_mes` · `fecha_vencimiento` ·
@@ -176,11 +187,12 @@ GOBIERNO, OTRO) · `nombre` · `nit` · `email` · `telefono` · `pais` (FK) ·
 ### ContratoCompra ★
 `id` · `codigo` · `proveedor` (FK) · `propiedad` (FK) · `fecha_compra` ·
 `monto` · `moneda` (FK) · `gastos_legales` · `impuestos` ·
-`costo_total` (calculado) · `estado` (EN_PROCESO, COMPLETADO, ANULADO) ·
-`observaciones` · `activo`
+`costo_total` (calculado) · `tasa_a_usd` · `costo_total_usd` ·
+`estado` (EN_PROCESO, COMPLETADO, ANULADO) · `observaciones` · `activo`
 
 *Regla:* el `costo_total` es la base para calcular la rentabilidad de la
-propiedad cuando se venda.
+propiedad cuando se venda. Una propiedad tiene como máximo un contrato no
+anulado; completarlo la pasa de EN_NEGOCIACION a ADQUIRIDA (spec 017).
 
 ---
 
@@ -194,11 +206,20 @@ propiedad cuando se venda.
 `id` · `codigo` · `nombre` · `propiedad` (FK) · `constructora` (FK) ·
 `fecha_inicio` · `fecha_fin_estimada` · `fecha_fin_real` ·
 `presupuesto_total` · `moneda` (FK) · `estado` (PLANIFICADO, EN_EJECUCION,
-SUSPENDIDO, FINALIZADO, CANCELADO) · `porcentaje_avance` · `activo`
+SUSPENDIDO, FINALIZADO, CANCELADO) · `porcentaje_avance` · `tasa_a_usd` ·
+`presupuesto_total_usd` · `activo`
+
+*Regla:* una propiedad tiene como máximo un proyecto activo (PLANIFICADO,
+EN_EJECUCION o SUSPENDIDO). Iniciar pasa la propiedad a EN_CONSTRUCCION y
+finalizar, con avance 100, a DISPONIBLE (spec 017).
 
 ### AvanceObra
 `id` · `proyecto` (FK) · `fecha` · `porcentaje` · `descripcion` ·
 `supervisor` (FK Usuario) · `evidencia_url`
+
+*No se implementa por ahora* (spec 017, §10): el avance es el
+`porcentaje_avance` del proyecto, y cada avance queda en la bitácora con su
+descripción.
 
 ### PagoConstructora ★
 `id` · `codigo` · `proyecto` (FK) · `constructora` (FK) · `fecha` ·
@@ -236,15 +257,29 @@ Ver `docs/arquitectura.md`, sección 5.
 Ver `docs/arquitectura.md`, sección 5.
 
 ### DocumentoRAG
-`id` · `titulo` · `tipo` (POLITICA, MANUAL, LEGAL, PLANTILLA, FICHA_PROPIEDAD) ·
-`pais` (FK, opcional) · `archivo_url` · `documento_oficial` (FK, opcional) ·
-`fecha_indexacion` · `version` · `activo`
+`id` · `titulo` (único) · `tipo` (POLITICA, MANUAL, LEGAL, PLANTILLA,
+FICHA_PROPIEDAD) · `pais` (FK, opcional) · `contenido_fuente` (el Markdown
+completo) · `version` · `fecha_indexacion` · `estado_indexacion` (PENDIENTE,
+INDEXADO, ERROR) · `error_indexacion` · `activo` y demás campos de `ModeloBase`
+
+*Reglas:* `fecha_indexacion` nula significa que nunca se indexó; se vacía cada
+vez que cambia el contenido. `estado_indexacion` lo maneja la cola de
+RabbitMQ (`specs/020-ingesta-asincrona.md`): `PENDIENTE` al subir o reemplazar,
+`INDEXADO` al guardar los fragmentos y `ERROR`, con su motivo en
+`error_indexacion`, si se agotan los reintentos. *Cambios respecto de la versión original:*
+`archivo_url` pasa a `contenido_fuente`, para poder reindexar sin depender del
+almacenamiento de archivos, y `documento_oficial` se pospone a otra spec
+(detalle en `specs/005-agente-ia-rag.md`).
 
 ### FragmentoRAG
-`id` · `documento` (FK) · `orden` · `contenido` · `seccion` ·
-`embedding` (vector, dimensión según `IA_DIMENSION_EMBEDDINGS`) · `tokens`
+`id` · `documento` (FK, borrado en cascada) · `orden` · `contenido` · `seccion` ·
+`embedding` (vector de 768, igual a `IA_DIMENSION_EMBEDDINGS`) · `tokens`
 
-*Índice:* IVFFlat o HNSW sobre `embedding` para búsqueda por similitud de coseno.
+*Regla:* único por documento y orden. No hereda `ModeloBase`: se regenera desde
+el documento al reindexar.
+
+*Índice:* HNSW con `vector_cosine_ops` sobre `embedding`, para búsqueda por
+similitud de coseno (se descartó IVFFlat porque necesita datos para crearse).
 
 ---
 

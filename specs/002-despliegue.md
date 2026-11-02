@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 002 |
-| **Estado** | Aprobada, en implementación. **El cambio de proveedor (§3) requiere nueva revisión** |
+| **Estado** | Implementada (2026-10-29). Quedan dos criterios abiertos, explicados en la nota de cierre de la §11 |
 | **Autor** | Equipo |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-08 (actualizada el 2026-10-21) |
 | **Apps afectadas** | `config`, `core` (migración de pgvector, tarea de diagnóstico), `usuarios` (pendiente de la spec 001, administrador inicial), `frontend/`, infraestructura |
 | **Rama** | `feature/002-despliegue` |
-| **Pull request** | — |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#10 (implementación), #30, #31 y #40 (producción), #32 (primera fusión a `main`) |
 
 ---
 
@@ -465,7 +465,7 @@ fusiona.
       una ruta inexistente responde la página 404 genérica, sin la lista de
       rutas, así que `DEBUG` es `False`. El error 500 queda por probar: hoy
       ningún endpoint falla a propósito
-- [ ] Una fusión de `develop` en `main` despliega automáticamente en Render y
+- [x] Una fusión de `develop` en `main` despliega automáticamente en Render y
       en Vercel
 - [x] Todos los servicios están en su plan gratuito
 - [x] No hay ninguna credencial en el repositorio
@@ -589,9 +589,9 @@ incrementos que dependen del proveedor (4, 7 y 8).
    arranque con API y worker juntos (§5.4 y §5.5). Revisa D.
 5. ✅ Migración de pgvector (§5.6) y comando `asegurar_administrador` (§5.8)
 6. ✅ Frontend mínimo (§6)
-7. `render.yaml` y la creación de las cuentas y servicios en Render, Neon,
+7. ✅ `render.yaml` y la creación de las cuentas y servicios en Render, Neon,
    CloudAMQP y Vercel, guiada paso a paso; la hace A en los paneles (§5.1)
-8. Primera fusión de `develop` en `main`, verificación de los criterios en
+8. ✅ Primera fusión de `develop` en `main`, verificación de los criterios en
    producción y documentación del despliegue en el README
 
 **Sesión 2026-10-29, verificación en producción (Claude Code, rol A).** A hizo
@@ -610,5 +610,24 @@ navegador el frontend, la documentación y los estilos del panel. Dos hallazgos:
   valores de DouGMV/Proyecto-Inmobiliaria#30, hasta que ese cambio llegue a
   `main`.
 
-Por completar durante la implementación: qué se generó con el agente, qué se
-corrigió a mano y qué se descartó en cada incremento.
+**Cierre, 2026-10-29.** La primera fusión de `develop` en `main`
+(DouGMV/Proyecto-Inmobiliaria#32, commit `4cc4016`) desplegó sola en los dos
+proveedores:
+
+- Vercel publicó el frontend desde `main`.
+- Render desplegó la API en unos dos minutos, y `/api/docs/` mostró las rutas
+  del catálogo (spec 003).
+- El frontend en Vercel siguió mostrando "API en línea · base de datos: ok".
+
+La spec se da por implementada con **dos criterios abiertos**, que no bloquean
+a las demás specs:
+
+- **El error 500.** `DEBUG` ya está comprobado en `False`. Falta ver un 500
+  real en los registros de Render, pero hoy ningún endpoint falla a propósito.
+  Se comprueba con el primer error de producción, sin agregar un endpoint de
+  prueba.
+- **GitHub Actions** sigue sin ejecutarse (#14). Mientras tanto se verifica a
+  mano, según la regla 5 de `docs/convenciones.md` §1.1.
+
+**Revisión manual de cada integrante (#27).** Cada integrante anota aquí qué
+revisó de esta spec y qué entendió, para la defensa individual.

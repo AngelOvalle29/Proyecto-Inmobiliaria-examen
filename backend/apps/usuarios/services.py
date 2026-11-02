@@ -14,7 +14,7 @@ from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
 
 from .exceptions import CredencialesInvalidas
-from .models import Usuario
+from .models import Rol, Usuario
 from .selectors import existe_superusuario, obtener_id_usuario_por_email
 
 # Nombre de la tabla de usuarios, tal como se guarda en la bitácora.
@@ -131,3 +131,32 @@ def asegurar_administrador_inicial(
         },
     )
     return usuario
+
+
+def asegurar_usuario_demo(
+    *, email: str, nombre_completo: str, rol: str, password: str | None
+) -> tuple[Usuario, bool]:
+    """
+    Usuario ficticio de los datos de demostración de otras apps (por ejemplo,
+    los agentes de crm, spec 004). Devuelve el usuario y si lo acaba de crear.
+
+    Es idempotente: si el correo ya existe, no lo toca. Solo al crearlo usa la
+    contraseña recibida; con None la deja inutilizable, así ningún usuario de
+    demostración puede iniciar sesión con una contraseña escrita en el
+    repositorio (seed_demo corre en cada arranque de producción, spec 002).
+
+    No registra auditoría, como el resto de los datos de demostración.
+    """
+    existente = Usuario.objects.filter(email__iexact=email).first()
+    if existente is not None:
+        return existente, False
+
+    # Con password=None, create_user (set_password de Django) guarda una
+    # contraseña inutilizable: ninguna contraseña la valida.
+    usuario = Usuario.objects.create_user(
+        email=email,
+        password=password,
+        nombre_completo=nombre_completo,
+        rol=Rol.objects.get(nombre=rol),
+    )
+    return usuario, True

@@ -6,6 +6,7 @@ Nombres, direcciones y precios son FICTICIOS. Las ciudades y monedas son las de
 core/datos_demo.py, que seed_demo carga antes.
 """
 
+from datetime import date
 from decimal import Decimal
 
 # Cada propiedad: nombre (identifica la propiedad al volver a correr la carga),
@@ -111,13 +112,94 @@ UNIDADES = {
     "Torre Mirador del Valle": [
         ("A-101", 1, Decimal("85.00"), 2, 1, Decimal("650000.00"), "DISPONIBLE"),
         ("A-102", 1, Decimal("85.00"), 2, 1, Decimal("650000.00"), "RESERVADA"),
+        # A-103 y A-203 quedan libres para mostrar en vivo una venta y un
+        # arrendamiento: sus cotizaciones de la demo no las reservan.
+        ("A-103", 1, Decimal("85.00"), 2, 1, Decimal("650000.00"), "DISPONIBLE"),
+        ("A-104", 1, Decimal("85.00"), 2, 1, Decimal("650000.00"), "DISPONIBLE"),
         ("A-201", 2, Decimal("110.00"), 3, 2, Decimal("820000.00"), "DISPONIBLE"),
         ("A-202", 2, Decimal("110.00"), 3, 2, Decimal("820000.00"), "VENDIDA"),
+        ("A-203", 2, Decimal("110.00"), 3, 2, Decimal("820000.00"), "DISPONIBLE"),
         ("L-001", 0, Decimal("60.00"), 0, 1, Decimal("540000.00"), "ARRENDADA"),
     ],
     "Hotel Brisas del Pacífico": [
         ("S-101", 1, Decimal("45.00"), 1, 1, Decimal("95000.00"), "EN_CONSTRUCCION"),
         ("S-102", 1, Decimal("45.00"), 1, 1, Decimal("95000.00"), "EN_CONSTRUCCION"),
         ("S-201", 2, Decimal("70.00"), 2, 2, Decimal("140000.00"), "EN_CONSTRUCCION"),
+    ],
+}
+
+# Avalúos por nombre de propiedad: (fecha, valor, perito, metodología,
+# observaciones). Son fechas pasadas y nombres ficticios. La moneda es la de la
+# propiedad. Torre Mirador tiene dos para mostrar la plusvalía en el historial.
+AVALUOS = {
+    "Torre Mirador del Valle": [
+        (
+            date(2025, 3, 10),
+            Decimal("11000000.00"),
+            "Perito de demostración uno",
+            "Comparativo de mercado",
+            "Avalúo inicial del edificio.",
+        ),
+        (
+            date(2026, 3, 12),
+            Decimal("12500000.00"),
+            "Perito de demostración uno",
+            "Comparativo de mercado",
+            "Actualización anual para la venta.",
+        ),
+    ],
+    "Casa Jardines de la Montaña": [
+        (
+            date(2026, 1, 20),
+            Decimal("1750000.00"),
+            "Perito de demostración dos",
+            "Comparativo de mercado",
+            "Avalúo para la ficha de la casa.",
+        ),
+    ],
+    "Terreno Las Lomas": [
+        (
+            date(2025, 11, 5),
+            Decimal("420000.00"),
+            "Perito de demostración dos",
+            "Costo de reposición",
+            "Terreno sin construcción.",
+        ),
+    ],
+    "Hotel Brisas del Pacífico": [
+        (
+            date(2026, 2, 10),
+            Decimal("2900000.00"),
+            "Perito de demostración tres",
+            "Costo de reposición",
+            "Avalúo de la obra en construcción.",
+        ),
+    ],
+    "Bodega Parque Industrial Norte": [
+        (
+            date(2025, 9, 18),
+            Decimal("36000.00"),
+            "Perito de demostración tres",
+            "Comparativo de mercado",
+            "Bodega en operación.",
+        ),
+    ],
+    "Restaurante Plaza Central": [
+        (
+            date(2026, 4, 2),
+            Decimal("1350000000.00"),
+            "Perito de demostración uno",
+            "Comparativo de mercado",
+            "Local comercial con mobiliario.",
+        ),
+    ],
+    "Gasolinera Ruta Sur": [
+        (
+            date(2025, 12, 12),
+            Decimal("900000.00"),
+            "Perito de demostración dos",
+            "Costo de reposición",
+            "Estación de servicio en operación.",
+        ),
     ],
 }

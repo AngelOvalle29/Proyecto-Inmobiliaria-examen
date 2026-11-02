@@ -4,11 +4,19 @@ apps que dependen de Propiedad: cotizaciones, ventas, arrendamientos, compras y
 construcción.
 """
 
+from datetime import date
 from decimal import Decimal
 
 import factory
 
-from apps.catalogo.models import Propiedad, TipoPropiedad, Unidad
+from apps.catalogo.enums import TipoDocumento
+from apps.catalogo.models import (
+    Avaluo,
+    DocumentoOficial,
+    Propiedad,
+    TipoPropiedad,
+    Unidad,
+)
 from apps.core.tests.factories import CiudadFactory, MonedaFactory
 
 
@@ -54,3 +62,32 @@ class UnidadFactory(factory.django.DjangoModelFactory):
     banos = 1
     precio_lista = Decimal("95000.00")
     moneda = factory.SubFactory(MonedaFactory, codigo="USD")
+
+
+class DocumentoOficialFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = DocumentoOficial
+
+    propiedad = factory.SubFactory(PropiedadFactory)
+    tipo = TipoDocumento.ESCRITURA
+    nombre = factory.Sequence(lambda n: f"Documento demo {n}")
+    # Basta el nombre: las pruebas no necesitan el archivo real salvo que
+    # prueben la subida (incremento 3).
+    archivo = factory.Sequence(lambda n: f"documentos/demo/{n}.pdf")
+    nombre_original = "documento.pdf"
+    tipo_contenido = "application/pdf"
+    tamano_bytes = 1024
+    fecha_emision = date(2025, 1, 1)
+    emisor = "Registro ficticio"
+
+
+class AvaluoFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Avaluo
+
+    propiedad = factory.SubFactory(PropiedadFactory)
+    fecha = date(2025, 1, 15)
+    valor = Decimal("150000.00")
+    moneda = factory.SubFactory(MonedaFactory, codigo="USD")
+    perito = factory.Sequence(lambda n: f"Perito demo {n}")
+    metodologia = "Comparativo de mercado"

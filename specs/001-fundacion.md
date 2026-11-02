@@ -189,7 +189,12 @@ Configuración común a todos los endpoints:
   fecha sin aviso.
 - Tokens: acceso de 30 minutos, refresco de 7 días, tomados de
   `JWT_ACCESS_TOKEN_MINUTES` y `JWT_REFRESH_TOKEN_DAYS`.
-- Límite de peticiones en `auth/login/` y `auth/refresh/`: 10 por minuto por IP.
+- Límite de peticiones por IP: `auth/login/` 30 por minuto y `auth/refresh/` 60
+  por minuto, cada uno con su propio contador. *Corregido el 2026-10-29* (antes
+  10 por minuto, compartido por los dos): en la defensa, los evaluadores entran
+  desde la misma IP pública de la universidad, y con 10 intentos compartidos se
+  habrían bloqueado entre sí. Además, renovar el token gastaba los intentos de
+  login. Lo señaló la revisión del rol B en DouGMV/Proyecto-Inmobiliaria#41.
 - CORS restringido a `CORS_ALLOWED_ORIGINS`.
 
 | Método | Ruta | Descripción | Permiso |
@@ -241,9 +246,9 @@ traduce tanto las excepciones de dominio como las de DRF:
 |---|---|---|
 | `VALIDACION` | Datos de entrada inválidos (`detalles` lleva los errores por campo) | 400 |
 | `CREDENCIALES_INVALIDAS` | Login con correo o contraseña incorrectos, o usuario inactivo | 401 |
-| `NO_AUTENTICADO` | Falta el token, o es inválido o está vencido | 401 |
+| `NO_AUTENTICADO` | Falta el token, o es inválido o está vencido. También al renovar con el token de un usuario que ya no existe (*corregido el 2026-11-01*: SimpleJWT respondía 500, y el frontend no cerraba la sesión; lo notó B en DouGMV/Proyecto-Inmobiliaria#72) | 401 |
 | `SIN_PERMISO` | Autenticado pero sin permiso | 403 |
-| `NO_ENCONTRADO` | Recurso inexistente | 404 |
+| `NO_ENCONTRADO` | Recurso inexistente. El mensaje es siempre "No se encontró el recurso." (*corregido el 2026-10-31*: antes salía el texto en inglés de Django, con el nombre del modelo; lo notó B en DouGMV/Proyecto-Inmobiliaria#56) | 404 |
 | `DEMASIADAS_PETICIONES` | Se superó el límite de peticiones | 429 |
 | `TIPO_CAMBIO_NO_DISPONIBLE` | No hay tasa vigente para la fecha | 422 |
 
@@ -349,7 +354,8 @@ DRF aplica al límite, así la IP auditada y la limitada coinciden.
 - [x] Un login con credenciales inválidas devuelve 401 con el código
       `CREDENCIALES_INVALIDAS` en el formato uniforme
 - [x] Un endpoint protegido devuelve 401 sin token y 200 con token válido
-- [x] El undécimo intento de login en un minuto desde la misma IP devuelve 429
+- [x] El intento 31 de login en un minuto desde la misma IP devuelve 429 (eran 10
+      hasta la corrección de DouGMV/Proyecto-Inmobiliaria#45; ver §5)
 - [x] Un login exitoso actualiza `last_login` y deja un registro `INICIAR_SESION`
 - [x] Un login fallido deja un registro `LOGIN_FALLIDO` sin la contraseña
 - [x] Las contraseñas de menos de 10 caracteres se rechazan

@@ -21,6 +21,9 @@ fi
 # Worker de Celery en segundo plano, dentro de un ciclo que lo vuelve a
 # levantar si se cae (observación de la revisión de la spec 002): sin el ciclo,
 # un worker caído quedaría así hasta el siguiente despliegue y nadie lo notaría.
+#   -Q            las colas que consume: "celery" (la de por defecto) y
+#                 "documentos" (spec 020). Sin -Q solo consumiría la primera, y
+#                 las indexaciones esperarían para siempre en RabbitMQ.
 #   --pool=solo   un solo proceso que ejecuta una tarea a la vez; cabe en 512 MB.
 #   --without-*   sin mensajes de coordinación entre workers: hay uno solo, y
 #                 cada mensaje cuenta contra la cuota de CloudAMQP.
@@ -29,7 +32,7 @@ fi
     # que reiniciarlo, no salir del ciclo.
     set +e
     while true; do
-        celery -A config worker --pool=solo --loglevel=info \
+        celery -A config worker -Q celery,documentos --pool=solo --loglevel=info \
             --without-gossip --without-mingle --without-heartbeat
         echo "El worker de Celery se detuvo (código $?). Se reinicia en 5 segundos." >&2
         sleep 5

@@ -9,8 +9,8 @@ responde 400 con el código VALIDACION.
 import django_filters
 from django.db.models import Q, QuerySet
 
-from .enums import EstadoPropiedad
-from .models import Propiedad
+from .enums import EstadoPropiedad, TipoDocumento
+from .models import DocumentoOficial, Propiedad, Unidad
 
 
 class PropiedadFilter(django_filters.FilterSet):
@@ -45,3 +45,25 @@ class PropiedadFilter(django_filters.FilterSet):
             | Q(nombre__icontains=valor)
             | Q(direccion__icontains=valor)
         )
+
+
+class DocumentoFilter(django_filters.FilterSet):
+    tipo = django_filters.ChoiceFilter(choices=TipoDocumento.choices)
+    # "Vence antes de": estricto, y deja fuera los documentos sin vencimiento.
+    vence_antes = django_filters.DateFilter(
+        field_name="fecha_vencimiento", lookup_expr="lt"
+    )
+
+    class Meta:
+        model = DocumentoOficial
+        fields = ["tipo"]
+
+
+class UnidadFilter(django_filters.FilterSet):
+    # Spec 014, regla 11: para buscar una unidad mientras se escribe (cotizar,
+    # vender o arrendar un apartamento) sin quedarse en la primera página.
+    buscar = django_filters.CharFilter(field_name="codigo", lookup_expr="icontains")
+
+    class Meta:
+        model = Unidad
+        fields = ["buscar"]

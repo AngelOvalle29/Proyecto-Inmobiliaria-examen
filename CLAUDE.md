@@ -56,6 +56,7 @@ El enunciado prohíbe explícitamente el vibecoding. Esto significa, en la prác
 | Auth | djangorestframework-simplejwt | |
 | Modelo de IA | Gemini Flash (capa gratuita) | Chat y embeddings, mismo proveedor |
 | Correo | Gmail SMTP con contraseña de aplicación | ~500 envíos diarios |
+| Documentos | Supabase Storage (API compatible con S3) | Plan gratuito, 1 GB. Ver `specs/011-avaluos-documentos.md` |
 | Frontend | React 19 + Vite + TypeScript | Ver `docs/frontend.md` |
 | Contenedores | Docker + Docker Compose | |
 | Despliegue backend | Render (API y worker), Neon (PostgreSQL con pgvector), CloudAMQP (RabbitMQ) | Planes gratuitos. Ver `specs/002-despliegue.md` |
@@ -203,15 +204,15 @@ lo pida:
   todo pasa por la interfaz de proveedor descrita en `docs/arquitectura.md`,
   sección 7.
 - **Gmail SMTP** con contraseña de aplicación para las notificaciones.
+- **Supabase Storage** (plan gratuito) para los documentos oficiales en
+  producción, por su API compatible con S3. Decidido el 2026-10-29; detalle en
+  `specs/011-avaluos-documentos.md`.
 - Todo corre en contenedores, para que cambiar de proveedor siga siendo
   posible.
 
 **Abiertas.** No las resuelvas por tu cuenta; si una tarea depende de alguna,
 pregunta:
 
-- **Almacenamiento de documentos oficiales** en producción. El plan gratuito de
-  Render no tiene disco persistente, así que será un almacenamiento de objetos
-  externo; falta decidir cuál.
 - **Dominio propio.** Por ahora se usan los subdominios de Render y Vercel.
 
 ---

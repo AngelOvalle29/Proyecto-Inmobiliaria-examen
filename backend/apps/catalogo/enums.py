@@ -20,3 +20,15 @@ class EstadoPropiedad(models.TextChoices):
     VENDIDA = "VENDIDA", "Vendida"
     ARRENDADA = "ARRENDADA", "Arrendada"
     BAJA = "BAJA", "Baja"
+
+
+class TipoDocumento(models.TextChoices):
+    """Clases de documento oficial que se adjuntan a una propiedad (spec 011)."""
+
+    ESCRITURA = "ESCRITURA", "Escritura"
+    LICENCIA = "LICENCIA", "Licencia"
+    PLANO = "PLANO", "Plano"
+    CERTIFICACION = "CERTIFICACION", "Certificación"
+    AVALUO = "AVALUO", "Avalúo"
+    CONTRATO = "CONTRATO", "Contrato"
+    OTRO = "OTRO", "Otro"

@@ -5,7 +5,7 @@ Sin reglas de negocio.
 
 from django.contrib import admin
 
-from .models import Propiedad, TipoPropiedad, Unidad
+from .models import Avaluo, DocumentoOficial, Propiedad, TipoPropiedad, Unidad
 
 
 class AdminSoloLectura(admin.ModelAdmin):
@@ -59,4 +59,27 @@ class UnidadAdmin(AdminSoloLectura):
         "activo",
     ]
     list_filter = ["estado", "activo"]
+    list_select_related = ["propiedad", "moneda"]
+
+
+@admin.register(DocumentoOficial)
+class DocumentoOficialAdmin(AdminSoloLectura):
+    list_display = [
+        "propiedad",
+        "tipo",
+        "nombre",
+        "fecha_emision",
+        "fecha_vencimiento",
+        "activo",
+    ]
+    list_filter = ["tipo", "activo"]
+    search_fields = ["nombre", "emisor", "propiedad__codigo"]
+    list_select_related = ["propiedad"]
+
+
+@admin.register(Avaluo)
+class AvaluoAdmin(AdminSoloLectura):
+    list_display = ["propiedad", "fecha", "valor", "moneda", "perito", "activo"]
+    list_filter = ["moneda", "activo"]
+    search_fields = ["perito", "propiedad__codigo"]
     list_select_related = ["propiedad", "moneda"]
