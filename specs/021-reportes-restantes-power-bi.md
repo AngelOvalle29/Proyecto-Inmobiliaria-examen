@@ -1,0 +1,320 @@
+# 021 · Completar quince reportes e integrar Power BI
+
+| Campo | Valor |
+|---|---|
+| **Número** | 021, propuesto; coordinar antes de abrir el PR |
+| **Estado** | Borrador para revisión del equipo; no autoriza implementación |
+| **Autor** | Propuesta para Nathaly Saraí Reyes Cifuentes (rol D), con apoyo de Codex |
+| **Revisor** | Por asignar: A para catálogo/BI, B para comercial y C para compras/construcción |
+| **Fecha** | 2026-11-01 |
+| **Apps afectadas** | `reportes`; lecturas de `catalogo`, `crm`, `ventas`, `arrendamientos`, `compras`, `construccion`, `core` y `auditoria` |
+| **Rama** | Propuesta: `feature/021-reportes-restantes-power-bi`, desde `develop` con la 016 integrada |
+| **Pull request** | Pendiente; avance de [#24](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/24) |
+
+## 1. Problema
+
+La spec 016 implementa localmente R05, R16 y R17. Falta integrar ese código,
+completar al menos quince reportes exportables y entregar evidencia real de
+Power BI. Una capa genérica o un script de vistas por sí solos no cumplen la
+rúbrica: se necesitan resultados verificables y un archivo `.pbix` funcional.
+
+Esta propuesta reutiliza la pantalla y exportadores de la 016. No cambia la
+responsabilidad de mensajería: Douglas propuso asumirla en la spec 020; el
+equipo debe confirmar ese reparto. No se modifica la ingesta del agente aquí.
+
+## 2. Alcance
+
+**Incluye:** doce reportes adicionales, permisos de cartera, vistas analíticas,
+conexión de Power BI, un tablero comercial y uno de portafolio, datos ficticios
+para demostración y explicación para defensa. Los quince propuestos son R01,
+R02, R03, R04, R05, R06, R08, R10, R11, R12, R13, R14, R15, R16 y R17.
+
+La selección y las precisiones de métricas de §3 son propuestas: requieren
+aprobación. R07, R09 y R18 conservan su lugar en `docs/reportes.md`; se proponen
+para otro incremento. No se borran del catálogo de diseño.
+
+**No incluye:** generación pesada con Celery, publicación pública de tableros,
+licencias o servicios de pago, cambios a los ciclos comerciales, una pantalla
+por reporte ni reconstrucción histórica ficticia. Un corte histórico que no
+pueda justificarse con datos se rechaza; no se presenta el estado actual como
+si fuera el de otra fecha.
+
+**Dependencias:** integrar la 016. R13/R15 y sus vistas requieren los modelos,
+migraciones y datos de la 017 integrados; no se crean copias locales de esos
+modelos. El 2026-11-01 la 017 aparece en `develop`, aunque su encabezado aún
+dice «En revisión»: comprobar aprobación e implementación antes de depender
+de ella. No se cuentan R13/R15 como terminados mientras falte esa integración.
+
+## 3. Reglas de negocio
+
+### Reglas compartidas
+
+1. Se conserva el contrato de la 016: JSON de 25 filas, orden estable con ID,
+   totales de todo el filtro, Excel/PDF con el mismo conjunto y rechazo de
+   exportaciones con más de 5,000 filas antes de materializar detalles.
+2. Filtros tipados y estrictos. Fechas inclusivas en Guatemala. `fecha_corte`
+   por defecto es hoy; los reportes de saldos y estado actual de este incremento
+   solo aceptan hoy. Un corte distinto devuelve 400 `VALIDACION` con explicación.
+   Las fechas de transacciones sí permiten intervalos históricos.
+3. Importes exactos con `Decimal`; totales separados por moneda original.
+   Los montos USD históricos usan la tasa guardada en cada transacción. No se
+   aplica la tasa del último pago a todos los abonos anteriores ni se cambia
+   el pasado con la tasa de hoy. Una tasa faltante no se sustituye por 1.
+4. No se unen a la vez cuotas, rentas y cotizaciones para sumar: se agregan
+   por separado antes de relacionarlas, evitando multiplicación de filas.
+5. Anulados y cancelados no aportan ventas, compras, cobros ni deuda. Los
+   contratos terminados pueden conservar deuda exigible; no se descartan
+   automáticamente sus pagos pendientes. Esto sigue las specs 007/008 y la
+   corrección propuesta en el PR #70.
+6. R01/R02/R03/R04/R10/R11: administración, gerencia y contabilidad consultan
+   el conjunto; agente solo su cartera, siguiendo los selectores de origen.
+   No se redefine aquí si la cartera depende del agente del contrato o del
+   cliente: se reutiliza la regla vigente de B, también en agregaciones.
+   `CONSULTA` no accede a estos reportes en esta propuesta.
+7. R06/R08/R14: todos los roles autenticados, con las restricciones de lectura
+   que ya imponga catálogo. R12/R13/R15: administración, gerencia y contabilidad.
+   R05/R16/R17 mantienen sus permisos aprobados. Un agente no puede ampliar
+   su cartera enviando otro `agente` o `cliente`, ni inferirla en los totales.
+
+### Contrato de los doce reportes nuevos
+
+Los slugs de esta tabla son los identificadores de API. Cada fila necesita
+detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
+
+| Código y slug | Grano y columnas principales | Filtros | Agregaciones |
+|---|---|---|---|
+| R01 `ventas-por-periodo` | Contrato: código, firma, cliente, agente, bien, país, ciudad, modalidad, moneda, neto, bruto/descuento documentados y comisión | Firma desde/hasta, país, ciudad, agente, tipo, modalidad, moneda | Cantidad, neto y comisión por mes/país/moneda; bruto y descuento solo de la población con evidencia |
+| R02 `desempeno-agentes` | Agente: cotizaciones emitidas/aprobadas, contratos vinculados, ventas sin cotización, conversión, monto vendido y comisión | Emisión desde/hasta, país, agente | Conteos y montos por agente/moneda; conversión ponderada global |
+| R03 `embudo-cotizaciones` | Cotización: código, emisión, cliente, agente, estado actual, vencida, total, moneda y contrato vinculado | Emisión desde/hasta, agente, país, estado, moneda, monto mínimo/máximo | Conteos por estado y tasas de la cohorte, sin sumar porcentajes |
+| R04 `ranking-clientes` | Cliente: código/nombre comercial, contratos de venta, arrendamientos vigentes, vendido USD y saldos por moneda | Firma de venta desde/hasta, país del cliente, tipo de cliente | Ranking por vendido USD descendente y cliente ID; conteos y saldos de la población |
+| R06 `propiedades-por-estado` | Bien `(origen,id)`: código, propiedad, tipo, ciudad, estado actual, fecha de entrada conocida y días en estado | País, ciudad, tipo, estado, corte hoy | Conteos por estado/tipo; antigüedad media solo de fechas conocidas y cantidad sin historia |
+| R08 `evolucion-avaluos` | Avalúo: propiedad, fecha, perito, valor, moneda, anterior comparable y variación | Propiedad, país, fechas, moneda | Cantidad, primera/última valuación por propiedad/moneda y variación comparable |
+| R10 `estado-cuenta-clientes` | Obligación `(origen,id)`: cliente, contrato, número/período, vencimiento, moneda, exigible, pagado, saldo y mora actual | Cliente, vencimiento desde/hasta, estado, agente, moneda, corte hoy | Exigible/pagado/saldo por cliente/origen/moneda |
+| R11 `morosidad` | Obligación vencida: cliente, contrato, origen, vencimiento, días de atraso, tramo, moneda y saldo | País del bien, agente, moneda, saldo mínimo/máximo, corte hoy | Conteo y saldo por tramo 1–30, 31–60, 61–90 y más de 90 días |
+| R12 `flujo-ingresos` | Cobro identificado: origen, ID fuente, contrato, fecha efectiva, moneda, recibido, tasa y USD | Pago desde/hasta, país del bien, origen, moneda | Cobros por mes/origen/moneda y consolidado USD; conciliación por fuente |
+| R13 `compras-proveedores` | Contrato de compra completado: proveedor, propiedad, fecha, moneda, monto, gastos, impuestos, costo total y USD | Compra desde/hasta, proveedor, país, moneda | Cantidad y componentes del costo por proveedor/mes/moneda; costo USD |
+| R14 `ocupacion-arrendamientos` | Propiedad: ciudad, tipo, bienes elegibles, arrendados, disponibles, otros estados, ocupación e ingreso recurrente por moneda | País, ciudad, tipo, corte hoy | Ocupación ponderada global y por ciudad; ingreso recurrente por moneda |
+| R15 `avance-presupuesto-obra` | Proyecto: constructora, propiedad, fechas, estado, moneda, presupuesto, programado, pagado, saldo, avance físico y financiero | Constructora, estado, país, inicio desde/hasta, moneda, corte hoy | Presupuesto/pagado/saldo por constructora/moneda y desviación de fechas |
+
+### Precisiones de cálculo que se someten a revisión
+
+8. R01: neto es `monto_total`; comisión es la guardada. Con cotización,
+   bruto/precio y descuento salen de ella. Sin cotización, esos dos datos son
+   desconocidos: no se inventa descuento cero. Se informa la cobertura.
+9. R02/R03: la cohorte son cotizaciones emitidas en el intervalo. Conversión
+   a contrato = cotizaciones de esa cohorte con contrato no anulado / total
+   de la cohorte × 100. Denominador cero produce `null`. Las ventas directas
+   se muestran aparte y no inflan esa conversión. R02 distingue ventas por
+   fecha de firma de las conversiones de la cohorte.
+10. R03: estados actuales no prueban tiempos en cada etapa. El tiempo medio
+    por etapa de `docs/reportes.md` queda condicionado a validar con B la
+    cobertura y el contrato de eventos de auditoría; si falta historia se
+    informa «sin historial», nunca duración cero. Antes de aprobar se debe
+    aceptar expresamente esta cobertura o definir los eventos faltantes.
+11. R04: el ranking usa ventas USD, no mezcla precio de venta con renta
+    mensual. Saldos y arrendamientos son actuales y se etiquetan así; el
+    intervalo filtra ventas. Esta precisión del «monto total transado» del
+    catálogo debe aprobarla B; no se cambia el criterio silenciosamente.
+12. R06/R14 reutilizan la regla propiedad/unidad de R05: un edificio no se
+    suma además de sus unidades activas. R06 obtiene la última transición
+    documentada al estado actual; creación solo sirve si registra ese estado.
+    Sin evidencia, fecha y antigüedad son `null`, no `actualizado_en`.
+13. R08 calcula el avalúo anterior por propiedad y moneda con orden `(fecha,id)`
+    antes de filtrar el período mostrado. Variación = `(nuevo/anterior - 1) ×
+    100`; sin anterior o con anterior cero, `null`. No compara monedas distintas.
+14. R10/R11: saldo de cuota = total − pagado; saldo de renta pendiente = monto
+    programado, sin recargo hipotético. Rentas pagadas/canceladas no tienen
+    saldo. Mora empieza el día posterior al vencimiento, también en rentas:
+    la gracia afecta el recargo al cobrar, no la clasificación, según spec 008.
+    No se suman enganche ni precio total otra vez a la deuda de cuotas.
+15. R12: cada abono de cuota se obtiene del log inmutable del pago, que guarda
+    `pago`, `fecha` y `tasa_a_usd` (spec 007), con ID del log como identidad.
+    No se usa `monto_pagado` con `fecha_ultimo_pago`. Cada renta pagada aporta
+    una fila con recibido y recargo efectivo una sola vez. Se propone incluir
+    contado liquidado y enganche en fecha de firma según el contrato, con
+    etiqueta de origen distinta: B debe confirmar que firma equivale a cobro
+    de esos importes o definir su registro explícito antes de aprobar.
+    Depósitos de garantía no son ingreso. Si falta un log requerido o su tasa,
+    el resultado no puede aparentar estar completo: 409 `DATOS_INCOMPLETOS`,
+    diagnóstico sin datos sensibles y conciliación con los acumulados.
+16. R13 incluye `COMPLETADO`; `EN_PROCESO` no se presenta como adquisición
+    realizada. R15 suma cada pago `PAGADO` una vez; anulado aporta cero.
+    Saldo por pagar = presupuesto − pagado; disponible para programar =
+    presupuesto − pagado − programado. Avance financiero = pagado/presupuesto
+    × 100 en moneda del proyecto; no es el avance físico. Desviación = fin
+    real − fin estimada, o máximo(0, hoy − fin estimada) si sigue activo;
+    cancelados no se califican como obra atrasada.
+17. R14: denominador son todos los bienes activos elegibles del filtro;
+    numerador son los de estado `ARRENDADA`. Disponible significa
+    `DISPONIBLE`, no total menos arrendados. Denominador cero da `null`.
+    Ingreso recurrente suma rentas de contratos que cubren hoy y no estén
+    rescindidos a esa fecha; una renovación futura no duplica el contrato
+    anterior. B debe validar el tratamiento de renovados antes de aprobar.
+
+## 4. Modelo de datos
+
+No se agregan tablas de negocio. Una migración reversible de `reportes`
+crea el esquema `bi` y vistas SQL explícitas; la reversión elimina solo las
+vistas de este incremento. No modifica tablas de otras apps.
+
+| Vista | Grano / clave |
+|---|---|
+| `bi.dim_tiempo` | Día / `fecha_id` entero AAAAMMDD |
+| `bi.dim_geografia` | Ciudad / `ciudad_id`, país y región |
+| `bi.dim_propiedad` | Bien / clave compuesta de origen y ID, propiedad padre y tipo |
+| `bi.dim_cliente` | Cliente / ID, código, tipo y país; sin documento, NIT, correo, teléfono ni dirección |
+| `bi.dim_agente` | Agente / ID y código; sin credenciales ni correo |
+| `bi.dim_constructora` | Constructora / ID y código |
+| `bi.hechos_ventas` | Contrato no anulado / contrato ID, fecha firma, bien, cliente, agente, moneda, neto y USD |
+| `bi.hechos_cobros` | Cobro / `(origen,id_fuente)`, fecha efectiva, contrato, moneda, recibido y USD; regla 15 |
+| `bi.hechos_arrendamientos` | Mes de contrato / `(contrato_id,fecha_id)`; renta programada y USD, sin llamarla cobro |
+| `bi.hechos_compras` | Contrato completado / compra ID, fecha compra, bien, proveedor, costo y USD |
+| `bi.hechos_construccion` | Pago pagado / pago ID, fecha pago, proyecto, constructora, moneda, monto y USD |
+
+Cada hecho tiene `fecha_id` y claves de sus dimensiones. Se incluirán en la
+migración comprobaciones de claves únicas, importes y fechas, y las vistas
+auxiliares necesarias para contratos/obligaciones. No se relacionan hechos
+entre sí mediante uniones que dupliquen importes. `dim_tiempo` cubre todas las
+fechas expuestas por hechos, incluso meses programados futuros.
+
+La renta programada usa la tasa guardada del contrato; el cobro usa la del
+pago. Se redondea cada hecho USD a centavos antes de sumar. Los montos
+originales siempre conservan moneda. Estado y geografía actuales se indican
+como actuales, sin afirmar dimensiones históricas que no están guardadas.
+
+El rol PostgreSQL `powerbi_reader` se prepara fuera de Git mediante un script
+documentado: solo conexión, `USAGE` en `bi` y `SELECT` sobre las vistas
+enumeradas, sin permisos de escritura ni lectura directa de tablas. No se
+versiona su contraseña ni se amplían privilegios por defecto a objetos futuros.
+La cuenta se prueba de verdad: una consulta de tabla operativa debe fallar.
+
+Power BI Desktop usará Import para esta entrega. Se guardará
+`docs/powerbi/inmobiliaria.pbix` con datos ficticios, relaciones de dimensión a
+hechos, medidas y dos páginas: comercial (ventas mensuales, país y agente) y
+portafolio (estado, tipo, ciudad y ocupación). No se afirma actualización
+programada en la nube sin configurarla y demostrarla. DirectQuery y los
+tableros financiero/construcción completos quedan como ampliación.
+
+## 5. API
+
+Se reutilizan las rutas y respuesta de la 016; los doce slugs están en §3.
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET | `/api/v1/reportes/` | Catálogo paginado filtrado por rol |
+| GET | `/api/v1/reportes/{slug}/` | JSON y agregados, con cartera |
+| GET | `/api/v1/reportes/{slug}/excel/` | Mismos permisos y filtros |
+| GET | `/api/v1/reportes/{slug}/pdf/` | Mismos permisos y filtros |
+
+Ejemplo: `GET /api/v1/reportes/ventas-por-periodo/?fecha_desde=2026-10-01&fecha_hasta=2026-10-31&moneda=GTQ`.
+La respuesta mantiene `titulo`, `subtitulo`, `generado_en`, `generado_por`,
+`columnas`, `filas: {count,next,previous,results}`, `totales` y `agrupamientos`.
+Cobertura desconocida se representa con `null` y conteos de cobertura,
+no con números ficticios. La plantilla debe mostrar esos nulos como «Sin dato».
+
+Errores: 400 `VALIDACION` y `REPORTE_DEMASIADO_GRANDE`; 401 sin JWT;
+403 por rol; 404 para slug/página inexistentes o recurso ajeno conforme a los
+selectores de origen; 409 `DATOS_INCOMPLETOS` para cobros sin evidencia necesaria.
+No se exponen detalles de clientes ajenos en errores o agrupamientos.
+
+## 6. Servicios y selectores
+
+Extender los metadatos de `catalogo.py`, las dataclasses de filtros y los
+serializadores de la 016. Añadir selectores explícitos por dominio, con tipos,
+sin un motor dinámico de SQL ni nuevos paquetes.
+
+```python
+def resumir_reporte(*, slug: str, filtros: FiltrosReporte, usuario: AbstractBaseUser) -> ResumenReporte: ...
+def seleccionar_filas_reporte(*, slug: str, filtros: FiltrosReporte, usuario: AbstractBaseUser, offset: int, limite: int) -> list[dict]: ...
+def seleccionar_cobros(*, filtros: FiltrosCobros, usuario: AbstractBaseUser) -> QuerySet: ...
+def verificar_integridad_cobros(*, filtros: FiltrosCobros, usuario: AbstractBaseUser) -> None: ...
+```
+
+El usuario se propaga a resumen y detalle: no basta con ocultar filas si los
+totales siguen incluyendo otras carteras. Las firmas actuales de la 016 se
+adaptan con sus pruebas, conservando sus permisos. Los exportadores reciben
+`Reporte` y siguen sin consultar modelos. Los selectores aplican permisos antes
+de contar, agregar y paginar. BI se valida con SQL de conciliación por fuente.
+
+En el frontend el catálogo autorizado seguirá paginado: al superar 25 reportes
+no se ocultarán silenciosamente las páginas siguientes. Para los quince de
+esta entrega cabe una página; no se implementan doce pantallas nuevas.
+
+## 7. Auditoría
+
+Solo lecturas operativas; no se insertan ni alteran logs al generar reportes.
+R12 lee únicamente eventos de pago con contrato definido por la spec 007;
+no exporta JSON completos, IP, user-agent ni preguntas del agente.
+La creación de vistas se evidencia en la migración, no en bitácoras falsas
+atribuidas a un usuario de negocio.
+
+## 8. Criterios de aceptación
+
+- [ ] El equipo aprueba selección de quince, permisos y precisiones 8–17.
+- [ ] La 016 está integrada y sus tres reportes siguen pasando las pruebas.
+- [ ] Cada uno de los doce nuevos tiene detalle, filtros, agregados y ambas descargas.
+- [ ] Catálogo, JSON, totales, Excel y PDF respetan la misma cartera.
+- [ ] Los totales no cambian al pasar de página y coinciden en JSON/XLSX/PDF.
+- [ ] No se suman monedas distintas ni se multiplican filas por relaciones.
+- [ ] Los datos desconocidos se distinguen del cero y tienen cobertura explícita.
+- [ ] Los dos abonos de una cuota en meses/tasas distintos caen en sus meses correctos.
+- [ ] R13/R15 funcionan con los modelos y migraciones reales de la 017.
+- [ ] Vistas BI concilian claves, conteos y montos con los selectores de origen.
+- [ ] `powerbi_reader` lee las vistas, pero no tablas operativas ni escribe.
+- [ ] El `.pbix` se abre, actualiza desde PostgreSQL y filtra ambos tableros.
+- [ ] Hay capturas con datos ficticios y pasos de actualización sin contraseñas.
+- [ ] Se prueban los quince reportes desde `/reportes`, incluidas sus 30 descargas.
+- [ ] Pasan ruff, formato, migraciones, pytest, OpenAPI, lint, typecheck y build.
+- [ ] Nathaly explica un reporte de principio a fin y las medidas del tablero.
+
+## 9. Pruebas
+
+| Nivel | Casos |
+|---|---|
+| Selectores | 0/1/muchas filas, rangos inclusivos, dos monedas, edificios/unidades, varias cuotas por contrato, cartera ajena |
+| Métricas | Cohorte y venta directa, anterior de avalúo fuera del filtro, nulos, mora 0/1/30/31/60/61/90/91 días, renta rescindida pendiente |
+| Cobros | Dos abonos en meses y tasas diferentes; contado, enganche y renta con recargo; log incompleto; conciliación sin duplicación |
+| Servicios/API | Matriz de cinco roles, filtros inválidos, páginas, totales completos, rechazo de 5,001 filas antes de cargar detalle |
+| Exportación | Columnas y totales equivalentes, tipos XLSX, fórmulas literales, PDF multipágina, cobertura desconocida |
+| Migración/SQL | Aplicar/revertir vistas, unicidad de grano, claves a dimensiones, permisos reales y conciliación por fuente |
+| Manual | Quince consultas, treinta descargas, filtros y errores visibles; abrir/actualizar `.pbix`, segmentadores y cifras conciliadas |
+
+## 10. Decisiones y alternativas descartadas
+
+La infraestructura de la 016 se conserva para concentrar el trabajo en
+consultas y reglas. Las precisiones anteriores no se consideran decisiones
+de negocio aprobadas por estar escritas aquí: B valida comercial, A catálogo/BI
+y C compras/construcción. No se implementan métricas ambiguas antes de resolverlas.
+
+Se detectó que los abonos detallados sí están en la bitácora de ventas, aunque
+la cuota solo conserve acumulado y último pago. Leer esos eventos evita crear
+una segunda contabilidad y evita asignar todo el dinero al último mes.
+Contado/enganche y cobertura de logs requieren la validación indicada en regla 15.
+
+Se propone Import para obtener una evidencia verificable en Desktop dentro
+del alcance académico; no se promete un servicio publicado ni refresco en nube.
+No se ofrece el `.pbix` como terminado hasta abrirlo y actualizarlo realmente.
+
+Orden propuesto, sin comprometer fechas por otros integrantes:
+
+1. Cerrar prueba manual, explicación y PR de la 016.
+2. Revisar y aprobar esta spec, en particular las decisiones de §3.
+3. R01/R02/R03/R04/R06/R08; comprobar seis reportes sobre la capa genérica.
+4. R10/R11/R12/R14; integrar R13/R15 cuando la 017 esté disponible.
+5. Vistas, conexión y `.pbix`; conciliación y evidencia del mínimo de quince.
+
+Son doce reportes adicionales propuestos, no doce terminados ni una promesa
+confirmada para el lunes 2 de noviembre. Si el equipo divide implementación,
+asignar reportes por selector y coordinar catálogo, permisos y migración.
+
+## 11. Trabajo con agentes de IA
+
+El 2026-11-01 Codex inspeccionó el trabajo local de la 016, los modelos y las
+reglas de ventas/arrendamientos, los eventos de abonos, la rúbrica y la spec
+017 en GitHub. Consultó las specs y PR abiertos: 018, 019 y 020 ya están
+ocupados. Propuso 021, pendiente de coordinación.
+
+La estudiante solicitó preparar una spec para revisión del equipo. Este
+archivo es esa propuesta, sin implementación nueva, aprobación, commit ni
+garantía de plazo. Se explicitan las métricas que no deben inferirse de campos
+insuficientes. La validación de la 016 se registra en su documento propio.
