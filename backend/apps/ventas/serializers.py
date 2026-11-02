@@ -9,8 +9,15 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.catalogo.selectors import listar_propiedades, listar_unidades
-from apps.catalogo.serializers import PropiedadResumenSerializer
+from apps.catalogo.selectors import (
+    listar_documentos,
+    listar_propiedades,
+    listar_unidades,
+)
+from apps.catalogo.serializers import (
+    DocumentoOficialResumenSerializer,
+    PropiedadResumenSerializer,
+)
 from apps.core.selectors import listar_monedas
 from apps.core.serializers import MonedaResumenSerializer
 from apps.crm.models import Cliente, Cotizacion
@@ -62,6 +69,7 @@ class ContratoVentaSerializer(serializers.ModelSerializer):
     propiedad = PropiedadResumenSerializer(allow_null=True)
     unidad = UnidadResumenSerializer(allow_null=True)
     moneda = MonedaResumenSerializer()
+    documento = DocumentoOficialResumenSerializer(allow_null=True)
 
     class Meta:
         model = ContratoVenta
@@ -86,6 +94,7 @@ class ContratoVentaSerializer(serializers.ModelSerializer):
             "comision_agente",
             "estado",
             "observaciones",
+            "documento",
         ]
 
 
@@ -134,6 +143,9 @@ class FirmarContratoSerializer(serializers.Serializer):
     )
     fecha_primera_cuota = serializers.DateField(required=False)
     observaciones = serializers.CharField(required=False, allow_blank=True)
+    documento = serializers.PrimaryKeyRelatedField(
+        queryset=listar_documentos(), required=False
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -164,6 +176,12 @@ class FirmarContratoSerializer(serializers.Serializer):
         if errores:
             raise serializers.ValidationError(errores)
         return datos
+
+
+class VincularDocumentoSerializer(serializers.Serializer):
+    """Vincula o cambia el documento; no acepta null: no se quita (regla 24)."""
+
+    documento = serializers.PrimaryKeyRelatedField(queryset=listar_documentos())
 
 
 class PagoCuotaSerializer(serializers.Serializer):

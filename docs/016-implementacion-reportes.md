@@ -153,3 +153,17 @@ formato, migraciones, OpenAPI sin avisos y lint/typecheck/build del frontend.
 El paquete principal quedó en 695.55 kB antes de gzip (209.59 kB gzip).
 El servicio de navegador sigue sin conexión; las pruebas parciales de Marco
 y las comprobaciones todavía pendientes se registran en la guía de revisión.
+
+### Actualización de integración sobre `a2889d2`
+
+Se incorporó el avance de `develop` con los PR #70–#73 y se regeneraron los
+tipos desde el esquema combinado, resolviendo su conflicto sin editarlos a
+mano. El generador OpenAPI vuelve a avisar de dos clases llamadas
+`VincularDocumentoSerializer`, incorporadas por #71. Marco tiene la corrección
+en #79: hasta integrarla no se considera aprobado `--fail-on-warn` sobre esta
+versión. La advertencia no se oculta ni se confunde con el conflicto resuelto.
+
+Validación: **681 pruebas pasaron en 52.54 s**, ruff y formato correctos,
+sin cambios de migraciones; lint, typecheck y build del frontend correctos.
+OpenAPI genera el esquema con el aviso descrito; su modo estricto sigue
+pendiente de #79. El paquete principal queda en 698.82 kB antes de gzip.

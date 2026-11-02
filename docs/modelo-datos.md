@@ -137,7 +137,8 @@ edita directamente.
 `propiedad` (FK, opcional) · `unidad` (FK, opcional) · `agente` (FK) ·
 `fecha_firma` · `monto_total` · `moneda` (FK) · `enganche` ·
 `modalidad` (CONTADO, FINANCIADO) · `estado` (VIGENTE, LIQUIDADO, ANULADO) ·
-`comision_agente` · `observaciones` · `activo`
+`comision_agente` · `observaciones` · `documento` (FK DocumentoOficial,
+opcional) · `activo`
 
 *Reglas:*
 - Exactamente uno de `propiedad` o `unidad` debe estar presente.
@@ -165,7 +166,7 @@ como mora. Es la base del reporte de morosidad.
 `unidad` (FK, opcional) · `agente` (FK) · `fecha_inicio` · `fecha_fin` ·
 `renta_mensual` · `moneda` (FK) · `deposito` · `dia_cobro` ·
 `estado` (VIGENTE, VENCIDO, RESCINDIDO, RENOVADO) · `renovacion_automatica` ·
-`activo`
+`documento` (FK DocumentoOficial, opcional) · `activo`
 
 ### PagoRenta ★
 `id` · `contrato` (FK) · `periodo_anio` · `periodo_mes` · `fecha_vencimiento` ·

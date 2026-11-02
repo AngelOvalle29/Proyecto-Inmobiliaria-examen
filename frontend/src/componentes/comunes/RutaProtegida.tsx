@@ -18,7 +18,7 @@ interface Props {
  * rechaza con 403 lo que el rol no puede hacer.
  */
 export function RutaProtegida({ roles, children }: Props) {
-  const { estado, usuario, reintentar } = useSesion()
+  const { estado, usuario, recordarRuta, reintentar } = useSesion()
   const ubicacion = useLocation()
 
   if (estado === 'cargando') {
@@ -38,9 +38,10 @@ export function RutaProtegida({ roles, children }: Props) {
     )
   }
   if (estado === 'sin-sesion' || !usuario) {
-    // Se guarda la ruta pedida para volver a ella después de entrar.
+    // Se guarda la ruta pedida para volver a ella después de entrar, salvo que
+    // el usuario haya salido: la página era suya (spec 010, regla 6).
     const desde = ubicacion.pathname + ubicacion.search
-    return <Navigate to="/login" replace state={{ desde }} />
+    return <Navigate to="/login" replace state={recordarRuta ? { desde } : null} />
   }
   if (!rolPermitido(usuario.rol, roles)) {
     return <p className="text-sm">No tiene permiso para ver esta página.</p>

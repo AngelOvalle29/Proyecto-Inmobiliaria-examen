@@ -51,3 +51,18 @@ export function usePagarCuota() {
     onSuccess: () => clienteConsultas.invalidateQueries({ queryKey: ['ventas'] }),
   })
 }
+
+/** POST /contratos-venta/{id}/documento/: vincula o cambia (reglas 23 y 24). */
+export function useVincularDocumentoVenta() {
+  const clienteConsultas = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, documento }: { id: number; documento: number }) =>
+      (
+        await clienteApi.post<ContratoVentaDetalle>(
+          `/contratos-venta/${id}/documento/`,
+          { documento },
+        )
+      ).data,
+    onSuccess: () => clienteConsultas.invalidateQueries({ queryKey: ['ventas'] }),
+  })
+}
