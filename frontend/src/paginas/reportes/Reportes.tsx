@@ -270,7 +270,8 @@ function SelectorRemoto({
 }
 
 function mostrar(valor: unknown, tipo: string): string {
-  if (valor === null || valor === undefined) return ''
+  if (valor === null || valor === undefined) return 'Sin dato'
+  if (tipo === 'fecha') return String(valor).split('-').reverse().join('/')
   if (tipo === 'decimal')
     return Number(valor).toLocaleString('es-GT', {
       minimumFractionDigits: 2,
