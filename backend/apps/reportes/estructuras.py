@@ -131,6 +131,25 @@ class FiltrosOcupacion:
     tipo: int | None = None
 
 
+@dataclass(frozen=True)
+class FiltrosCompras:
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    proveedor: int | None = None
+    pais: int | None = None
+    moneda: str | None = None
+
+
+@dataclass(frozen=True)
+class FiltrosObras:
+    constructora: int | None = None
+    estado: str | None = None
+    pais: int | None = None
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    moneda: str | None = None
+
+
 FiltrosReporte = (
     FiltrosInventario
     | FiltrosVencimientos
@@ -144,6 +163,8 @@ FiltrosReporte = (
     | FiltrosEstadoPropiedades
     | FiltrosAvaluos
     | FiltrosOcupacion
+    | FiltrosCompras
+    | FiltrosObras
 )
 
 
