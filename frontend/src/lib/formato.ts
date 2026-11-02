@@ -39,8 +39,37 @@ export function formatearFecha(valor: string): string {
 
 /** Hoy en la hora local, como aaaa-mm-dd: el valor de un campo de fecha. */
 export function fechaDeHoy(): string {
+  return aTextoDeFecha(new Date())
+}
+
+function aTextoDeFecha(fecha: Date): string {
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const dia = String(fecha.getDate()).padStart(2, '0')
+  return `${fecha.getFullYear()}-${mes}-${dia}`
+}
+
+export type EstadoVencimiento = 'vencido' | 'por-vencer' | 'vigente'
+
+/**
+ * Si un documento está vencido, vence en los próximos 30 días o sigue vigente
+ * (spec 014, regla 7). Se calcula con la fecha de hoy al mostrarlo, como la
+ * mora de ventas. Las fechas aaaa-mm-dd se comparan como texto: en ese
+ * formato, el orden del texto es el de las fechas. Sin fecha de vencimiento,
+ * el documento no vence.
+ */
+export function estadoVencimiento(
+  vencimiento: string | null | undefined,
+): EstadoVencimiento {
+  if (!vencimiento) {
+    return 'vigente'
+  }
   const hoy = new Date()
-  const mes = String(hoy.getMonth() + 1).padStart(2, '0')
-  const dia = String(hoy.getDate()).padStart(2, '0')
-  return `${hoy.getFullYear()}-${mes}-${dia}`
+  const enTreintaDias = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 30)
+  if (vencimiento < aTextoDeFecha(hoy)) {
+    return 'vencido'
+  }
+  if (vencimiento <= aTextoDeFecha(enTreintaDias)) {
+    return 'por-vencer'
+  }
+  return 'vigente'
 }

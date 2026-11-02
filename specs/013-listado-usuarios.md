@@ -35,12 +35,12 @@ agente nuevo no se podría crear desde la aplicación.
 - **Filtrar "usuarios que todavía no son agentes".** `usuarios` no puede
   importar `crm` (`docs/arquitectura.md` §3). Si se elige un usuario que ya es
   agente, la API de agentes responde 409 `USUARIO_YA_ES_AGENTE` (spec 004).
+- La pantalla "Nuevo agente": es de la spec 012 (rol B).
 
 **La pantalla "Nuevo agente" debe pedir `?rol=AGENTE`** (observación de B en la
 revisión). No es opcional: `crear_agente` rechaza a un usuario con otro rol
 (`USUARIO_NO_ES_AGENTE`, spec 004, regla 1). Con el filtro, la pantalla solo
 ofrece usuarios que la API puede aceptar.
-- La pantalla "Nuevo agente": es de la spec 012 (rol B).
 
 ## 3. Reglas
 
@@ -92,8 +92,9 @@ Sin cambios.
 }
 ```
 
-`pais` es `null` si el usuario no tiene país (observación de B): el tipo
-generado lo marca como opcional, y la pantalla debe tenerlo en cuenta.
+`pais` es `null` si el usuario no tiene país (observación de B). El campo
+siempre viene en la respuesta: el tipo generado lo declara
+`PaisResumen | null`, no opcional, y la pantalla debe tener en cuenta el `null`.
 
 **Errores:** los comunes. 401 sin sesión, 403 con otro rol, y 400 `VALIDACION`
 con un rol que no existe en `?rol=`.

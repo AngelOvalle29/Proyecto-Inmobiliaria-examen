@@ -1,6 +1,6 @@
 import { createColumnHelper } from '@tanstack/react-table'
 import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 
 import { useAgentes, type Agente, type FiltrosAgentes } from '../../api/crm/consultas'
 import { useDesactivarAgente } from '../../api/crm/mutaciones'
@@ -38,6 +38,7 @@ const COLUMNAS = [
 /** Agentes (spec 012, §5). Solo administrador y gerente los administran. */
 export function ListaAgentes() {
   const { usuario } = useSesion()
+  const navegar = useNavigate()
   const [parametros, setParametros] = useSearchParams()
   const [paraEditar, setParaEditar] = useState<Agente | null>(null)
   const desactivar = useDesactivarAgente()
@@ -60,10 +61,8 @@ export function ListaAgentes() {
     setParametros(texto ? { buscar: texto } : {})
   }
 
-  const acciones: AccionFila<Agente>[] = rolPermitido(
-    usuario?.rol ?? '',
-    ADMINISTRAN_CRM,
-  )
+  const puedeAdministrar = rolPermitido(usuario?.rol ?? '', ADMINISTRAN_CRM)
+  const acciones: AccionFila<Agente>[] = puedeAdministrar
     ? [
         { etiqueta: 'Editar', ejecutar: (fila) => setParaEditar(fila) },
         {
@@ -80,7 +79,12 @@ export function ListaAgentes() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Agentes</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Agentes</h1>
+        {puedeAdministrar && (
+          <Button onClick={() => navegar('/crm/agentes/nuevo')}>Nuevo agente</Button>
+        )}
+      </div>
 
       <form onSubmit={buscar} className="flex gap-2">
         <Input

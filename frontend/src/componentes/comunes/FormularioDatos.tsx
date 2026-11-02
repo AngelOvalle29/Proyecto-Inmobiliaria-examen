@@ -34,6 +34,16 @@ export type CampoFormulario<V> =
   | (CampoBase<V> & { tipo: 'booleano' })
   | (CampoBase<V> & { tipo: 'seleccion'; opciones: Opcion[] })
   | (CampoBase<V> & {
+      /**
+       * Un archivo (spec 014, regla 5). El valor es un File, o null sin
+       * elegir. La extensión y el tamaño los revisa el esquema de Zod de la
+       * pantalla, así su error sale junto al campo.
+       */
+      tipo: 'archivo'
+      /** Extensiones que ofrece el selector del sistema: ".pdf,.jpg,.png". */
+      aceptar: string
+    })
+  | (CampoBase<V> & {
       tipo: 'relacion'
       /** Hook de búsqueda en la API; recibe el texto y los valores actuales. */
       buscar: (texto: string, valores: V) => ResultadoBusqueda
@@ -214,6 +224,29 @@ export function FormularioDatos<V extends FieldValues>({
                     field.value === valoresIniciales[campo.nombre]
                       ? campo.etiquetaInicial
                       : undefined
+                  }
+                />
+              )}
+            />
+          )
+        } else if (campo.tipo === 'archivo') {
+          // Controlado: un <input type="file"> no admite value, así que se
+          // guarda el File elegido en el formulario al cambiar.
+          control = (
+            <Controller
+              control={formulario.control}
+              name={campo.nombre}
+              render={({ field }) => (
+                <Input
+                  id={id}
+                  type="file"
+                  accept={campo.aceptar}
+                  aria-invalid={invalido}
+                  name={field.name}
+                  ref={field.ref}
+                  onBlur={field.onBlur}
+                  onChange={(evento) =>
+                    field.onChange(evento.target.files?.[0] ?? null)
                   }
                 />
               )}

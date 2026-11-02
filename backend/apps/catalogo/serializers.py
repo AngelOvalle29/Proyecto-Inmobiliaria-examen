@@ -148,7 +148,9 @@ class AvaluoSerializer(serializers.ModelSerializer):
     moneda_id = serializers.PrimaryKeyRelatedField(
         source="moneda", queryset=listar_monedas(), write_only=True
     )
-    documento = DocumentoOficialResumenSerializer(read_only=True)
+    # allow_null: un avalúo puede no tener documento, y así el esquema (y el
+    # tipo generado del frontend) lo dice (spec 014).
+    documento = DocumentoOficialResumenSerializer(read_only=True, allow_null=True)
     documento_id = serializers.PrimaryKeyRelatedField(
         source="documento",
         queryset=listar_documentos(),

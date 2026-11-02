@@ -13,3 +13,10 @@ class AccionAuditoria(models.TextChoices):
     ANULAR = "ANULAR", "Anular"
     INICIAR_SESION = "INICIAR_SESION", "Iniciar sesión"
     LOGIN_FALLIDO = "LOGIN_FALLIDO", "Inicio de sesión fallido"
+
+
+class ModoAgente(models.TextChoices):
+    """Contexto de una consulta; no habilita por sí mismo el modo interno."""
+
+    PUBLICO = "PUBLICO", "Público"
+    INTERNO = "INTERNO", "Interno"

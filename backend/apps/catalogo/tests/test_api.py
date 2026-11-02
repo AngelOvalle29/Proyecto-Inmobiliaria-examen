@@ -260,6 +260,19 @@ def test_crear_y_listar_unidades_de_una_propiedad(gerente):
     assert [u["codigo"] for u in listado.json()["results"]] == ["A-101"]
 
 
+def test_buscar_unidades_filtra_por_codigo_en_todas_las_paginas(gerente):
+    """Spec 014, regla 11: la búsqueda la hace la API, no el navegador sobre la
+    primera página. Con 30 unidades, la A-129 está en la segunda página."""
+    edificio = PropiedadFactory(tipo=tipo("Apartamentos"))
+    for numero in range(100, 130):
+        UnidadFactory(propiedad=edificio, codigo=f"A-{numero}")
+    url = f"{PROPIEDADES}{edificio.pk}/unidades/"
+
+    respuesta = gerente.get(url, {"buscar": "a-129"})
+
+    assert [u["codigo"] for u in respuesta.json()["results"]] == ["A-129"]
+
+
 def test_unidades_de_una_propiedad_inexistente_responde_404(gerente):
     assert gerente.get(f"{PROPIEDADES}999999/unidades/").status_code == 404
 

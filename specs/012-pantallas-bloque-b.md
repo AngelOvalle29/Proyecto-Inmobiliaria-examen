@@ -7,7 +7,7 @@
 | **Autor** | Marco André Bolaños Rojas (rol B) |
 | **Revisor** | Por asignar |
 | **Fecha** | 2026-10-30 |
-| **Apps afectadas** | `frontend/` (`paginas/crm`, `paginas/ventas`, `paginas/arrendamientos` y sus hooks en `api/`). Sin cambios en el backend |
+| **Apps afectadas** | `frontend/` (`paginas/crm`, `paginas/ventas`, `paginas/arrendamientos` y sus hooks en `api/`). Sin cambios en el backend: el listado de usuarios para Nuevo agente es la spec 013, de A |
 | **Rama** | `feature/012-pantallas-bloque-b` |
 | **Pull request** | — |
 
@@ -125,9 +125,9 @@ que el formulario de edición de clientes muestre el país y la ciudad actuales
 (observación de B en la revisión de #46). Si no llega, la edición de un
 cliente no cambia su país ni su ciudad, y se registra aquí.
 
-**Estado al 2026-10-30:** la etiqueta inicial aún no existe, así que la edición
-de un cliente no cambia su país ni su ciudad. Tampoco cambia su tipo, y el
-agente se cambia con Reasignar.
+**Estado al 2026-10-31:** con la etiqueta inicial (#52), la edición de un cliente
+sí cambia su país y su ciudad. No cambia su tipo, y el agente se cambia con
+Reasignar.
 
 **Agregado al implementar cotizaciones:** `FormularioDatos` tiene el tipo de
 campo `fecha`, que también usarán los formularios de firma, y solo pone junto
@@ -141,8 +141,10 @@ opciones de propiedad y unidad viven en `api/catalogo/consultas.ts`, y
 `LayoutPrincipal` lleva `min-w-0` para que una tabla ancha haga scroll dentro de
 sí misma.
 
-**Pendiente:** `/crm/agentes/nuevo` no está implementada: elegir el usuario
-necesita un endpoint que liste usuarios, y la API no lo tiene.
+**Nuevo agente:** `/crm/agentes/nuevo` elige el usuario con `GET
+/usuarios/?rol=AGENTE` (spec 013). El filtro es obligatorio, porque la API
+rechaza a un usuario con otro rol. La lista incluye a quienes ya son agentes: en
+ese caso la API responde 409 `USUARIO_YA_ES_AGENTE`, arriba del formulario.
 
 **Agregado al verificar §8:** el `QueryClient` ya no reintenta los errores 4xx,
 porque un 404 de un contrato ajeno dejaba la pantalla unos 7 segundos en

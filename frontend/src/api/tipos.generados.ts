@@ -226,6 +226,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/constructoras/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/constructoras/ */
+        get: operations["v1_constructoras_list"];
+        put?: never;
+        /**
+         * Registrar una constructora
+         * @description GET y POST /api/v1/constructoras/
+         */
+        post: operations["v1_constructoras_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/constructoras/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET, PATCH y DELETE /api/v1/constructoras/{id}/
+         *
+         *     get_object busca entre las constructoras activas: una desactivada responde
+         *     404, igual que una que no existe.
+         */
+        get: operations["v1_constructoras_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * Desactivar una constructora
+         * @description GET, PATCH y DELETE /api/v1/constructoras/{id}/
+         *
+         *     get_object busca entre las constructoras activas: una desactivada responde
+         *     404, igual que una que no existe.
+         */
+        delete: operations["v1_constructoras_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar los datos de una constructora
+         * @description GET, PATCH y DELETE /api/v1/constructoras/{id}/
+         *
+         *     get_object busca entre las constructoras activas: una desactivada responde
+         *     404, igual que una que no existe.
+         */
+        patch: operations["v1_constructoras_partial_update"];
+        trace?: never;
+    };
     "/api/v1/contratos-arrendamiento/": {
         parameters: {
             query?: never;
@@ -709,15 +766,72 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description GET y POST /api/v1/propiedades/{id}/unidades/ */
+        /** @description GET y POST /api/v1/propiedades/{id}/unidades/?buscar= (código) */
         get: operations["v1_propiedades_unidades_list"];
         put?: never;
-        /** @description GET y POST /api/v1/propiedades/{id}/unidades/ */
+        /** @description GET y POST /api/v1/propiedades/{id}/unidades/?buscar= (código) */
         post: operations["v1_propiedades_unidades_create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proveedores/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/proveedores/ */
+        get: operations["v1_proveedores_list"];
+        put?: never;
+        /**
+         * Registrar un proveedor
+         * @description GET y POST /api/v1/proveedores/
+         */
+        post: operations["v1_proveedores_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proveedores/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET, PATCH y DELETE /api/v1/proveedores/{id}/
+         *
+         *     get_object busca entre los proveedores activos: uno desactivado responde
+         *     404, igual que uno que no existe.
+         */
+        get: operations["v1_proveedores_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * Desactivar un proveedor
+         * @description GET, PATCH y DELETE /api/v1/proveedores/{id}/
+         *
+         *     get_object busca entre los proveedores activos: uno desactivado responde
+         *     404, igual que uno que no existe.
+         */
+        delete: operations["v1_proveedores_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * Editar los datos de un proveedor
+         * @description GET, PATCH y DELETE /api/v1/proveedores/{id}/
+         *
+         *     get_object busca entre los proveedores activos: uno desactivado responde
+         *     404, igual que uno que no existe.
+         */
+        patch: operations["v1_proveedores_partial_update"];
         trace?: never;
     };
     "/api/v1/tipos-cambio/": {
@@ -936,7 +1050,7 @@ export interface components {
             moneda_id: number;
             perito: string;
             metodologia: string;
-            readonly documento: components["schemas"]["DocumentoOficialResumen"];
+            readonly documento: components["schemas"]["DocumentoOficialResumen"] | null;
             documento_id?: number | null;
             observaciones?: string;
         };
@@ -1010,6 +1124,31 @@ export interface components {
             id: number;
             codigo: string;
             nombre: string;
+        };
+        /** @description Salida de una constructora, con su país resumido. */
+        Constructora: {
+            readonly id: number;
+            codigo?: string | null;
+            nombre: string;
+            nit: string;
+            contacto?: string;
+            email?: string;
+            telefono?: string;
+            pais: components["schemas"]["PaisResumen"];
+            calificacion?: number | null;
+            activo?: boolean;
+        };
+        /** @description Entrada para crear (POST) o editar (PATCH, parcial) una constructora. */
+        ConstructoraEntrada: {
+            nombre: string;
+            nit: string;
+            /** @default  */
+            contacto: string;
+            email?: string;
+            /** @default  */
+            telefono: string;
+            pais: number;
+            calificacion?: number | null;
         };
         /** @description Salida de un contrato en el listado (sin sus cuotas). */
         ContratoVenta: {
@@ -1379,6 +1518,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Cliente"][];
         };
+        PaginatedConstructoraList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Constructora"][];
+        };
         PaginatedContratoVentaList: {
             /** @example 123 */
             count: number;
@@ -1468,6 +1622,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Propiedad"][];
+        };
+        PaginatedProveedorList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Proveedor"][];
         };
         PaginatedTipoCambioList: {
             /** @example 123 */
@@ -1597,6 +1766,18 @@ export interface components {
             notas?: string;
             agente_asignado?: number;
         };
+        /** @description Entrada para crear (POST) o editar (PATCH, parcial) una constructora. */
+        PatchedConstructoraEntrada: {
+            nombre?: string;
+            nit?: string;
+            /** @default  */
+            contacto: string;
+            email?: string;
+            /** @default  */
+            telefono: string;
+            pais?: number;
+            calificacion?: number | null;
+        };
         /** @description Entrada para editar un borrador (regla 4). Nunca el total (regla 2). */
         PatchedCotizacionEditar: {
             /** Format: decimal */
@@ -1652,6 +1833,25 @@ export interface components {
             /** Format: date-time */
             readonly actualizado_en?: string;
         };
+        /**
+         * @description Entrada para crear (POST) o editar (PATCH, parcial) un proveedor.
+         *
+         *     El NIT llega como lo escribe el usuario; el servicio lo normaliza y decide
+         *     si es obligatorio según el tipo (spec 006, reglas 2 y 3).
+         */
+        PatchedProveedorEntrada: {
+            tipo?: components["schemas"]["TipoC9bEnum"];
+            nombre?: string;
+            /** @default  */
+            nit: string;
+            email?: string;
+            /** @default  */
+            telefono: string;
+            pais?: number;
+            ciudad?: number | null;
+            /** @default  */
+            direccion: string;
+        };
         PatchedTipoPropiedad: {
             readonly id?: number;
             nombre?: string;
@@ -1706,6 +1906,40 @@ export interface components {
             id: number;
             codigo: string;
         };
+        /** @description Salida de un proveedor, con su país y ciudad resumidos. */
+        Proveedor: {
+            readonly id: number;
+            codigo?: string | null;
+            tipo: components["schemas"]["TipoC9bEnum"];
+            nombre: string;
+            /** @default  */
+            nit: string;
+            email?: string;
+            telefono?: string;
+            pais: components["schemas"]["PaisResumen"];
+            ciudad: components["schemas"]["CiudadResumen"] | null;
+            direccion?: string;
+            activo?: boolean;
+        };
+        /**
+         * @description Entrada para crear (POST) o editar (PATCH, parcial) un proveedor.
+         *
+         *     El NIT llega como lo escribe el usuario; el servicio lo normaliza y decide
+         *     si es obligatorio según el tipo (spec 006, reglas 2 y 3).
+         */
+        ProveedorEntrada: {
+            tipo: components["schemas"]["TipoC9bEnum"];
+            nombre: string;
+            /** @default  */
+            nit: string;
+            email?: string;
+            /** @default  */
+            telefono: string;
+            pais: number;
+            ciudad?: number | null;
+            /** @default  */
+            direccion: string;
+        };
         ReasignarCliente: {
             agente: number;
         };
@@ -1718,6 +1952,15 @@ export interface components {
             /** Format: date */
             fecha_rescision: string;
         };
+        /**
+         * @description * `PROPIETARIO_PARTICULAR` - Propietario particular
+         *     * `INMOBILIARIA` - Inmobiliaria
+         *     * `BANCO` - Banco
+         *     * `GOBIERNO` - Gobierno
+         *     * `OTRO` - Otro
+         * @enum {string}
+         */
+        TipoC9bEnum: "PROPIETARIO_PARTICULAR" | "INMOBILIARIA" | "BANCO" | "GOBIERNO" | "OTRO";
         TipoCambio: {
             readonly id: number;
             moneda_origen: components["schemas"]["MonedaResumen"];
@@ -2226,6 +2469,124 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Cliente"];
+                };
+            };
+        };
+    };
+    v1_constructoras_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                calificacion_min?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedConstructoraList"];
+                };
+            };
+        };
+    };
+    v1_constructoras_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConstructoraEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConstructoraEntrada"];
+                "multipart/form-data": components["schemas"]["ConstructoraEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Constructora"];
+                };
+            };
+        };
+    };
+    v1_constructoras_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Constructora"];
+                };
+            };
+        };
+    };
+    v1_constructoras_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_constructoras_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedConstructoraEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedConstructoraEntrada"];
+                "multipart/form-data": components["schemas"]["PatchedConstructoraEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Constructora"];
                 };
             };
         };
@@ -3143,6 +3504,7 @@ export interface operations {
     v1_propiedades_unidades_list: {
         parameters: {
             query?: {
+                buscar?: string;
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
             };
@@ -3187,6 +3549,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Unidad"];
+                };
+            };
+        };
+    };
+    v1_proveedores_list: {
+        parameters: {
+            query?: {
+                buscar?: string;
+                ciudad?: number;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                pais?: number;
+                /**
+                 * @description * `PROPIETARIO_PARTICULAR` - Propietario particular
+                 *     * `INMOBILIARIA` - Inmobiliaria
+                 *     * `BANCO` - Banco
+                 *     * `GOBIERNO` - Gobierno
+                 *     * `OTRO` - Otro
+                 */
+                tipo?: "BANCO" | "GOBIERNO" | "INMOBILIARIA" | "OTRO" | "PROPIETARIO_PARTICULAR";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedProveedorList"];
+                };
+            };
+        };
+    };
+    v1_proveedores_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProveedorEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProveedorEntrada"];
+                "multipart/form-data": components["schemas"]["ProveedorEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proveedor"];
+                };
+            };
+        };
+    };
+    v1_proveedores_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proveedor"];
+                };
+            };
+        };
+    };
+    v1_proveedores_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_proveedores_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedProveedorEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedProveedorEntrada"];
+                "multipart/form-data": components["schemas"]["PatchedProveedorEntrada"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proveedor"];
                 };
             };
         };
