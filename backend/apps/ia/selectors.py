@@ -3,6 +3,7 @@
 Nunca escriben en la base de datos.
 """
 
+from django.db.models import Count, QuerySet
 from pgvector.django import CosineDistance
 
 from .models import DocumentoRAG, FragmentoRAG
@@ -32,4 +33,16 @@ def buscar_fragmentos_similares(
         .filter(distancia__lte=distancia_maxima)
         .select_related("documento")
         .order_by("distancia")[:limite]
+    )
+
+
+def listar_documentos_rag() -> QuerySet[DocumentoRAG]:
+    """Los documentos activos del agente, por título, con cuántos fragmentos
+    tiene cada uno en la base (spec 020, §5). El conteo va en la misma
+    consulta, para no hacer una por documento."""
+    return (
+        DocumentoRAG.objects.filter(activo=True)
+        .select_related("pais")
+        .annotate(cantidad_fragmentos=Count("fragmentos"))
+        .order_by("titulo", "id")
     )

@@ -295,6 +295,8 @@ SPECTACULAR_SETTINGS = {
         "EstadoCuotaEnum": "apps.ventas.enums.EstadoCuota",
         "EstadoArrendamientoEnum": "apps.arrendamientos.enums.EstadoArrendamiento",
         "EstadoPagoRentaEnum": "apps.arrendamientos.enums.EstadoPagoRenta",
+        "TipoDocumentoRAGEnum": "apps.ia.enums.TipoDocumentoRAG",
+        "EstadoIndexacionEnum": "apps.ia.enums.EstadoIndexacion",
     },
 }
 
