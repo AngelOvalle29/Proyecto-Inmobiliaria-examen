@@ -6,6 +6,7 @@ from django.http import Http404
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.catalogo.enums import EstadoPropiedad, TipoDocumento
+from apps.construccion.enums import EstadoProyecto
 from apps.crm.enums import EstadoCotizacion, TipoCliente
 from apps.usuarios.enums import NombreRol
 from apps.ventas.enums import ModalidadVenta
@@ -326,6 +327,84 @@ CATALOGO.update(
                 Columna("ingreso_recurrente", "Renta mensual vigente"),
             ],
             "filtros": [PAIS, CIUDAD, TIPO_PROPIEDAD],
+        },
+    }
+)
+
+
+# Compras y construcción (spec 021, regla 7): administración, gerencia y
+# contabilidad. Los hizo A en el cierre, sobre los modelos de la spec 017.
+FINANZAS = [NombreRol.ADMINISTRADOR, NombreRol.GERENTE, NombreRol.CONTABILIDAD]
+
+CATALOGO.update(
+    {
+        "compras-proveedores": {
+            "codigo": "R13",
+            "titulo": "Compras por proveedor",
+            "roles": FINANZAS,
+            "columnas": [
+                Columna("codigo", "Contrato"),
+                Columna("fecha_compra", "Compra", "fecha", "dd/mm/yyyy"),
+                Columna("proveedor_nombre", "Proveedor"),
+                Columna("propiedad_codigo", "Código"),
+                Columna("propiedad_nombre", "Propiedad"),
+                Columna("moneda_codigo", "Moneda"),
+                Columna("monto", "Monto", "decimal", "#,##0.00", "right"),
+                Columna(
+                    "gastos_legales", "Gastos legales", "decimal", "#,##0.00", "right"
+                ),
+                Columna("impuestos", "Impuestos", "decimal", "#,##0.00", "right"),
+                Columna("costo_total", "Costo total", "decimal", "#,##0.00", "right"),
+                Columna("costo_total_usd", "Costo USD", "decimal", "#,##0.00", "right"),
+            ],
+            "filtros": [
+                *filtros_periodo("Compra"),
+                filtro("proveedor", "Proveedor", "entero", "/proveedores/"),
+                PAIS,
+                MONEDA,
+            ],
+        },
+        "avance-presupuesto-obra": {
+            "codigo": "R15",
+            "titulo": "Avance y presupuesto de obra",
+            "roles": FINANZAS,
+            "columnas": [
+                Columna("codigo", "Proyecto"),
+                Columna("nombre", "Nombre"),
+                Columna("constructora_nombre", "Constructora"),
+                Columna("propiedad_codigo", "Propiedad"),
+                Columna("estado", "Estado"),
+                Columna("fecha_inicio", "Inicio", "fecha", "dd/mm/yyyy"),
+                Columna("fecha_fin_estimada", "Fin estimado", "fecha", "dd/mm/yyyy"),
+                Columna("fecha_fin_real", "Fin real", "fecha", "dd/mm/yyyy"),
+                Columna("desviacion_dias", "Días de atraso", "entero"),
+                Columna("moneda_codigo", "Moneda"),
+                Columna(
+                    "presupuesto_total", "Presupuesto", "decimal", "#,##0.00", "right"
+                ),
+                Columna("programado", "Programado", "decimal", "#,##0.00", "right"),
+                Columna("pagado", "Pagado", "decimal", "#,##0.00", "right"),
+                Columna("comprometido", "Comprometido", "decimal", "#,##0.00", "right"),
+                Columna("disponible", "Disponible", "decimal", "#,##0.00", "right"),
+                Columna(
+                    "saldo_por_pagar", "Saldo por pagar", "decimal", "#,##0.00", "right"
+                ),
+                Columna("porcentaje_avance", "Avance físico %", "entero"),
+                Columna(
+                    "avance_financiero",
+                    "Avance financiero %",
+                    "decimal",
+                    "#,##0.00",
+                    "right",
+                ),
+            ],
+            "filtros": [
+                filtro("constructora", "Constructora", "entero", "/constructoras/"),
+                filtro("estado", "Estado", opciones=opciones(EstadoProyecto.choices)),
+                PAIS,
+                *filtros_periodo("Inicio"),
+                MONEDA,
+            ],
         },
     }
 )

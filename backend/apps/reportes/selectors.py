@@ -26,6 +26,7 @@ from .estructuras import (
 )
 from .selectors_catalogo import REPORTES_CATALOGO
 from .selectors_comerciales import REPORTES_COMERCIALES
+from .selectors_compras_obra import REPORTES_COMPRAS_OBRA
 
 GUATEMALA = ZoneInfo("America/Guatemala")
 
@@ -139,6 +140,8 @@ def resumir_reporte(
         return REPORTES_COMERCIALES[slug][0](filtros=filtros, usuario=usuario)
     if slug in REPORTES_CATALOGO:
         return REPORTES_CATALOGO[slug][0](filtros=filtros, usuario=usuario)
+    if slug in REPORTES_COMPRAS_OBRA:
+        return REPORTES_COMPRAS_OBRA[slug][0](filtros=filtros, usuario=usuario)
     if slug == "inventario-disponible":
         grupos, monedas = {}, {}
         count, area = 0, Decimal("0.00")
@@ -224,6 +227,10 @@ def seleccionar_filas_reporte(
         )
     if slug in REPORTES_CATALOGO:
         return REPORTES_CATALOGO[slug][1](
+            filtros=filtros, usuario=usuario, offset=offset, limite=limite
+        )
+    if slug in REPORTES_COMPRAS_OBRA:
+        return REPORTES_COMPRAS_OBRA[slug][1](
             filtros=filtros, usuario=usuario, offset=offset, limite=limite
         )
     if slug == "inventario-disponible":

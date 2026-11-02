@@ -300,6 +300,32 @@ const ETIQUETAS_RESUMEN: Record<string, string> = {
   moneda: 'Moneda',
   vencidos: 'Vencidos',
   por_vencer: 'Por vencer',
+  // R01, R02, R03, R04, R10 y R11 (spec 021, rol B).
+  con_cotizacion: 'Con cotización',
+  por_moneda: 'Por moneda',
+  neto: 'Neto',
+  comision: 'Comisión',
+  bruto: 'Precio bruto',
+  descuento: 'Descuento',
+  agentes: 'Agentes',
+  emitidas: 'Cotizaciones emitidas',
+  aprobadas: 'Aprobadas',
+  vinculadas: 'Con contrato',
+  ventas_directas: 'Ventas sin cotización',
+  conversion_pct: 'Conversión %',
+  aprobacion_pct: 'Aprobación %',
+  vendido_usd: 'Vendido USD',
+  comision_usd: 'Comisión USD',
+  por_estado: 'Por estado',
+  con_contrato: 'Con contrato',
+  total: 'Total',
+  contratos: 'Contratos de venta',
+  arrendamientos_vigentes: 'Arrendamientos vigentes',
+  saldos_actuales: 'Saldos actuales',
+  exigible: 'Exigible',
+  pagado: 'Pagado',
+  saldo: 'Saldo',
+  saldo_por_moneda: 'Saldo por moneda',
   // R06, R08 y R14 (spec 021, rol A).
   estado: 'Estado',
   sin_historia: 'Sin historia de estado',
@@ -315,13 +341,30 @@ const ETIQUETAS_RESUMEN: Record<string, string> = {
   otros: 'Otros estados',
   ocupacion_pct: 'Ocupación %',
   ingreso_por_moneda: 'Renta mensual vigente por moneda',
+  // R13 y R15 (spec 021). por_moneda y pagado ya están en el bloque de B.
+  proveedor: 'Proveedor',
+  constructora: 'Constructora',
+  mes: 'Mes',
+  monto: 'Monto',
+  gastos_legales: 'Gastos legales',
+  impuestos: 'Impuestos',
+  costo_total: 'Costo total',
+  costo_por_moneda: 'Costo por moneda',
+  costo_usd: 'Costo en USD',
+  atrasados: 'Proyectos atrasados',
+  pagado_usd: 'Pagado en USD',
+  presupuesto_total: 'Presupuesto',
+  programado: 'Programado',
+  comprometido: 'Comprometido',
+  disponible: 'Disponible',
+  saldo_por_pagar: 'Saldo por pagar',
 }
 
 function mostrarTotal(valor: unknown): string {
   if (typeof valor === 'number') return valor.toLocaleString('es-GT')
   if (typeof valor === 'string' && /^-?\d+\.\d+$/.test(valor))
     return mostrar(valor, 'decimal')
-  return String(valor ?? '')
+  return String(valor ?? 'Sin dato')
 }
 
 function Resumen({ valores }: { valores: Record<string, unknown> }) {

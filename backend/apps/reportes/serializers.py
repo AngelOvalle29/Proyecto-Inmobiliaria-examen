@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.catalogo.enums import EstadoPropiedad, TipoDocumento
+from apps.construccion.enums import EstadoProyecto
 from apps.crm.enums import EstadoCotizacion, TipoCliente
 from apps.ventas.enums import ModalidadVenta
 
@@ -12,11 +13,13 @@ from .estructuras import (
     FiltrosAvaluos,
     FiltrosBitacora,
     FiltrosClientes,
+    FiltrosCompras,
     FiltrosCotizaciones,
     FiltrosEstadoCuenta,
     FiltrosEstadoPropiedades,
     FiltrosInventario,
     FiltrosMorosidad,
+    FiltrosObras,
     FiltrosOcupacion,
     FiltrosVencimientos,
     FiltrosVentas,
@@ -211,6 +214,19 @@ class FiltrosOcupacionSerializer(FiltrosBaseSerializer):
     tipo = serializers.IntegerField(min_value=1, required=False)
 
 
+class FiltrosComprasSerializer(FiltrosPeriodoSerializer):
+    proveedor = serializers.IntegerField(min_value=1, required=False)
+    pais = serializers.IntegerField(min_value=1, required=False)
+    moneda = serializers.RegexField(r"^[A-Z]{3}$", required=False)
+
+
+class FiltrosObrasSerializer(FiltrosPeriodoSerializer):
+    constructora = serializers.IntegerField(min_value=1, required=False)
+    estado = serializers.ChoiceField(choices=EstadoProyecto.choices, required=False)
+    pais = serializers.IntegerField(min_value=1, required=False)
+    moneda = serializers.RegexField(r"^[A-Z]{3}$", required=False)
+
+
 FILTROS = {
     "inventario-disponible": (FiltrosInventarioSerializer, FiltrosInventario),
     "documentos-por-vencer": (FiltrosVencimientosSerializer, FiltrosVencimientos),
@@ -227,6 +243,8 @@ FILTROS = {
     ),
     "evolucion-avaluos": (FiltrosAvaluosSerializer, FiltrosAvaluos),
     "ocupacion-arrendamientos": (FiltrosOcupacionSerializer, FiltrosOcupacion),
+    "compras-proveedores": (FiltrosComprasSerializer, FiltrosCompras),
+    "avance-presupuesto-obra": (FiltrosObrasSerializer, FiltrosObras),
 }
 
 
