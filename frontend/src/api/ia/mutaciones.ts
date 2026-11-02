@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { clienteApi } from '../cliente'
+import type { components } from '../tipos.generados'
 import type { DocumentoAgente, TipoDocumentoAgente } from './consultas'
 
 /** Después de escribir, la lista se vuelve a pedir y muestra el estado nuevo. */
@@ -75,5 +76,20 @@ export function useDesactivarDocumentoAgente() {
       await clienteApi.delete(`/documentos-agente/${id}/`)
     },
     onSuccess: invalidar,
+  })
+}
+
+export type RespuestaAgente = components['schemas']['RespuestaAgente']
+export type CitaAgente = components['schemas']['Cita']
+
+/**
+ * POST /agente/consultas/: la pregunta de un visitante (spec 005). Es una
+ * mutación y no una consulta: cada pregunta es una llamada nueva a Gemini, y
+ * su respuesta no se guarda en caché (spec 018, §5: no se guardan).
+ */
+export function useConsultarAgente() {
+  return useMutation({
+    mutationFn: async (pregunta: string) =>
+      (await clienteApi.post<RespuestaAgente>('/agente/consultas/', { pregunta })).data,
   })
 }
