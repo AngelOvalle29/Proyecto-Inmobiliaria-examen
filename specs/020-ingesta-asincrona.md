@@ -65,7 +65,10 @@ se fusione.
    - 200 KB son unas 50 páginas de texto: sobra para una política, y limita los
      vectores que se piden a Gemini por documento.
    - Un archivo que no es texto UTF-8, o vacío, responde 400
-     `ARCHIVO_NO_PERMITIDO`.
+     `ARCHIVO_NO_PERMITIDO`. Es una excepción propia de `ia`
+     (`ArchivoRAGNoPermitido`) con el mismo código que la del catálogo: importar
+     la de `catalogo` crearía una dependencia `ia → catalogo` que hoy no existe
+     (revisión de C en #74).
 2. **Reemplazar** sube otro archivo para el mismo documento: si el texto cambió,
    sube la versión (`actualizar_contenido_documento`, spec 005). Si es igual, no
    cambia nada ni se encola.
@@ -100,12 +103,16 @@ se fusione.
 
 **Estado y lectura**
 
-11. **Estados:** `PENDIENTE` (encolado o indexando), `INDEXADO` y `ERROR`. Solo
-    los `INDEXADO` tienen fragmentos de su versión actual. Uno `PENDIENTE` o en
-    `ERROR` sigue respondiendo con los fragmentos que tenía.
-12. **Reindexar** encola de nuevo un documento `INDEXADO` o en `ERROR`. Uno ya
-    `PENDIENTE` responde 409 `INDEXACION_EN_CURSO`, para no encolar dos veces
-    lo mismo.
+11. **Estados:** `PENDIENTE` (sin indexar su versión actual), `INDEXADO` y
+    `ERROR`. Solo los `INDEXADO` tienen fragmentos de su versión actual. Uno
+    `PENDIENTE` o en `ERROR` sigue respondiendo con los fragmentos que tenía.
+    - `PENDIENTE` no garantiza que haya un mensaje en la cola: `cargar_demo_ia`
+      sin `IA_API_KEY` deja los documentos así, sin encolarlos (revisión de C en
+      #74). Por eso reindexar vale en cualquier estado (regla 12).
+12. **Reindexar** encola de nuevo el documento, **en cualquier estado**, y lo
+    deja `PENDIENTE`. Si ya había un mensaje en la cola, el documento se indexa
+    dos veces, y eso es seguro (regla 10). Así un documento nunca queda
+    atascado: si no avanza, se reindexa.
 13. **Desactivar** saca el documento de las respuestas sin borrar sus fragmentos
     (spec 005, regla 4).
 
@@ -162,15 +169,11 @@ que falta es indexarlo. Reindexar responde **202 Accepted**: solo encola.
 lista no incluye el texto completo; el detalle tampoco, porque no hace falta
 para ninguna pantalla.
 
-**Errores nuevos:**
-
-| Código | Situación | HTTP |
-|---|---|---|
-| `INDEXACION_EN_CURSO` | Reindexar un documento `PENDIENTE` (regla 12) | 409 |
-
-Ya existen `DOCUMENTO_RAG_DUPLICADO` (409, spec 005) y `ARCHIVO_NO_PERMITIDO`
-(400, spec 011), que aquí cubre un archivo que no es Markdown UTF-8 o pasa de
-200 KB.
+**Errores:** no hay códigos nuevos.
+- `DOCUMENTO_RAG_DUPLICADO` (409) ya existe en la spec 005.
+- `ARCHIVO_NO_PERMITIDO` (400) usa el mismo código que la spec 011, con una
+  excepción propia de `ia` (regla 1). Aquí cubre un archivo que no es Markdown
+  UTF-8 o pasa de 200 KB.
 
 ## 6. Servicios, selectores y tareas
 
@@ -192,6 +195,8 @@ def listar_documentos_rag(*) -> QuerySet[DocumentoRAG]   # con el conteo de frag
 def indexar_documento_tarea(self, documento_id: int) -> None
 ```
 
+- **`ia/exceptions.py`** agrega `ArchivoRAGNoPermitido(ErrorDominio)`, con
+  código `ARCHIVO_NO_PERMITIDO` y estado 400 (regla 1).
 - **`subir_documento_rag` y `reemplazar_documento_rag`** leen el archivo como
   UTF-8 y llaman a `crear_documento_rag` o `actualizar_contenido_documento` de
   la spec 005, que ya auditan. Después ponen `PENDIENTE` y llaman a
@@ -216,7 +221,8 @@ def indexar_documento_tarea(self, documento_id: int) -> None
 
 ```
 src/api/ia/consultas.ts          useDocumentosAgente(filtros), con refetchInterval
-                                 de 5 s mientras alguno esté PENDIENTE (§10)
+                                 de 5 s mientras algún PENDIENTE se haya modificado
+                                 hace menos de 10 minutos (§10)
 src/api/ia/mutaciones.ts         subir, reemplazar, reindexar y desactivar
 src/paginas/asistente/
   ListaDocumentosAgente.tsx      TablaDatos: título, tipo, país, versión, estado,
@@ -254,11 +260,14 @@ del worker va al log de Render.
       documento queda en `ERROR` con el motivo; reindexar lo recupera
 - [ ] Un archivo que no es Markdown UTF-8, o de más de 200 KB, responde 400
       `ARCHIVO_NO_PERMITIDO`; un título repetido, 409 `DOCUMENTO_RAG_DUPLICADO`
-- [ ] Reindexar un documento `PENDIENTE` responde 409 `INDEXACION_EN_CURSO`
+- [ ] Con `cargar_demo_ia` sin `IA_API_KEY`, los documentos quedan `PENDIENTE`;
+      reindexar con la llave puesta los deja `INDEXADO`
+- [ ] Reindexar un documento `PENDIENTE` lo vuelve a encolar sin error
 - [ ] Desactivar saca el documento de las respuestas del agente
 - [ ] `AGENTE`, `CONTABILIDAD` y `CONSULTA` reciben 403 y no ven la entrada del
       menú
-- [ ] La pantalla actualiza el estado sola mientras haya documentos `PENDIENTE`
+- [ ] La pantalla actualiza el estado sola mientras haya un `PENDIENTE` reciente,
+      y deja de consultar cuando no
 - [ ] Cada acción queda en la bitácora de auditoría (§7)
 - [ ] En producción, el log de Render muestra la tarea `ia.indexar_documento`
       recibida en la cola `documentos` y terminada
@@ -274,7 +283,8 @@ del worker va al log de Render.
 | Tarea | Éxito: llama a `indexar_documento` y el documento queda `INDEXADO` |
 | Tarea | `ProveedorIANoDisponible`: reintenta; al agotar los reintentos queda `ERROR` con el motivo y conserva los fragmentos |
 | Tarea | `DocumentoModificadoDuranteIndexacion` y documento inexistente: termina sin reintentar |
-| API | 201 al subir, 400 por archivo, 409 duplicado, 409 al reindexar en curso, 403 por rol |
+| Servicio | Reindexar un `PENDIENTE` lo vuelve a encolar |
+| API | 201 al subir, 400 por archivo, 409 duplicado, 202 al reindexar en cualquier estado, 403 por rol |
 | Manual | Cada criterio de §8, en local (RabbitMQ de `docker compose` y `celery -A config worker -Q celery,documentos` en otra terminal) y en producción |
 
 Las pruebas usan el proveedor falso de la spec 005 y nunca llaman a Gemini.
@@ -301,9 +311,16 @@ mismo proceso.
   worker se reinicia a mitad de la tarea, el mensaje se pierde y el documento
   queda `PENDIENTE` para siempre. Con `acks_late` se confirma al terminar.
   Repetir es seguro, porque indexar reemplaza los fragmentos.
-- **Consultar cada 5 segundos mientras haya pendientes.** Lo más simple que
-  muestra el flujo sin WebSockets. Se detiene solo cuando no hay pendientes, así
-  no gasta peticiones.
+- **Consultar cada 5 segundos mientras haya un pendiente reciente.** Lo más
+  simple que muestra el flujo sin WebSockets. Una indexación tarda segundos, y
+  con los reintentos, unos 7 minutos como máximo (regla 6). Un pendiente de
+  hace más de 10 minutos ya no va a cambiar solo: la pantalla deja de consultar,
+  y quien lo vea lo reindexa. Sin ese límite, un documento atascado haría
+  consultar a la pantalla para siempre (revisión de C en #74).
+- **Reindexar en cualquier estado, sin un error `INDEXACION_EN_CURSO`.** Se
+  pensó en rechazar reindexar un pendiente para no encolar dos veces. Pero el
+  estado no garantiza que haya un mensaje en la cola (regla 11), y un rechazo
+  dejaría el documento sin salida. Indexar dos veces es seguro (regla 10).
 - **Archivo `.md` y no un campo de texto.** "Subir un documento" es la acción
   que describe el plan, y reutiliza el campo `'archivo'` de `FormularioDatos`
   (spec 014).
@@ -326,6 +343,15 @@ lo confirmaron. Para el borrador, el agente revisó:
 
 Las razones para no usar los documentos oficiales (§10) son una propuesta del
 agente, a validar en la revisión.
+
+**Revisión de C (Angel) en #74**, dos cambios aplicados:
+1. Un documento podía quedar `PENDIENTE` para siempre, si `cargar_demo_ia` corre
+   sin `IA_API_KEY`. Reindexar vale ahora en cualquier estado (regla 12), y la
+   pantalla deja de consultar después de 10 minutos (§10). De las dos opciones
+   que propuso C se eligió esta, porque no toca `cargar_demo_ia` y sirve para
+   cualquier pendiente atascado, no solo el del demo.
+2. `ARCHIVO_NO_PERMITIDO` con una excepción propia de `ia` (regla 1), sin
+   importar `catalogo`.
 
 **Plan de implementación** (después de #62):
 1. Campos y migración; servicios, tarea, rutas de Celery y cola del worker;
