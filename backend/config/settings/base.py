@@ -239,7 +239,11 @@ REST_FRAMEWORK = {
     # separados: detrás de una misma IP pública (la red de la universidad en la
     # defensa) entran varias personas a la vez, y renovar el token no debe
     # gastar los intentos de login de nadie (spec 001, §5).
-    "DEFAULT_THROTTLE_RATES": {"login": "30/min", "renovacion": "60/min"},
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "30/min",
+        "agente": "10/min",
+        "renovacion": "60/min",
+    },
     # Cuántos proxies propios hay delante de Django. Define qué IP es la real:
     # 0 (desarrollo) ignora X-Forwarded-For, que cualquier cliente puede
     # inventar; en producción (Render) hay tres y se configura NUM_PROXIES=3
@@ -323,3 +327,19 @@ CELERY_WORKER_SEND_TASK_EVENTS = False
 # Si RabbitMQ no está listo cuando arranca el worker, reintenta en lugar de
 # terminar: en Render, el contenedor puede despertar antes que la conexión.
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# ---------- Agente de IA (spec 005) ----------
+
+# La llave es opcional: sin ella el agente responde 503 y el resto del sistema
+# funciona igual. Así nadie necesita una llave de Gemini para correr las
+# pruebas, que usan un proveedor falso.
+IA_PROVEEDOR = env("IA_PROVEEDOR", default="gemini")
+IA_API_KEY = env("IA_API_KEY", default="")
+IA_MODELO = env("IA_MODELO", default="gemini-3.5-flash-lite")
+IA_MODELO_EMBEDDINGS = env("IA_MODELO_EMBEDDINGS", default="gemini-embedding-001")
+# Debe coincidir con DIMENSION_EMBEDDINGS de apps/ia/models.py.
+IA_DIMENSION_EMBEDDINGS = env.int("IA_DIMENSION_EMBEDDINGS", default=768)
+IA_MAX_TOKENS_RESPUESTA = env.int("IA_MAX_TOKENS_RESPUESTA", default=1024)
+# Distancia de coseno máxima para usar un fragmento (0 = mismo significado).
+# 0.42: en la prueba real del 2026-10-31 las preguntas relevantes quedaron
+# entre 0.19 y 0.38 y las ajenas desde 0.47.
+IA_DISTANCIA_MAXIMA = env.float("IA_DISTANCIA_MAXIMA", default=0.42)

@@ -287,13 +287,19 @@ class ProveedorIA(ABC):
         """Respuesta del modelo, con las llamadas a herramientas que solicite."""
 
     @abstractmethod
-    def generar_embedding(self, *, texto: str) -> list[float]:
+    def generar_embedding(self, *, texto: str, tarea: TareaEmbedding) -> list[float]:
         """Vector del texto, para indexar o para consultar el RAG."""
 
     @abstractmethod
-    def generar_embeddings_lote(self, *, textos: list[str]) -> list[list[float]]:
+    def generar_embeddings_lote(
+        self, *, textos: list[str], tarea: TareaEmbedding
+    ) -> list[list[float]]:
         """Versión por lotes, para la ingesta de documentos."""
 ```
+
+`TareaEmbedding` (`DOCUMENTO`, `CONSULTA`) indica si el vector es de un
+fragmento que se indexa o de una pregunta que se busca: Gemini da mejores
+resultados si lo sabe (spec 005).
 
 `apps/ia/proveedores/gemini.py` implementa esta interfaz y una fábrica la
 instancia según la variable `IA_PROVEEDOR`. Cambiar de proveedor es un archivo
