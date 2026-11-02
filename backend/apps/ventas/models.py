@@ -77,6 +77,16 @@ class ContratoVenta(ModeloBase):
         max_length=10, choices=EstadoContrato.choices, default=EstadoContrato.VIGENTE
     )
     observaciones = models.TextField(blank=True)
+    # El contrato firmado, escaneado, entre los documentos de la propiedad. Lo
+    # apunta el contrato y no al revés: catalogo no depende de ventas (spec 011,
+    # §10). Opcional: suele subirse después de firmar.
+    documento = models.ForeignKey(
+        "catalogo.DocumentoOficial",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="contratos_venta",
+    )
 
     class Meta:
         ordering = ["-fecha_firma", "-id"]

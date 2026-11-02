@@ -126,6 +126,18 @@ programada.
     contratos de sus clientes, y lo ajeno responde 404 (regla 14 de la spec
     004).
 
+**Documento del contrato** (agregado el 2026-11-01, pendiente desde #42)
+
+23. Un contrato puede apuntar a un documento oficial: el contrato firmado y
+    escaneado. Es opcional y debe ser un documento activo de la misma propiedad;
+    si se vende una unidad, de su edificio (409 `DOCUMENTO_DE_OTRA_PROPIEDAD`).
+24. **Se vincula al firmar o después** (decidido por B), porque el escaneado
+    suele existir después de firmar. **Se puede cambiar, pero no quitar**
+    (decidido por B): corrige un archivo equivocado sin dejar sin respaldo un
+    contrato que ya lo tenía. El cambio queda en la bitácora. Un contrato
+    `ANULADO` ya no cambia (409 `CONTRATO_NO_VIGENTE`); uno `LIQUIDADO` sí,
+    porque el de contado nace así. Vinculan los que firman (regla 20).
+
 ## 4. Modelo de datos
 
 ```
@@ -183,6 +195,7 @@ historia completa de pagos queda en la bitácora de auditoría.
 
 | Método | Ruta | Permiso |
 |---|---|---|
+| POST | `/api/v1/contratos-venta/{id}/documento/` · `{ "documento": 3 }` | Firman: regla 20. Reglas 23 y 24 |
 | GET, POST | `/api/v1/cotizaciones/` · filtros `?estado`, `?cliente`, `?agente` | Leer: todos · Crear: regla 19 |
 | GET, PATCH | `/api/v1/cotizaciones/{id}/` | Editar: regla 19, solo en `BORRADOR` |
 | POST | `/api/v1/cotizaciones/{id}/enviar/` · `/aprobar/` · `/rechazar/` | Regla 19 |
@@ -390,9 +403,9 @@ código de cada paso con sus pruebas, en cinco commits en #44.
   la de ventas usa los mismos servicios que la API, para que cada contrato
   quede coherente (cuotas, estado del bien, tasa y comisión). Por eso sus
   escrituras sí quedan en la bitácora, con usuario nulo.
-- **Pendiente:** el campo `documento` de `ContratoVenta`, acordado en la
-  revisión de la spec 011 (#42), se agrega cuando `DocumentoOficial` exista en
-  `develop`.
+- **Resuelto el 2026-11-01:** el campo `documento` de `ContratoVenta`, acordado
+  en la revisión de la spec 011 (#42), se agregó cuando `DocumentoOficial` llegó
+  a `develop` (reglas 23 y 24).
 
 Resultado: 387 pruebas del proyecto, cobertura de `ventas/services.py` del 96 %
 y de `crm/services.py` del 99 %, esquema OpenAPI sin advertencias.

@@ -11,12 +11,21 @@ import {
   type ContratoVentaDetalle,
   type Cuota,
 } from '../../api/ventas/consultas'
-import { useAnularContratoVenta } from '../../api/ventas/mutaciones'
+import {
+  useAnularContratoVenta,
+  useVincularDocumentoVenta,
+} from '../../api/ventas/mutaciones'
 import { Dialogo } from '../../componentes/comunes/Dialogo'
+import { DocumentoDelContrato } from '../../componentes/comunes/DocumentoDelContrato'
 import { TablaDatos, type AccionFila } from '../../componentes/comunes/TablaDatos'
 import { Button } from '../../componentes/ui/button'
 import { formatearFecha, formatearMoneda } from '../../lib/formato'
-import { ADMINISTRAN_CRM, REGISTRAN_PAGOS, rolPermitido } from '../../menu'
+import {
+  ADMINISTRAN_CRM,
+  ESCRIBEN_CRM,
+  REGISTRAN_PAGOS,
+  rolPermitido,
+} from '../../menu'
 import { useSesion } from '../../sesion/useSesion'
 import { DialogoPagarCuota } from './DialogoPagarCuota'
 
@@ -124,6 +133,7 @@ export function DetalleContratoVenta() {
   const { usuario } = useSesion()
   const consulta = useContratoVenta(Number(id))
   const anular = useAnularContratoVenta()
+  const vincular = useVincularDocumentoVenta()
   const [paraPagar, setParaPagar] = useState<Cuota | null>(null)
   const [confirmando, setConfirmando] = useState(false)
   const contrato = consulta.data
@@ -173,6 +183,13 @@ export function DetalleContratoVenta() {
       )}
 
       <DatosDelContrato contrato={contrato} />
+
+      <DocumentoDelContrato
+        documento={contrato.documento}
+        propiedad={(contrato.propiedad?.id ?? contrato.unidad?.propiedad.id) as number}
+        puedeCambiar={contrato.estado !== 'ANULADO' && rolPermitido(rol, ESCRIBEN_CRM)}
+        alVincular={(documento) => vincular.mutateAsync({ id: contrato.id, documento })}
+      />
 
       {contrato.modalidad === 'FINANCIADO' && (
         <>

@@ -108,6 +108,19 @@ dólar aplicada, mora calculada y cambios de estado por `catalogo`.
 16. Todos leen; un agente solo ve los contratos de sus clientes, y lo ajeno
     responde 404.
 
+**Documento del contrato** (agregado el 2026-11-01, pendiente desde #42)
+
+17. Un contrato puede apuntar a un documento oficial: el contrato firmado y
+    escaneado. Es opcional y debe ser un documento activo de la misma propiedad;
+    si se arrienda una unidad, de su edificio (409
+    `DOCUMENTO_DE_OTRA_PROPIEDAD`).
+18. **Se vincula al firmar o después, y se puede cambiar pero no quitar**
+    (decidido por B, como en la spec 007, regla 24). El cambio queda en la
+    bitácora. Vale en cualquier estado: los contratos no se anulan, y uno
+    terminado sigue siendo el respaldo de lo que se cobró. Renovar no copia el
+    documento: el contrato nuevo se firma aparte. Vinculan los que firman
+    (regla 13).
+
 ## 4. Modelo de datos
 
 ```
@@ -151,6 +164,7 @@ del contrato. El estado `VENCIDO` se quita (regla 8) y se agrega `CANCELADO`
 |---|---|---|
 | GET, POST | `/api/v1/contratos-arrendamiento/` · filtros `?estado`, `?cliente`, `?agente`, `?propiedad` | Leer: todos · Firmar: regla 13 |
 | GET | `/api/v1/contratos-arrendamiento/{id}/` (con sus pagos y `en_mora`) | Todos, con cartera |
+| POST | `/api/v1/contratos-arrendamiento/{id}/documento/` · `{ "documento": 3 }` | Firman: regla 13. Reglas 17 y 18 |
 | POST | `/{id}/renovar/` · `{ "renta_mensual", "duracion_meses" }` | Regla 13 |
 | POST | `/{id}/rescindir/` · `{ "fecha_rescision" }` | Regla 14 |
 | POST | `/{id}/finalizar/` | Regla 14 |
@@ -320,8 +334,9 @@ demo con los mismos servicios que la API.
   demo de ventas hacía sobre él. Queda con un mes pagado a tiempo, otro pagado
   tarde con recargo y otro en mora. Si hacen falta más ejemplos, se piden más
   propiedades de demo al catálogo (rol A).
-- **Pendiente:** el campo `documento` del contrato, acordado en la revisión de
-  la spec 011 (#42), cuando `DocumentoOficial` esté en `develop`.
+- **Resuelto el 2026-11-01:** el campo `documento` del contrato, acordado en la
+  revisión de la spec 011 (#42), se agregó cuando `DocumentoOficial` llegó a
+  `develop` (reglas 17 y 18).
 
 Resultado: 433 pruebas del proyecto, cobertura de
 `arrendamientos/services.py` del 96 %, esquema OpenAPI sin advertencias.

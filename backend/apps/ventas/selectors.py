@@ -36,6 +36,7 @@ def listar_contratos_visibles(*, usuario: Usuario) -> QuerySet[ContratoVenta]:
             "unidad__propiedad",
             "moneda",
             "cotizacion",
+            "documento",
         )
         .prefetch_related("cuotas")
         .order_by("-fecha_firma", "-id")
