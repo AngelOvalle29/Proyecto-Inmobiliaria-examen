@@ -259,11 +259,14 @@ Ver `docs/arquitectura.md`, sección 5.
 ### DocumentoRAG
 `id` · `titulo` (único) · `tipo` (POLITICA, MANUAL, LEGAL, PLANTILLA,
 FICHA_PROPIEDAD) · `pais` (FK, opcional) · `contenido_fuente` (el Markdown
-completo) · `version` · `fecha_indexacion` · `activo` y demás campos de
-`ModeloBase`
+completo) · `version` · `fecha_indexacion` · `estado_indexacion` (PENDIENTE,
+INDEXADO, ERROR) · `error_indexacion` · `activo` y demás campos de `ModeloBase`
 
-*Reglas:* `fecha_indexacion` nula significa pendiente de indexar; se vacía cada
-vez que cambia el contenido. *Cambios respecto de la versión original:*
+*Reglas:* `fecha_indexacion` nula significa que nunca se indexó; se vacía cada
+vez que cambia el contenido. `estado_indexacion` lo maneja la cola de
+RabbitMQ (`specs/020-ingesta-asincrona.md`): `PENDIENTE` al subir o reemplazar,
+`INDEXADO` al guardar los fragmentos y `ERROR`, con su motivo en
+`error_indexacion`, si se agotan los reintentos. *Cambios respecto de la versión original:*
 `archivo_url` pasa a `contenido_fuente`, para poder reindexar sin depender del
 almacenamiento de archivos, y `documento_oficial` se pospone a otra spec
 (detalle en `specs/005-agente-ia-rag.md`).

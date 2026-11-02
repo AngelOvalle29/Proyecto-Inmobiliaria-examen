@@ -8,7 +8,7 @@ from pgvector.django import HnswIndex, VectorField
 
 from apps.core.models import ModeloBase
 
-from .enums import TipoDocumentoRAG
+from .enums import EstadoIndexacion, TipoDocumentoRAG
 
 # Tamaño de los vectores guardados. Fijo aquí y no leído de los settings:
 # cambiarlo exige una migración y reindexar todo (spec 005, §10). El servicio
@@ -38,6 +38,15 @@ class DocumentoRAG(ModeloBase):
     version = models.PositiveIntegerField(default=1)
     # Nulo hasta la primera indexación.
     fecha_indexacion = models.DateTimeField(null=True, blank=True)
+    # Spec 020, regla 11: lo que muestra la pantalla mientras la cola trabaja.
+    # Va en el documento porque no hay backend de resultados de Celery.
+    estado_indexacion = models.CharField(
+        max_length=10,
+        choices=EstadoIndexacion.choices,
+        default=EstadoIndexacion.PENDIENTE,
+    )
+    # El motivo del último fallo de la cola; vacío salvo en ERROR (regla 7).
+    error_indexacion = models.CharField(max_length=255, blank=True)
 
     class Meta:
         db_table = "ia_documento_rag"
