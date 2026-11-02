@@ -20,7 +20,7 @@ from .selectors import listar_contratos_compra, listar_proveedores
 from .serializers import (
     ContratoCompraEntradaSerializer,
     ContratoCompraSerializer,
-    MotivoSerializer,
+    MotivoContratoCompraSerializer,
     ProveedorEntradaSerializer,
     ProveedorSerializer,
 )
@@ -186,13 +186,13 @@ class AnularContratoCompraView(GenericAPIView):
         return listar_contratos_compra()
 
     @extend_schema(
-        request=MotivoSerializer,
+        request=MotivoContratoCompraSerializer,
         responses={200: ContratoCompraSerializer},
         summary="Anular un contrato de compra en proceso",
     )
     def post(self, request: Request, pk: int) -> Response:
         contrato = self.get_object()
-        entrada = MotivoSerializer(data=request.data)
+        entrada = MotivoContratoCompraSerializer(data=request.data)
         entrada.is_valid(raise_exception=True)
         contrato = anular_contrato_compra(
             contrato=contrato,

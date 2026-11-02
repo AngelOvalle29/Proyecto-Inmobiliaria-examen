@@ -18,7 +18,7 @@ from .models import ContratoCompra, Proveedor
 from .selectors import listar_proveedores
 
 
-class CiudadResumenSerializer(serializers.Serializer):
+class CiudadDeProveedorSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     nombre = serializers.CharField()
 
@@ -27,7 +27,7 @@ class ProveedorSerializer(serializers.ModelSerializer):
     """Salida de un proveedor, con su país y ciudad resumidos."""
 
     pais = PaisResumenSerializer()
-    ciudad = CiudadResumenSerializer(allow_null=True)
+    ciudad = CiudadDeProveedorSerializer(allow_null=True)
 
     class Meta:
         model = Proveedor
@@ -127,7 +127,7 @@ class ContratoCompraEntradaSerializer(serializers.Serializer):
     observaciones = serializers.CharField(allow_blank=True, default="")
 
 
-class MotivoSerializer(serializers.Serializer):
+class MotivoContratoCompraSerializer(serializers.Serializer):
     """Entrada de /anular/: el motivo es obligatorio (regla 7)."""
 
     motivo = serializers.CharField(max_length=255)
