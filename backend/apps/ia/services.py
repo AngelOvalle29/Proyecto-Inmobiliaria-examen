@@ -5,6 +5,7 @@ No conocen request ni hablan HTTP.
 """
 
 import re
+import time
 from dataclasses import dataclass
 
 from django.conf import settings
@@ -12,8 +13,8 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import transaction
 from django.utils import timezone
 
-from apps.auditoria.enums import AccionAuditoria
-from apps.auditoria.services import registrar_auditoria
+from apps.auditoria.enums import AccionAuditoria, ModoAgente
+from apps.auditoria.services import registrar_auditoria, registrar_consulta_agente
 from apps.core.models import Pais
 
 from . import selectors
@@ -243,9 +244,13 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
     3. Si hay fragmentos, se los entrega numerados al modelo con la orden de
        citar [n], y devuelve como citas los fragmentos que el modelo citó.
 
-    Va en services y no en selectors porque escribirá la bitácora del agente
-    (spec 015) en cuanto exista. Si Gemini falla, lanza AgenteNoDisponible.
+    Cada consulta, correcta o fallida, queda en la bitácora del agente
+    (spec 015) con el contrato acordado en el PR #61: por eso va en services y
+    no en selectors. Si Gemini falla, la registra con exito=False y lanza
+    AgenteNoDisponible.
     """
+    inicio = time.monotonic()
+    fragmentos: list[FragmentoRAG] = []
     try:
         proveedor = obtener_proveedor()
         vector = proveedor.generar_embedding(
@@ -263,6 +268,8 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
             limite=FRAGMENTOS_POR_CONSULTA,
         )
         if not fragmentos:
+            # No se llamó al modelo: se sabe que el consumo fue cero.
+            tokens_entrada, tokens_salida = 0, 0
             resultado = RespuestaAgente(
                 respuesta=MENSAJE_SIN_INFORMACION, sin_informacion=True, citas=[]
             )
@@ -276,6 +283,9 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
                     ),
                 ]
             )
+            # None si el proveedor no los reportó (desconocido, no cero).
+            tokens_entrada = respuesta_modelo.tokens_entrada
+            tokens_salida = respuesta_modelo.tokens_salida
             texto = respuesta_modelo.texto.strip()
             if not texto:
                 # El modelo no dijo nada: para el usuario es lo mismo que no
@@ -290,19 +300,80 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
                     citas=_citas_usadas(texto, fragmentos),
                 )
     except ProveedorIANoDisponible as error:
-        # Punto de llamada a la bitácora del agente (spec 015, rol D) con
-        # exito=False y error=str(error).
+        # Los mensajes de ProveedorIANoDisponible los arma el proveedor (código
+        # HTTP, intentos): no llevan la llave ni el texto crudo de Gemini, así
+        # que sirven como diagnóstico (spec 015). Los tokens quedan en None:
+        # si el modelo falló, no se sabe cuánto consumió.
+        _registrar_en_bitacora(
+            pregunta=pregunta,
+            respuesta="",
+            fragmentos=fragmentos,
+            tokens_entrada=None,
+            tokens_salida=None,
+            inicio=inicio,
+            error=str(error),
+        )
         raise AgenteNoDisponible() from error
 
-    # Punto de llamada a la bitácora del agente (spec 015, rol D), acordado en
-    # el PR #61: modo PUBLICO, pregunta, respuesta, documentos_recuperados
-    # (fragmento_id, documento_id, documento, seccion y distancia de cada
-    # fragmento), herramientas_invocadas vacía, tokens de respuesta_modelo (0 y
-    # 0 si no se llamó al modelo; None si el proveedor no los reportó),
-    # duracion_ms medida con time.monotonic()
-    # desde el inicio de la función, y exito=True. Se conecta cuando la spec 015
-    # esté en develop.
+    _registrar_en_bitacora(
+        pregunta=pregunta,
+        respuesta=resultado.respuesta,
+        fragmentos=fragmentos,
+        tokens_entrada=tokens_entrada,
+        tokens_salida=tokens_salida,
+        inicio=inicio,
+    )
     return resultado
+
+
+def _registrar_en_bitacora(
+    *,
+    pregunta: str,
+    respuesta: str,
+    fragmentos: list[FragmentoRAG],
+    tokens_entrada: int | None,
+    tokens_salida: int | None,
+    inicio: float,
+    error: str = "",
+) -> None:
+    """
+    Escribe la consulta en la bitácora del agente (spec 015), con el contrato
+    acordado en el PR #61.
+
+    - modo PUBLICO y usuario None: el visitante no inicia sesión.
+    - documentos_recuperados: cada fragmento que se le dio al modelo, con su
+      documento y su distancia, aunque el modelo no lo citara. Así se puede
+      revisar después por qué respondió lo que respondió.
+    - herramientas_invocadas: vacía hasta que el agente tenga herramientas.
+    - duracion_ms: desde el inicio de la consulta, con time.monotonic(), que no
+      salta si cambia la hora del servidor.
+
+    Es una sola inserción fuera de transacción: queda guardada aunque después
+    se lance AgenteNoDisponible.
+    """
+    registrar_consulta_agente(
+        usuario=None,
+        modo=ModoAgente.PUBLICO,
+        pregunta=pregunta,
+        respuesta=respuesta,
+        herramientas_invocadas=[],
+        documentos_recuperados=[
+            {
+                "fragmento_id": fragmento.pk,
+                "documento_id": fragmento.documento_id,
+                "documento": fragmento.documento.titulo,
+                "seccion": fragmento.seccion,
+                # float y redondeada: el JSON no admite el tipo de pgvector.
+                "distancia": round(float(fragmento.distancia), 4),
+            }
+            for fragmento in fragmentos
+        ],
+        tokens_entrada=tokens_entrada,
+        tokens_salida=tokens_salida,
+        duracion_ms=int((time.monotonic() - inicio) * 1000),
+        exito=not error,
+        error=error,
+    )
 
 
 def _citas_usadas(texto: str, fragmentos: list[FragmentoRAG]) -> list[Cita]:

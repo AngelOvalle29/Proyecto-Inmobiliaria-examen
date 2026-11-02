@@ -249,8 +249,8 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente
     ProveedorIANoDisponible a AgenteNoDisponible."""
 ```
 
-`responder_consulta_publica` va en `services.py` aunque hoy no escribe, porque
-escribirá la bitácora del agente en cuanto exista #23.
+`responder_consulta_publica` va en `services.py` porque escribe la bitácora del
+agente (spec 015) en cada consulta, correcta o fallida.
 
 **Selectores** (`apps/ia/selectors.py`):
 
@@ -296,10 +296,12 @@ cuota de Gemini en cada despliegue.
 Se llama a `registrar_auditoria` dentro de la transacción del servicio, como en
 la spec 001. El usuario es `None` cuando lo ejecuta el comando o la cola.
 
-Las **consultas** al agente no se registran en esta spec: van en la bitácora del
-agente (#23, rol D). El punto de llamada queda marcado con un comentario en
-`responder_consulta_publica`, con lo que esa bitácora necesitará: pregunta,
-fragmentos usados, respuesta, tokens y duración.
+Las **consultas** al agente van en la bitácora del agente (spec 015, rol D),
+con `registrar_consulta_agente`. `responder_consulta_publica` registra cada una
+con el contrato del PR #61: modo `PUBLICO`, usuario nulo, pregunta, respuesta,
+los fragmentos que recibió el modelo (con su documento, sección y distancia),
+herramientas vacías, tokens, duración y si terminó bien. Una consulta fallida
+se registra con su diagnóstico antes de responder 503.
 
 El panel de Django muestra `DocumentoRAG` y `FragmentoRAG` en **solo lectura**:
 editarlos ahí saltaría los servicios y la auditoría.
@@ -328,6 +330,9 @@ editarlos ahí saltaría los servicios y la auditoría.
 - [x] `cargar_demo_ia` corrido dos veces seguidas no crea duplicados ni llama a
       Gemini la segunda vez. Con `IA_API_KEY` vacía, termina sin error.
 - [x] Crear y reindexar un documento queda en la bitácora del sistema.
+- [x] Cada consulta queda en la bitácora del agente (spec 015): con tokens
+      `0` y `0` si no se llamó al modelo, `None` si Gemini falló, y con
+      `exito=False` y su diagnóstico cuando responde 503.
 - [x] Las pruebas no llaman a Gemini: usan un proveedor falso con vectores fijos.
 - [x] `ruff`, `makemigrations --check` y `pytest` pasan (`docs/convenciones.md` §1.1).
 
@@ -505,7 +510,11 @@ responde `sin_informacion: true` sin llamar al modelo.
 **Bitácora del agente (spec 015, rol D).** Los campos que recibe desde
 `responder_consulta_publica` se acordaron en el PR #61: tokens `0` y `0` cuando
 no se llama al modelo, y `None` cuando Gemini falla sin reportarlos. La llamada
-se conecta en un commit aparte cuando la spec 015 esté en `develop`.
+se conectó en un commit aparte cuando la spec 015 entró a `develop`
+(2026-11-01): `feat(ia): registrar cada consulta en la bitácora del agente`,
+con 5 pruebas, una por camino (respuesta del modelo, sin información,
+respuesta vacía, Gemini caído antes y después de buscar). 711 pruebas en
+total.
 
 **Cómo repetir la medición del umbral**, con la llave en `.env`:
 
