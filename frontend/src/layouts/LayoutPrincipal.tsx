@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router'
+import { NavLink, Outlet } from 'react-router'
 
 import { Button } from '../componentes/ui/button'
 import { cn } from '../lib/utils'
@@ -11,19 +11,11 @@ import { useSesion } from '../sesion/useSesion'
  * RutaProtegida, así que siempre hay usuario.
  */
 export function LayoutPrincipal() {
-  const { usuario, cerrarSesion } = useSesion()
-  const navegar = useNavigate()
+  const { usuario, salir } = useSesion()
 
   const entradas = MENU.filter((entrada) =>
     rolPermitido(usuario?.rol ?? '', entrada.roles),
   )
-
-  const salir = () => {
-    // Primero se va al login y después se borra la sesión: así el login no
-    // recuerda la página del usuario anterior.
-    navegar('/login', { replace: true })
-    cerrarSesion()
-  }
 
   return (
     <div className="flex min-h-screen">
