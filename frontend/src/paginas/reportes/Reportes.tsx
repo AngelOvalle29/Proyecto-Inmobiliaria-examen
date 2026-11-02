@@ -300,6 +300,21 @@ const ETIQUETAS_RESUMEN: Record<string, string> = {
   moneda: 'Moneda',
   vencidos: 'Vencidos',
   por_vencer: 'Por vencer',
+  // R06, R08 y R14 (spec 021, rol A).
+  estado: 'Estado',
+  sin_historia: 'Sin historia de estado',
+  dias_promedio: 'Días promedio en el estado',
+  propiedad: 'Propiedad',
+  propiedades: 'Propiedades',
+  primera: 'Primera valuación',
+  ultima: 'Última valuación',
+  variacion_pct: 'Variación %',
+  elegibles: 'Bienes',
+  arrendados: 'Arrendados',
+  disponibles: 'Disponibles',
+  otros: 'Otros estados',
+  ocupacion_pct: 'Ocupación %',
+  ingreso_por_moneda: 'Renta mensual vigente por moneda',
 }
 
 function mostrarTotal(valor: unknown): string {

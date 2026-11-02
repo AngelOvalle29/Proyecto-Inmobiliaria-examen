@@ -107,6 +107,30 @@ class FiltrosMorosidad:
     saldo_max: Decimal | None = None
 
 
+@dataclass(frozen=True)
+class FiltrosEstadoPropiedades:
+    pais: int | None = None
+    ciudad: int | None = None
+    tipo: int | None = None
+    estado: str | None = None
+
+
+@dataclass(frozen=True)
+class FiltrosAvaluos:
+    propiedad: int | None = None
+    pais: int | None = None
+    moneda: str | None = None
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+
+
+@dataclass(frozen=True)
+class FiltrosOcupacion:
+    pais: int | None = None
+    ciudad: int | None = None
+    tipo: int | None = None
+
+
 FiltrosReporte = (
     FiltrosInventario
     | FiltrosVencimientos
@@ -117,6 +141,9 @@ FiltrosReporte = (
     | FiltrosClientes
     | FiltrosEstadoCuenta
     | FiltrosMorosidad
+    | FiltrosEstadoPropiedades
+    | FiltrosAvaluos
+    | FiltrosOcupacion
 )
 
 

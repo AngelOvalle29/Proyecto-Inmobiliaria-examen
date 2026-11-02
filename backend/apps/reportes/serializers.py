@@ -3,18 +3,21 @@
 from rest_framework import serializers
 
 from apps.auditoria.enums import AccionAuditoria
-from apps.catalogo.enums import TipoDocumento
+from apps.catalogo.enums import EstadoPropiedad, TipoDocumento
 from apps.crm.enums import EstadoCotizacion, TipoCliente
 from apps.ventas.enums import ModalidadVenta
 
 from .estructuras import (
     FiltrosAgentes,
+    FiltrosAvaluos,
     FiltrosBitacora,
     FiltrosClientes,
     FiltrosCotizaciones,
     FiltrosEstadoCuenta,
+    FiltrosEstadoPropiedades,
     FiltrosInventario,
     FiltrosMorosidad,
+    FiltrosOcupacion,
     FiltrosVencimientos,
     FiltrosVentas,
 )
@@ -189,6 +192,25 @@ class FiltrosMorosidadSerializer(FiltrosBaseSerializer):
         return attrs
 
 
+class FiltrosEstadoPropiedadesSerializer(FiltrosBaseSerializer):
+    pais = serializers.IntegerField(min_value=1, required=False)
+    ciudad = serializers.IntegerField(min_value=1, required=False)
+    tipo = serializers.IntegerField(min_value=1, required=False)
+    estado = serializers.ChoiceField(choices=EstadoPropiedad.choices, required=False)
+
+
+class FiltrosAvaluosSerializer(FiltrosPeriodoSerializer):
+    propiedad = serializers.IntegerField(min_value=1, required=False)
+    pais = serializers.IntegerField(min_value=1, required=False)
+    moneda = serializers.RegexField(r"^[A-Z]{3}$", required=False)
+
+
+class FiltrosOcupacionSerializer(FiltrosBaseSerializer):
+    pais = serializers.IntegerField(min_value=1, required=False)
+    ciudad = serializers.IntegerField(min_value=1, required=False)
+    tipo = serializers.IntegerField(min_value=1, required=False)
+
+
 FILTROS = {
     "inventario-disponible": (FiltrosInventarioSerializer, FiltrosInventario),
     "documentos-por-vencer": (FiltrosVencimientosSerializer, FiltrosVencimientos),
@@ -199,6 +221,12 @@ FILTROS = {
     "ranking-clientes": (FiltrosClientesSerializer, FiltrosClientes),
     "estado-cuenta-clientes": (FiltrosEstadoCuentaSerializer, FiltrosEstadoCuenta),
     "morosidad": (FiltrosMorosidadSerializer, FiltrosMorosidad),
+    "propiedades-por-estado": (
+        FiltrosEstadoPropiedadesSerializer,
+        FiltrosEstadoPropiedades,
+    ),
+    "evolucion-avaluos": (FiltrosAvaluosSerializer, FiltrosAvaluos),
+    "ocupacion-arrendamientos": (FiltrosOcupacionSerializer, FiltrosOcupacion),
 }
 
 
