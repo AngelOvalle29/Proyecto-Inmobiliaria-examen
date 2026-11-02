@@ -24,17 +24,21 @@ from .estructuras import (
     Grupo,
     ResumenReporte,
 )
+from .selectors_comerciales import REPORTES_COMERCIALES
 
 GUATEMALA = ZoneInfo("America/Guatemala")
 
 
 def listar_reportes(*, usuario: AbstractBaseUser) -> list[dict]:
     """Catálogo autorizado para el rol autenticado."""
-    return [
-        metadatos(slug)
-        for slug, d in CATALOGO.items()
-        if usuario.rol.nombre in d["roles"]
-    ]
+    return sorted(
+        (
+            metadatos(slug)
+            for slug, d in CATALOGO.items()
+            if usuario.rol.nombre in d["roles"]
+        ),
+        key=lambda reporte: reporte["codigo"],
+    )
 
 
 def _fuentes_inventario(filtros: FiltrosInventario) -> tuple[QuerySet, QuerySet]:
@@ -123,8 +127,15 @@ def seleccionar_bitacora(*, filtros: FiltrosBitacora) -> QuerySet:
     return consulta.order_by("-fecha", "-id")
 
 
-def resumir_reporte(*, slug: str, filtros: FiltrosReporte) -> ResumenReporte:
-    """Agrega todo el filtro en PostgreSQL sin cargar detalles."""
+def resumir_reporte(
+    *, slug: str, filtros: FiltrosReporte, usuario: AbstractBaseUser | None = None
+) -> ResumenReporte:
+    """
+    Agrega todo el filtro en PostgreSQL sin cargar detalles. Los reportes
+    comerciales necesitan al usuario para aplicar su cartera (spec 021, regla 6).
+    """
+    if slug in REPORTES_COMERCIALES:
+        return REPORTES_COMERCIALES[slug][0](filtros=filtros, usuario=usuario)
     if slug == "inventario-disponible":
         grupos, monedas = {}, {}
         count, area = 0, Decimal("0.00")
@@ -196,9 +207,18 @@ def resumir_reporte(*, slug: str, filtros: FiltrosReporte) -> ResumenReporte:
 
 
 def seleccionar_filas_reporte(
-    *, slug: str, filtros: FiltrosReporte, offset: int, limite: int
+    *,
+    slug: str,
+    filtros: FiltrosReporte,
+    offset: int,
+    limite: int,
+    usuario: AbstractBaseUser | None = None,
 ) -> list[dict]:
     """LIMIT/OFFSET antes de list(); nunca pagina detalles en memoria."""
+    if slug in REPORTES_COMERCIALES:
+        return REPORTES_COMERCIALES[slug][1](
+            filtros=filtros, usuario=usuario, offset=offset, limite=limite
+        )
     if slug == "inventario-disponible":
         filas = list(seleccionar_inventario(filtros=filtros)[offset : offset + limite])
         for fila in filas:

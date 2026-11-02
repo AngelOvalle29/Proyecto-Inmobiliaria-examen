@@ -5432,22 +5432,34 @@ export interface operations {
             query?: {
                 /** @description R17: acción de auditoría */
                 accion?: string;
+                /** @description R01/R02/R03/R10/R11: ID del agente */
+                agente?: number;
                 /** @description R05: decimal inclusivo */
                 area_max?: string;
                 /** @description R05: decimal inclusivo */
                 area_min?: string;
                 /** @description R05: ID de ciudad */
                 ciudad?: number;
+                /** @description R10: ID del cliente */
+                cliente?: number;
                 /** @description R16: 0 a 365, por defecto 30 */
                 dias_anticipacion?: number;
                 /** @description R17: entidad exacta */
                 entidad?: string;
-                /** @description R17: día ISO de Guatemala, inclusivo */
+                /** @description R03/R10: estado */
+                estado?: string;
+                /** @description Día ISO de Guatemala, inclusivo */
                 fecha_desde?: string;
-                /** @description R17: día ISO de Guatemala, inclusivo */
+                /** @description Día ISO de Guatemala, inclusivo */
                 fecha_hasta?: string;
+                /** @description R01: CONTADO o FINANCIADO */
+                modalidad?: string;
                 /** @description R05: código ISO de moneda */
                 moneda?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_min?: string;
                 page?: number;
                 /** @description R05/R16: ID del país */
                 pais?: number;
@@ -5455,6 +5467,10 @@ export interface operations {
                 precio_max?: string;
                 /** @description R05: decimal inclusivo */
                 precio_min?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_min?: string;
                 /** @description R05: ID de tipo; R16: código de documento */
                 tipo?: string;
                 /** @description R17: ID del usuario */
@@ -5483,28 +5499,44 @@ export interface operations {
             query?: {
                 /** @description R17: acción de auditoría */
                 accion?: string;
+                /** @description R01/R02/R03/R10/R11: ID del agente */
+                agente?: number;
                 /** @description R05: decimal inclusivo */
                 area_max?: string;
                 /** @description R05: decimal inclusivo */
                 area_min?: string;
                 /** @description R05: ID de ciudad */
                 ciudad?: number;
+                /** @description R10: ID del cliente */
+                cliente?: number;
                 /** @description R16: 0 a 365, por defecto 30 */
                 dias_anticipacion?: number;
                 /** @description R17: entidad exacta */
                 entidad?: string;
-                /** @description R17: día ISO de Guatemala, inclusivo */
+                /** @description R03/R10: estado */
+                estado?: string;
+                /** @description Día ISO de Guatemala, inclusivo */
                 fecha_desde?: string;
-                /** @description R17: día ISO de Guatemala, inclusivo */
+                /** @description Día ISO de Guatemala, inclusivo */
                 fecha_hasta?: string;
+                /** @description R01: CONTADO o FINANCIADO */
+                modalidad?: string;
                 /** @description R05: código ISO de moneda */
                 moneda?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_min?: string;
                 /** @description R05/R16: ID del país */
                 pais?: number;
                 /** @description R05: decimal inclusivo */
                 precio_max?: string;
                 /** @description R05: decimal inclusivo */
                 precio_min?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_min?: string;
                 /** @description R05: ID de tipo; R16: código de documento */
                 tipo?: string;
                 /** @description R17: ID del usuario */
@@ -5533,28 +5565,44 @@ export interface operations {
             query?: {
                 /** @description R17: acción de auditoría */
                 accion?: string;
+                /** @description R01/R02/R03/R10/R11: ID del agente */
+                agente?: number;
                 /** @description R05: decimal inclusivo */
                 area_max?: string;
                 /** @description R05: decimal inclusivo */
                 area_min?: string;
                 /** @description R05: ID de ciudad */
                 ciudad?: number;
+                /** @description R10: ID del cliente */
+                cliente?: number;
                 /** @description R16: 0 a 365, por defecto 30 */
                 dias_anticipacion?: number;
                 /** @description R17: entidad exacta */
                 entidad?: string;
-                /** @description R17: día ISO de Guatemala, inclusivo */
+                /** @description R03/R10: estado */
+                estado?: string;
+                /** @description Día ISO de Guatemala, inclusivo */
                 fecha_desde?: string;
-                /** @description R17: día ISO de Guatemala, inclusivo */
+                /** @description Día ISO de Guatemala, inclusivo */
                 fecha_hasta?: string;
+                /** @description R01: CONTADO o FINANCIADO */
+                modalidad?: string;
                 /** @description R05: código ISO de moneda */
                 moneda?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                monto_min?: string;
                 /** @description R05/R16: ID del país */
                 pais?: number;
                 /** @description R05: decimal inclusivo */
                 precio_max?: string;
                 /** @description R05: decimal inclusivo */
                 precio_min?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_max?: string;
+                /** @description R03/R11: decimal inclusivo; exige moneda */
+                saldo_min?: string;
                 /** @description R05: ID de tipo; R16: código de documento */
                 tipo?: string;
                 /** @description R17: ID del usuario */

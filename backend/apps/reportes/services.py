@@ -51,11 +51,15 @@ def obtener_reporte_paginado(
 ) -> ReportePaginado:
     """Comprueba el acceso y devuelve 25 detalles con el resumen completo."""
     comprobar_permiso(slug=slug, usuario=usuario)
-    resumen = resumir_reporte(slug=slug, filtros=filtros)
+    resumen = resumir_reporte(slug=slug, filtros=filtros, usuario=usuario)
     if pagina < 1 or (pagina > 1 and (pagina - 1) * 25 >= resumen.count):
         raise Http404
     filas = seleccionar_filas_reporte(
-        slug=slug, filtros=filtros, offset=(pagina - 1) * 25, limite=25
+        slug=slug,
+        filtros=filtros,
+        offset=(pagina - 1) * 25,
+        limite=25,
+        usuario=usuario,
     )
     return ReportePaginado(
         construir_reporte(
@@ -71,12 +75,14 @@ def obtener_reporte_exportacion(
 ) -> Reporte:
     """Rechaza más de 5,000 filas antes de cargar el detalle para exportar."""
     comprobar_permiso(slug=slug, usuario=usuario)
-    resumen = resumir_reporte(slug=slug, filtros=filtros)
+    resumen = resumir_reporte(slug=slug, filtros=filtros, usuario=usuario)
     if resumen.count > 5000:
         raise ReporteDemasiadoGrande(
             "El reporte supera 5,000 filas. Acote los filtros."
         )
-    filas = seleccionar_filas_reporte(slug=slug, filtros=filtros, offset=0, limite=5000)
+    filas = seleccionar_filas_reporte(
+        slug=slug, filtros=filtros, offset=0, limite=5000, usuario=usuario
+    )
     return construir_reporte(
         slug=slug, filas=filas, resumen=resumen, filtros=filtros, usuario=usuario
     )

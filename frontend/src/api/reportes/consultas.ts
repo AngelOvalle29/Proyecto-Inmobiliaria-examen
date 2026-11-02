@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 
 import { clienteApi } from '../cliente'
+import { nombreCliente } from '../crm/consultas'
 import type { components, operations } from '../tipos.generados'
 
 export type Reporte = components['schemas']['Reporte']
@@ -31,6 +32,20 @@ export function useReporte(slug: string, filtros: ValoresFiltros, pagina: number
   })
 }
 
+type Opcion =
+  | components['schemas']['Ciudad']
+  | components['schemas']['Moneda']
+  | components['schemas']['Pais']
+  | components['schemas']['TipoPropiedad']
+  | components['schemas']['Agente']
+  | components['schemas']['Cliente']
+
+function etiquetaOpcion(opcion: Opcion): string {
+  if ('usuario' in opcion) return opcion.usuario.nombre_completo
+  if ('razon_social' in opcion) return nombreCliente(opcion)
+  return opcion.nombre ?? ''
+}
+
 /** Catálogos paginados: búsqueda y siguiente página sin traerlos completos. */
 export function useOpcionesFiltro(origen: string, texto: string, pagina: number) {
   return useQuery({
@@ -41,12 +56,19 @@ export function useOpcionesFiltro(origen: string, texto: string, pagina: number)
         | components['schemas']['PaginatedMonedaList']
         | components['schemas']['PaginatedPaisList']
         | components['schemas']['PaginatedTipoPropiedadList']
+        | components['schemas']['PaginatedAgenteList']
+        | components['schemas']['PaginatedClienteList']
       >(origen, { params: { buscar: texto || undefined, page: pagina } })
       return {
         siguiente: respuesta.data.next,
         opciones: respuesta.data.results.map((opcion) => ({
-          valor: 'codigo' in opcion ? opcion.codigo : String(opcion.id),
-          etiqueta: opcion.nombre,
+          // Solo la moneda se filtra por código; lo demás, por id, aunque
+          // agentes y clientes también tengan un código.
+          valor:
+            origen === '/monedas/' && 'codigo' in opcion
+              ? opcion.codigo!
+              : String(opcion.id),
+          etiqueta: etiquetaOpcion(opcion),
         })),
       }
     },

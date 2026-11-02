@@ -201,7 +201,8 @@ def test_permisos_catalogo_json_y_archivos(rol):
     cliente.force_authenticate(usuario)
     catalogo = cliente.get("/api/v1/reportes/")
     assert catalogo.status_code == 200
-    assert len(catalogo.data["results"]) == (3 if rol == "ADMINISTRADOR" else 2)
+    slugs = [reporte["slug"] for reporte in catalogo.data["results"]]
+    assert ("bitacora-auditoria" in slugs) == (rol == "ADMINISTRADOR")
     for slug in (SLUG, "documentos-por-vencer", "bitacora-auditoria"):
         esperado = (
             403 if slug == "bitacora-auditoria" and rol != "ADMINISTRADOR" else 200

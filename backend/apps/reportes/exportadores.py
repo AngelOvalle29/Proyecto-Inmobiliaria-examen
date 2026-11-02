@@ -17,6 +17,8 @@ GUATEMALA = ZoneInfo("America/Guatemala")
 
 
 def _valor_excel(valor):
+    if valor is None:
+        return "Sin dato"
     if isinstance(valor, datetime) and timezone.is_aware(valor):
         return timezone.localtime(valor, GUATEMALA).replace(tzinfo=None)
     return valor
@@ -116,7 +118,7 @@ def exportar_excel(reporte: Reporte) -> bytes:
 
 def _mostrar(valor, tipo="texto") -> str:
     if valor is None:
-        return ""
+        return "Sin dato"
     if tipo == "decimal":
         return f"{valor:,.2f}"
     if tipo == "fecha_hora":

@@ -4,8 +4,20 @@ from rest_framework import serializers
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.catalogo.enums import TipoDocumento
+from apps.crm.enums import EstadoCotizacion, TipoCliente
+from apps.ventas.enums import ModalidadVenta
 
-from .estructuras import FiltrosBitacora, FiltrosInventario, FiltrosVencimientos
+from .estructuras import (
+    FiltrosAgentes,
+    FiltrosBitacora,
+    FiltrosClientes,
+    FiltrosCotizaciones,
+    FiltrosEstadoCuenta,
+    FiltrosInventario,
+    FiltrosMorosidad,
+    FiltrosVencimientos,
+    FiltrosVentas,
+)
 
 
 class FiltrosBaseSerializer(serializers.Serializer):
@@ -82,10 +94,111 @@ class FiltrosBitacoraSerializer(FiltrosBaseSerializer):
         return attrs
 
 
+ESTADOS_OBLIGACION = [
+    ("PENDIENTE", "Pendiente"),
+    ("PARCIAL", "Pago parcial"),
+    ("PAGADO", "Pagado"),
+]
+
+
+class FiltrosPeriodoSerializer(FiltrosBaseSerializer):
+    """Fechas inclusivas; la spec 021 no admite un rango al revés."""
+
+    fecha_desde = serializers.DateField(required=False, input_formats=["%Y-%m-%d"])
+    fecha_hasta = serializers.DateField(required=False, input_formats=["%Y-%m-%d"])
+
+    def validate(self, attrs):
+        desde, hasta = attrs.get("fecha_desde"), attrs.get("fecha_hasta")
+        if desde and hasta and desde > hasta:
+            raise serializers.ValidationError(
+                {"fecha_hasta": "Debe ser mayor o igual a desde."}
+            )
+        return attrs
+
+
+def _validar_rango(attrs: dict, nombre: str) -> None:
+    """Como el precio de R05: un monto solo se compara dentro de una moneda."""
+    minimo, maximo = attrs.get(nombre + "_min"), attrs.get(nombre + "_max")
+    if (minimo is not None or maximo is not None) and "moneda" not in attrs:
+        raise serializers.ValidationError(
+            {"moneda": "Indique moneda para filtrar por monto."}
+        )
+    if minimo is not None and maximo is not None and minimo > maximo:
+        raise serializers.ValidationError(
+            {nombre + "_max": "Debe ser mayor o igual al mínimo."}
+        )
+
+
+class FiltrosVentasSerializer(FiltrosPeriodoSerializer):
+    pais = serializers.IntegerField(min_value=1, required=False)
+    ciudad = serializers.IntegerField(min_value=1, required=False)
+    tipo = serializers.IntegerField(min_value=1, required=False)
+    agente = serializers.IntegerField(min_value=1, required=False)
+    modalidad = serializers.ChoiceField(choices=ModalidadVenta.choices, required=False)
+    moneda = serializers.RegexField(r"^[A-Z]{3}$", required=False)
+
+
+class FiltrosAgentesSerializer(FiltrosPeriodoSerializer):
+    pais = serializers.IntegerField(min_value=1, required=False)
+    agente = serializers.IntegerField(min_value=1, required=False)
+
+
+class FiltrosCotizacionesSerializer(FiltrosPeriodoSerializer):
+    agente = serializers.IntegerField(min_value=1, required=False)
+    pais = serializers.IntegerField(min_value=1, required=False)
+    estado = serializers.ChoiceField(choices=EstadoCotizacion.choices, required=False)
+    moneda = serializers.RegexField(r"^[A-Z]{3}$", required=False)
+    monto_min = serializers.DecimalField(
+        max_digits=18, decimal_places=2, min_value=0, required=False
+    )
+    monto_max = serializers.DecimalField(
+        max_digits=18, decimal_places=2, min_value=0, required=False
+    )
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        _validar_rango(attrs, "monto")
+        return attrs
+
+
+class FiltrosClientesSerializer(FiltrosPeriodoSerializer):
+    pais = serializers.IntegerField(min_value=1, required=False)
+    tipo = serializers.ChoiceField(choices=TipoCliente.choices, required=False)
+
+
+class FiltrosEstadoCuentaSerializer(FiltrosPeriodoSerializer):
+    cliente = serializers.IntegerField(min_value=1, required=False)
+    estado = serializers.ChoiceField(choices=ESTADOS_OBLIGACION, required=False)
+    agente = serializers.IntegerField(min_value=1, required=False)
+    moneda = serializers.RegexField(r"^[A-Z]{3}$", required=False)
+
+
+class FiltrosMorosidadSerializer(FiltrosBaseSerializer):
+    pais = serializers.IntegerField(min_value=1, required=False)
+    agente = serializers.IntegerField(min_value=1, required=False)
+    moneda = serializers.RegexField(r"^[A-Z]{3}$", required=False)
+    saldo_min = serializers.DecimalField(
+        max_digits=18, decimal_places=2, min_value=0, required=False
+    )
+    saldo_max = serializers.DecimalField(
+        max_digits=18, decimal_places=2, min_value=0, required=False
+    )
+
+    def validate(self, attrs):
+        _validar_rango(attrs, "saldo")
+        return attrs
+
+
 FILTROS = {
     "inventario-disponible": (FiltrosInventarioSerializer, FiltrosInventario),
     "documentos-por-vencer": (FiltrosVencimientosSerializer, FiltrosVencimientos),
     "bitacora-auditoria": (FiltrosBitacoraSerializer, FiltrosBitacora),
+    "ventas-por-periodo": (FiltrosVentasSerializer, FiltrosVentas),
+    "desempeno-agentes": (FiltrosAgentesSerializer, FiltrosAgentes),
+    "embudo-cotizaciones": (FiltrosCotizacionesSerializer, FiltrosCotizaciones),
+    "ranking-clientes": (FiltrosClientesSerializer, FiltrosClientes),
+    "estado-cuenta-clientes": (FiltrosEstadoCuentaSerializer, FiltrosEstadoCuenta),
+    "morosidad": (FiltrosMorosidadSerializer, FiltrosMorosidad),
 }
 
 
