@@ -5,12 +5,12 @@ Sin reglas de negocio.
 
 from django.contrib import admin
 
-from .models import Constructora
+from .models import Constructora, ProyectoConstruccion
 
 
 class AdminSoloLectura(admin.ModelAdmin):
     """
-    El panel solo consulta constructoras; no crea, edita ni borra.
+    El panel solo consulta constructoras y proyectos; no crea, edita ni borra.
 
     Toda escritura de construcción pasa por los servicios de la API, que
     aplican las reglas de la spec 006 (código generado, NIT normalizado,
@@ -34,3 +34,17 @@ class ConstructoraAdmin(AdminSoloLectura):
     list_display = ("codigo", "nombre", "nit", "pais", "calificacion", "activo")
     list_filter = ("pais", "calificacion", "activo")
     search_fields = ("codigo", "nombre", "nit")
+
+
+@admin.register(ProyectoConstruccion)
+class ProyectoConstruccionAdmin(AdminSoloLectura):
+    list_display = (
+        "codigo",
+        "nombre",
+        "propiedad",
+        "constructora",
+        "estado",
+        "porcentaje_avance",
+    )
+    list_filter = ("estado",)
+    search_fields = ("codigo", "nombre")
