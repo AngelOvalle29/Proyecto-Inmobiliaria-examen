@@ -142,3 +142,14 @@ ruff y formato correctos, sin cambios de migraciones y OpenAPI sin avisos.
 Pasaron lint, typecheck y build del frontend. El paquete principal integrado
 es de 695.09 kB antes de gzip y conserva el aviso de tamaño.
 El PR se prepara como borrador por la validación de navegador pendiente.
+
+### Revisión de presentación y organización
+
+Se corrigieron los comentarios de Marco sobre formato de fechas, etiquetas
+de opciones/totales y error de filtros duplicado. La excepción de límite se
+movió a `exceptions.py` y se añadieron docstrings a los servicios de consulta
+y exportación. La versión corregida pasó **652 pruebas en 145.78 s**, ruff,
+formato, migraciones, OpenAPI sin avisos y lint/typecheck/build del frontend.
+El paquete principal quedó en 695.55 kB antes de gzip (209.59 kB gzip).
+El servicio de navegador sigue sin conexión; las pruebas parciales de Marco
+y las comprobaciones todavía pendientes se registran en la guía de revisión.

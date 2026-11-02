@@ -245,3 +245,14 @@ La versión integrada pasó **652 pruebas** con PostgreSQL, ruff, formato,
 comprobación de migraciones, OpenAPI sin avisos y lint/typecheck/build.
 Se presenta como PR en borrador: falta navegador, comprensión del estudiante
 y aprobación real de otro integrante antes de fusionar.
+
+### Ajustes tras la revisión de Marco
+
+Se atienden los cuatro comentarios no bloqueantes del PR #77: fechas de R16
+con el formateador común (sin desplazar fechas ISO por UTC), etiquetas de
+opciones desde los metadatos, separadores decimales y etiquetas de totales,
+y un solo bloque para los errores de filtros. `ReporteDemasiadoGrande` pasa
+a `exceptions.py` y se documentan los dos servicios de obtención del reporte.
+La guía manual registra las pruebas parciales de Marco y el requisito de
+bibliotecas nativas para ejecutar las pruebas PDF en Windows. No se marca
+como completa la validación de navegador pendiente ni la revisión de C.

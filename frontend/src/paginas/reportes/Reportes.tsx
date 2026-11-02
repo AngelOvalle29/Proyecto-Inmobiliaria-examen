@@ -17,6 +17,7 @@ import { Button } from '../../componentes/ui/button'
 import { Input } from '../../componentes/ui/input'
 import { Label } from '../../componentes/ui/label'
 import { Select } from '../../componentes/ui/select'
+import { formatearFecha } from '../../lib/formato'
 
 export function Reportes() {
   const catalogo = useCatalogoReportes()
@@ -55,7 +56,13 @@ function ConsultaReporte({ definicion }: { definicion: DefinicionReporte }) {
   const columnas: ColumnDef<FilaReporte>[] = definicion.columnas.map((c) => ({
     accessorKey: c.nombre,
     header: c.etiqueta,
-    cell: ({ row }) => mostrar(row.original[c.nombre], c.tipo),
+    cell: ({ row }) => {
+      const valor = row.original[c.nombre]
+      const opcion = definicion.filtros
+        .find((f) => f.nombre === c.nombre)
+        ?.opciones.find((o) => o.valor === String(valor))
+      return opcion?.etiqueta ?? mostrar(valor, c.tipo)
+    },
   }))
   const aplicar = (valores: ValoresFiltros) => {
     setFiltros(Object.fromEntries(Object.entries(valores).filter(([, v]) => v !== '')))
@@ -138,7 +145,6 @@ function ConsultaReporte({ definicion }: { definicion: DefinicionReporte }) {
         columnas={columnas}
         datos={consulta.data?.filas.results}
         cargando={consulta.isFetching}
-        error={consulta.error}
         paginacion={{
           pagina,
           total: consulta.data?.filas.count ?? 0,
@@ -271,6 +277,7 @@ function SelectorRemoto({
 
 function mostrar(valor: unknown, tipo: string): string {
   if (valor === null || valor === undefined) return ''
+  if (tipo === 'fecha') return formatearFecha(String(valor))
   if (tipo === 'decimal')
     return Number(valor).toLocaleString('es-GT', {
       minimumFractionDigits: 2,
@@ -283,17 +290,38 @@ function mostrar(valor: unknown, tipo: string): string {
   return String(valor)
 }
 
+const ETIQUETAS_RESUMEN: Record<string, string> = {
+  cantidad: 'Cantidad',
+  area_m2: 'Área (m²)',
+  precio_lista: 'Precio de lista',
+  valor_por_moneda: 'Valor por moneda',
+  ciudad: 'Ciudad',
+  tipo: 'Tipo',
+  moneda: 'Moneda',
+  vencidos: 'Vencidos',
+  por_vencer: 'Por vencer',
+}
+
+function mostrarTotal(valor: unknown): string {
+  if (typeof valor === 'number') return valor.toLocaleString('es-GT')
+  if (typeof valor === 'string' && /^-?\d+\.\d+$/.test(valor))
+    return mostrar(valor, 'decimal')
+  return String(valor ?? '')
+}
+
 function Resumen({ valores }: { valores: Record<string, unknown> }) {
   return (
     <dl className="grid gap-2 py-2 sm:grid-cols-2">
       {Object.entries(valores).map(([clave, valor]) => (
         <div key={clave}>
-          <dt className="text-sm text-slate-600">{clave.replaceAll('_', ' ')}</dt>
+          <dt className="text-sm text-slate-600">
+            {ETIQUETAS_RESUMEN[clave] ?? clave.replaceAll('_', ' ')}
+          </dt>
           <dd>
             {typeof valor === 'object' && valor !== null ? (
               <Resumen valores={valor as Record<string, unknown>} />
             ) : (
-              String(valor ?? '')
+              mostrarTotal(valor)
             )}
           </dd>
         </div>

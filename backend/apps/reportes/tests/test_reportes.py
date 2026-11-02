@@ -27,6 +27,7 @@ from apps.reportes.estructuras import (
     FiltrosInventario,
     FiltrosVencimientos,
 )
+from apps.reportes.exceptions import ReporteDemasiadoGrande
 from apps.reportes.exportadores import contexto_pdf, exportar_excel, exportar_pdf
 from apps.reportes.selectors import (
     GUATEMALA,
@@ -34,7 +35,6 @@ from apps.reportes.selectors import (
     seleccionar_filas_reporte,
 )
 from apps.reportes.services import (
-    ReporteDemasiadoGrande,
     obtener_reporte_exportacion,
     obtener_reporte_paginado,
 )
