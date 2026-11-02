@@ -5,9 +5,10 @@ from decimal import Decimal
 from io import StringIO
 
 import pytest
-from django.core.management import call_command
+from django.core.management import call_command, get_commands
 
 from apps.core import datos_demo
+from apps.core.management.commands.seed_demo import COMANDOS_DE_DEMO
 from apps.core.models import Ciudad, Moneda, Pais, TipoCambio
 from apps.core.selectors import convertir_monto
 from apps.core.services import _primeros_de_mes, cargar_catalogos_demo
@@ -96,6 +97,15 @@ def test_seed_demo_llama_a_los_comandos_de_las_apps_por_nombre():
     call_command("seed_demo", stdout=salida)
 
     assert "Catálogo de demostración cargado." in salida.getvalue()
+
+
+def test_todos_los_comandos_de_demo_existen():
+    """Un nombre mal escrito en COMANDOS_DE_DEMO se omitiría con un simple
+    aviso, y esa app quedaría sin datos en la demostración sin que nadie lo
+    note. Esta prueba lo detecta."""
+    faltantes = [c for c in COMANDOS_DE_DEMO if c not in get_commands()]
+
+    assert faltantes == []
 
 
 def test_seed_demo_omite_un_comando_que_todavia_no_existe(monkeypatch):

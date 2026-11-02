@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>{{ reporte.titulo }}</title>
+<style>
+@page { size: A4 {% if horizontal %}landscape{% else %}portrait{% endif %}; margin: 22mm 12mm 18mm;
+  @top-left { content: string(titulo); font: 10pt "Liberation Sans", sans-serif; color: #15324f; }
+  @bottom-left { content: "Inmobiliaria · Reportes"; font: 8pt "Liberation Sans", sans-serif; color: #566; }
+  @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 8pt "Liberation Sans", sans-serif; }
+}
+body { font: 9pt "Liberation Sans", sans-serif; color: #203348; }
+h1 { string-set: titulo content(); font-size: 19pt; color: #15324f; }
+p { line-height: 1.5; overflow-wrap: anywhere; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead { display: table-header-group; }
+th { background: #15324f; color: white; text-align: left; }
+th, td { padding: 6px; border-bottom: 1px solid #d6e0e8; overflow-wrap: anywhere; vertical-align: top; }
+tr { break-inside: avoid; }
+tbody tr:nth-child(even) { background: #f0f5f8; }
+h2 { font-size: 12pt; break-after: avoid; }
+.resumen { width: 75%; margin-top: 10px; }
+</style></head><body>
+<h1>{{ reporte.titulo }}</h1>
+<p>{{ reporte.subtitulo }}<br>Generado por: {{ reporte.generado_por }} · {{ fecha|date:"d/m/Y H:i" }} (Guatemala)</p>
+<table><colgroup>{% for ancho in anchos %}<col style="width: {{ ancho|stringformat:'f' }}%">{% endfor %}</colgroup><thead><tr>{% for c in reporte.columnas %}<th>{{ c.etiqueta }}</th>{% endfor %}</tr></thead>
+<tbody>{% for fila in filas %}<tr>{% for valor in fila %}<td>{{ valor }}</td>{% endfor %}</tr>
+{% empty %}<tr><td colspan="{{ reporte.columnas|length }}">Sin resultados.</td></tr>{% endfor %}</tbody></table>
+<h2>Totales del resultado filtrado</h2><table class="resumen"><tbody>
+{% for etiqueta, valor in totales %}<tr><td>{{ etiqueta }}</td><td>{{ valor }}</td></tr>{% endfor %}
+</tbody></table>
+{% for grupo in grupos %}<h2>{{ grupo.etiqueta }}</h2><table class="resumen"><tbody>
+{% for etiqueta, valor in grupo.valores %}<tr><td>{{ etiqueta }}</td><td>{{ valor }}</td></tr>{% endfor %}
+</tbody></table>{% endfor %}
+</body></html>

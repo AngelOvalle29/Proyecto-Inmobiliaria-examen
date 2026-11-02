@@ -5,7 +5,7 @@ No conocen request ni hablan HTTP. Cada escritura registra su auditoría dentro
 de la misma transacción: si algo falla, se revierten las dos.
 """
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
@@ -16,8 +16,13 @@ from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
 from apps.catalogo.enums import EstadoPropiedad
 from apps.catalogo.exceptions import PropiedadNoDisponible
+from apps.catalogo.selectors import listar_propiedades
 from apps.catalogo.services import cambiar_estado_propiedad
-from apps.core.exceptions import CiudadFueraDelPais, TipoCambioNoDisponible
+from apps.core.exceptions import (
+    CiudadFueraDelPais,
+    ErrorDominio,
+    TipoCambioNoDisponible,
+)
 from apps.core.normalizacion import normalizar_documento
 from apps.core.selectors import listar_ciudades, listar_paises, obtener_tipo_cambio
 from apps.usuarios.models import Usuario
@@ -351,13 +356,17 @@ def _a_centavos(valor: Decimal) -> Decimal:
 
 def cargar_demo_compras() -> dict[str, int]:
     """
-    Carga los proveedores ficticios de datos_demo.py y devuelve cuántos creó.
+    Carga los proveedores y contratos de compra ficticios de datos_demo.py y
+    devuelve cuántos creó de cada uno.
 
     Es idempotente: busca cada proveedor por su país y su NIT (o por su nombre
     si es un particular sin NIT) y solo crea lo que falta. Necesita los países
     de core, que seed_demo carga antes; si un país no existe, ese proveedor se
     omite. No registra auditoría: es la foto inicial de la demostración, no una
     operación del negocio (mismo criterio que la spec 004).
+
+    Los contratos (spec 017) necesitan además las propiedades de
+    cargar_demo_catalogo. Ver _cargar_contratos_demo.
     """
     paises = {pais.codigo_iso: pais for pais in listar_paises()}
     ciudades = {(c.pais.codigo_iso, c.nombre): c for c in listar_ciudades()}
@@ -384,7 +393,60 @@ def cargar_demo_compras() -> dict[str, int]:
         proveedor.codigo = f"PRV-{proveedor.pk:04d}"
         proveedor.save(update_fields=["codigo"])
         creados += 1
-    return {"proveedores": creados}
+    return {"proveedores": creados, "contratos": _cargar_contratos_demo()}
+
+
+def _cargar_contratos_demo() -> int:
+    """
+    Contratos de compra de la demostración (spec 017). Devuelve cuántos creó.
+
+    Son una foto, como el resto de la demo: se guardan con el estado que ya
+    tienen sus propiedades en la demo del catálogo (el terreno en negociación,
+    la gasolinera y el hotel ya comprados), sin pasar por completar ni cambiar
+    el estado de nada, y sin auditoría. Calculan su costo total y su tasa igual
+    que el servicio.
+
+    Se salta un contrato si su propiedad o su proveedor no existen, si la
+    propiedad ya tiene un contrato no anulado (así no duplica), o si falta la
+    tasa al dólar.
+    """
+    hoy = timezone.localdate()
+    creados = 0
+    for datos in datos_demo.CONTRATOS:
+        propiedad = listar_propiedades().filter(nombre=datos["propiedad"]).first()
+        nit = normalizar_documento(datos["proveedor_nit"])
+        proveedor = Proveedor.objects.filter(nit=nit).first()
+        if propiedad is None or proveedor is None:
+            continue
+        if existe_contrato_no_anulado(propiedad=propiedad):
+            continue
+        fecha = hoy - timedelta(days=datos["dias_desde_compra"])
+        try:
+            tasa = _tasa_a_dolar(moneda=propiedad.moneda, fecha=fecha)
+        except ErrorDominio:
+            continue
+        monto = Decimal(datos["monto"])
+        gastos = Decimal(datos["gastos_legales"])
+        impuestos = Decimal(datos["impuestos"])
+        costo_total = monto + gastos + impuestos
+        contrato = ContratoCompra.objects.create(
+            proveedor=proveedor,
+            propiedad=propiedad,
+            fecha_compra=fecha,
+            monto=monto,
+            gastos_legales=gastos,
+            impuestos=impuestos,
+            costo_total=costo_total,
+            moneda=propiedad.moneda,
+            tasa_a_usd=tasa,
+            costo_total_usd=_a_centavos(costo_total * tasa),
+            estado=datos["estado"],
+            observaciones=datos["observaciones"],
+        )
+        contrato.codigo = f"CC-{contrato.pk:05d}"
+        contrato.save(update_fields=["codigo"])
+        creados += 1
+    return creados
 
 
 def _validar(datos: dict) -> None:

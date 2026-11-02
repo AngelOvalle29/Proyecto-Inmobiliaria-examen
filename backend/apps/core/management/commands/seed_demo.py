@@ -29,12 +29,18 @@ from django.utils import timezone
 from apps.core.services import cargar_catalogos_demo
 
 # En orden de dependencia: crm no depende del catálogo, pero ventas y
-# arrendamientos dependerán de los dos.
+# arrendamientos dependen de los dos. Compras y construcción usan las
+# propiedades del catálogo en el estado que este les deja (spec 017). El agente
+# va al final: solo necesita los países de core, y sin IA_API_KEY carga sus
+# documentos sin llamar a Gemini.
 COMANDOS_DE_DEMO = [
     "cargar_demo_catalogo",
     "cargar_demo_crm",
     "cargar_demo_ventas",
     "cargar_demo_arrendamientos",
+    "cargar_demo_compras",
+    "cargar_demo_construccion",
+    "cargar_demo_ia",
 ]
 
 

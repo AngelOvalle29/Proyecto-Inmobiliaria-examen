@@ -8,7 +8,7 @@ from django.db.models import F, Q
 
 from apps.core.models import ModeloBase
 
-from .enums import ESTADOS_ACTIVOS, EstadoProyecto
+from .enums import ESTADOS_ACTIVOS, EstadoPago, EstadoProyecto, TipoPagoConstructora
 
 
 class Constructora(ModeloBase):
@@ -134,3 +134,81 @@ class ProyectoConstruccion(ModeloBase):
 
     def __str__(self) -> str:
         return f"{self.codigo} · {self.nombre}"
+
+
+class PagoConstructora(ModeloBase):
+    """
+    Pago a la constructora por una obra (spec 017, reglas 19 a 21).
+
+    No guarda la constructora: sale del proyecto. Guardarla dos veces
+    permitiría un pago a una constructora distinta de la de su obra (§10).
+    """
+
+    # Nulo solo durante la creación, como el código del proyecto.
+    codigo = models.CharField(max_length=10, unique=True, null=True, blank=True)  # noqa: DJ001
+    proyecto = models.ForeignKey(
+        ProyectoConstruccion, on_delete=models.PROTECT, related_name="pagos"
+    )
+    tipo = models.CharField(max_length=10, choices=TipoPagoConstructora.choices)
+    monto = models.DecimalField(max_digits=18, decimal_places=2)
+    # La del proyecto: la asigna el servicio, no la elige el usuario (regla 20).
+    moneda = models.ForeignKey(
+        "core.Moneda", on_delete=models.PROTECT, related_name="pagos_constructora"
+    )
+    fecha_programada = models.DateField()
+    estado = models.CharField(
+        max_length=10, choices=EstadoPago.choices, default=EstadoPago.PROGRAMADO
+    )
+    # Vacíos hasta pagar (regla 21).
+    fecha_pago = models.DateField(null=True, blank=True)
+    referencia_pago = models.CharField(max_length=100, blank=True)
+    # La tasa es la de la fecha de pago, no la de la programación: lo que
+    # importa a los reportes es cuánto costó en dólares el día que salió el
+    # dinero.
+    tasa_a_usd = models.DecimalField(
+        max_digits=18, decimal_places=6, null=True, blank=True
+    )
+    monto_usd = models.DecimalField(
+        max_digits=18, decimal_places=2, null=True, blank=True
+    )
+    documento = models.ForeignKey(
+        "catalogo.DocumentoOficial",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="pagos_constructora",
+    )
+    observaciones = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["fecha_programada", "id"]
+        verbose_name = "pago a constructora"
+        verbose_name_plural = "pagos a constructoras"
+        indexes = [
+            models.Index(fields=["estado"], name="construccion_pago_estado_idx"),
+            models.Index(
+                fields=["fecha_programada"], name="construccion_pago_fecha_idx"
+            ),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(monto__gt=0), name="construccion_pago_monto_positivo"
+            ),
+            # Un pago PAGADO tiene sus datos de pago. isnull=False hace falta:
+            # en SQL un CHECK acepta las filas donde la condición da
+            # desconocido, y una comparación con NULL da desconocido.
+            models.CheckConstraint(
+                condition=~Q(estado=EstadoPago.PAGADO)
+                | (
+                    Q(fecha_pago__isnull=False)
+                    & ~Q(referencia_pago="")
+                    & Q(tasa_a_usd__isnull=False)
+                    & Q(tasa_a_usd__gt=0)
+                    & Q(monto_usd__isnull=False)
+                ),
+                name="construccion_pago_pagado_completo",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.codigo} · {self.proyecto_id}"

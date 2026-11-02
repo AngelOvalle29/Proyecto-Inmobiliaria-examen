@@ -30,6 +30,7 @@ import { DetalleContratoVenta } from './paginas/ventas/DetalleContratoVenta'
 import { FirmarContratoVenta } from './paginas/ventas/FirmarContratoVenta'
 import { ListaContratosVenta } from './paginas/ventas/ListaContratosVenta'
 import { Inicio } from './paginas/inicio/Inicio'
+import { Reportes } from './paginas/reportes/Reportes'
 
 /**
  * Rutas del frontend (spec 010, §5). Para agregar una pantalla: una ruta aquí y
@@ -52,6 +53,7 @@ const enrutador = createBrowserRouter([
     ),
     children: [
       { path: '/', element: <Inicio /> },
+      { path: '/reportes', element: <Reportes /> },
       { path: '/catalogo/propiedades', element: <ListaPropiedades /> },
       {
         path: '/catalogo/propiedades/nueva',
