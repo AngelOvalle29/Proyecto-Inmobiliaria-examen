@@ -6,7 +6,9 @@ from django.http import Http404
 
 from apps.auditoria.enums import AccionAuditoria
 from apps.catalogo.enums import TipoDocumento
+from apps.crm.enums import EstadoCotizacion, TipoCliente
 from apps.usuarios.enums import NombreRol
+from apps.ventas.enums import ModalidadVenta
 
 from .estructuras import Columna
 
@@ -18,10 +20,25 @@ def filtro(nombre, etiqueta, tipo="texto", origen_opciones="", opciones=None):
         tipo=tipo,
         obligatorio=False,
         origen_opciones=origen_opciones,
-        buscable=origen_opciones == "/ciudades/",
+        buscable=origen_opciones in ("/ciudades/", "/clientes/", "/agentes/"),
         opciones=opciones or [],
     )
 
+
+def opciones(choices) -> list[dict]:
+    return [dict(valor=v, etiqueta=e) for v, e in choices]
+
+
+def filtros_periodo(prefijo: str = "") -> list[dict]:
+    return [
+        filtro("fecha_desde", f"{prefijo} desde", "fecha"),
+        filtro("fecha_hasta", f"{prefijo} hasta", "fecha"),
+    ]
+
+
+PAIS = filtro("pais", "País", "entero", "/paises/")
+AGENTE = filtro("agente", "Agente", "entero", "/agentes/")
+MONEDA = filtro("moneda", "Moneda", "texto", "/monedas/")
 
 CATALOGO = {
     "inventario-disponible": {
@@ -91,6 +108,151 @@ CATALOGO = {
             filtro("accion", "Acción", "texto", "acciones"),
             filtro("fecha_desde", "Desde", "fecha"),
             filtro("fecha_hasta", "Hasta", "fecha"),
+        ],
+    },
+    "ventas-por-periodo": {
+        "codigo": "R01",
+        "titulo": "Ventas por período",
+        "roles": list(NombreRol.values),
+        "columnas": [
+            Columna("codigo", "Contrato"),
+            Columna("fecha_firma", "Firma", "fecha", "dd/mm/yyyy"),
+            Columna("cliente_nombre", "Cliente"),
+            Columna("agente_nombre", "Agente"),
+            Columna("bien", "Bien"),
+            Columna("pais", "País"),
+            Columna("ciudad", "Ciudad"),
+            Columna("modalidad", "Modalidad"),
+            Columna("moneda_codigo", "Moneda"),
+            Columna("bruto", "Precio bruto", "decimal", "#,##0.00", "right"),
+            Columna("descuento", "Descuento", "decimal", "#,##0.00", "right"),
+            Columna("monto_total", "Neto", "decimal", "#,##0.00", "right"),
+            Columna("comision_agente", "Comisión", "decimal", "#,##0.00", "right"),
+        ],
+        "filtros": [
+            *filtros_periodo("Firma"),
+            PAIS,
+            filtro("ciudad", "Ciudad", "entero", "/ciudades/"),
+            filtro("tipo", "Tipo de propiedad", "entero", "/tipos-propiedad/"),
+            AGENTE,
+            filtro("modalidad", "Modalidad", opciones=opciones(ModalidadVenta.choices)),
+            MONEDA,
+        ],
+    },
+    "desempeno-agentes": {
+        "codigo": "R02",
+        "titulo": "Desempeño por agente",
+        "roles": list(NombreRol.values),
+        "columnas": [
+            Columna("codigo", "Agente"),
+            Columna("nombre", "Nombre"),
+            Columna("emitidas", "Cotizaciones emitidas", "entero"),
+            Columna("aprobadas", "Aprobadas", "entero"),
+            Columna("vinculadas", "Con contrato", "entero"),
+            Columna("ventas_directas", "Ventas sin cotización", "entero"),
+            Columna("conversion_pct", "Conversión %", "decimal", "#,##0.00", "right"),
+            Columna("vendido_usd", "Vendido USD", "decimal", "#,##0.00", "right"),
+            Columna("comision_usd", "Comisión USD", "decimal", "#,##0.00", "right"),
+        ],
+        "filtros": [*filtros_periodo("Período"), PAIS, AGENTE],
+    },
+    "embudo-cotizaciones": {
+        "codigo": "R03",
+        "titulo": "Embudo de cotizaciones",
+        "roles": list(NombreRol.values),
+        "columnas": [
+            Columna("codigo", "Cotización"),
+            Columna("fecha_emision", "Emisión", "fecha", "dd/mm/yyyy"),
+            Columna("cliente_nombre", "Cliente"),
+            Columna("agente_nombre", "Agente"),
+            Columna("estado", "Estado"),
+            Columna("vencida", "Vencida"),
+            Columna("moneda_codigo", "Moneda"),
+            Columna("total", "Total", "decimal", "#,##0.00", "right"),
+            Columna("contrato", "Contrato"),
+        ],
+        "filtros": [
+            *filtros_periodo("Emisión"),
+            AGENTE,
+            PAIS,
+            filtro("estado", "Estado", opciones=opciones(EstadoCotizacion.choices)),
+            MONEDA,
+            filtro("monto_min", "Monto mínimo", "decimal"),
+            filtro("monto_max", "Monto máximo", "decimal"),
+        ],
+    },
+    "ranking-clientes": {
+        "codigo": "R04",
+        "titulo": "Ranking de clientes",
+        "roles": list(NombreRol.values),
+        "columnas": [
+            Columna("codigo", "Cliente"),
+            Columna("cliente_nombre", "Nombre"),
+            Columna("contratos", "Contratos de venta", "entero"),
+            Columna("arrendamientos_vigentes", "Arrendamientos vigentes", "entero"),
+            Columna("vendido_usd", "Vendido USD", "decimal", "#,##0.00", "right"),
+            Columna("saldos", "Saldo actual"),
+        ],
+        "filtros": [
+            *filtros_periodo("Firma"),
+            PAIS,
+            filtro("tipo", "Tipo de cliente", opciones=opciones(TipoCliente.choices)),
+        ],
+    },
+    "estado-cuenta-clientes": {
+        "codigo": "R10",
+        "titulo": "Estado de cuenta de clientes",
+        "roles": list(NombreRol.values),
+        "columnas": [
+            Columna("cliente_nombre", "Cliente"),
+            Columna("contrato_codigo", "Contrato"),
+            Columna("origen", "Origen"),
+            Columna("detalle", "Cuota o período"),
+            Columna("fecha_vencimiento", "Vencimiento", "fecha", "dd/mm/yyyy"),
+            Columna("moneda_codigo", "Moneda"),
+            Columna("exigible", "Exigible", "decimal", "#,##0.00", "right"),
+            Columna("pagado", "Pagado", "decimal", "#,##0.00", "right"),
+            Columna("saldo", "Saldo", "decimal", "#,##0.00", "right"),
+            Columna("estado", "Estado"),
+            Columna("mora", "En mora"),
+        ],
+        "filtros": [
+            filtro("cliente", "Cliente", "entero", "/clientes/"),
+            *filtros_periodo("Vencimiento"),
+            filtro(
+                "estado",
+                "Estado",
+                opciones=[
+                    dict(valor="PENDIENTE", etiqueta="Pendiente"),
+                    dict(valor="PARCIAL", etiqueta="Pago parcial"),
+                    dict(valor="PAGADO", etiqueta="Pagado"),
+                ],
+            ),
+            AGENTE,
+            MONEDA,
+        ],
+    },
+    "morosidad": {
+        "codigo": "R11",
+        "titulo": "Morosidad",
+        "roles": list(NombreRol.values),
+        "columnas": [
+            Columna("cliente_nombre", "Cliente"),
+            Columna("contrato_codigo", "Contrato"),
+            Columna("origen", "Origen"),
+            Columna("agente_nombre", "Agente"),
+            Columna("fecha_vencimiento", "Vencimiento", "fecha", "dd/mm/yyyy"),
+            Columna("dias_atraso", "Días de atraso", "entero"),
+            Columna("tramo", "Tramo"),
+            Columna("moneda_codigo", "Moneda"),
+            Columna("saldo", "Saldo", "decimal", "#,##0.00", "right"),
+        ],
+        "filtros": [
+            PAIS,
+            AGENTE,
+            MONEDA,
+            filtro("saldo_min", "Saldo mínimo", "decimal"),
+            filtro("saldo_max", "Saldo máximo", "decimal"),
         ],
     },
 }

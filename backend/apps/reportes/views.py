@@ -52,8 +52,16 @@ PARAMETROS = [
         ("usuario", int, "R17: ID del usuario"),
         ("entidad", str, "R17: entidad exacta"),
         ("accion", str, "R17: acción de auditoría"),
-        ("fecha_desde", str, "R17: día ISO de Guatemala, inclusivo"),
-        ("fecha_hasta", str, "R17: día ISO de Guatemala, inclusivo"),
+        ("fecha_desde", str, "Día ISO de Guatemala, inclusivo"),
+        ("fecha_hasta", str, "Día ISO de Guatemala, inclusivo"),
+        ("agente", int, "R01/R02/R03/R10/R11: ID del agente"),
+        ("cliente", int, "R10: ID del cliente"),
+        ("modalidad", str, "R01: CONTADO o FINANCIADO"),
+        ("estado", str, "R03/R10: estado"),
+        *[
+            (n, str, "R03/R11: decimal inclusivo; exige moneda")
+            for n in ("monto_min", "monto_max", "saldo_min", "saldo_max")
+        ],
     ]
 ]
 

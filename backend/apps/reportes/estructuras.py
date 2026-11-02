@@ -48,7 +48,76 @@ class FiltrosBitacora:
     fecha_hasta: date | None = None
 
 
-FiltrosReporte = FiltrosInventario | FiltrosVencimientos | FiltrosBitacora
+@dataclass(frozen=True)
+class FiltrosVentas:
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    pais: int | None = None
+    ciudad: int | None = None
+    tipo: int | None = None
+    agente: int | None = None
+    modalidad: str | None = None
+    moneda: str | None = None
+
+
+@dataclass(frozen=True)
+class FiltrosAgentes:
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    pais: int | None = None
+    agente: int | None = None
+
+
+@dataclass(frozen=True)
+class FiltrosCotizaciones:
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    agente: int | None = None
+    pais: int | None = None
+    estado: str | None = None
+    moneda: str | None = None
+    monto_min: Decimal | None = None
+    monto_max: Decimal | None = None
+
+
+@dataclass(frozen=True)
+class FiltrosClientes:
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    pais: int | None = None
+    tipo: str | None = None
+
+
+@dataclass(frozen=True)
+class FiltrosEstadoCuenta:
+    cliente: int | None = None
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    estado: str | None = None
+    agente: int | None = None
+    moneda: str | None = None
+
+
+@dataclass(frozen=True)
+class FiltrosMorosidad:
+    pais: int | None = None
+    agente: int | None = None
+    moneda: str | None = None
+    saldo_min: Decimal | None = None
+    saldo_max: Decimal | None = None
+
+
+FiltrosReporte = (
+    FiltrosInventario
+    | FiltrosVencimientos
+    | FiltrosBitacora
+    | FiltrosVentas
+    | FiltrosAgentes
+    | FiltrosCotizaciones
+    | FiltrosClientes
+    | FiltrosEstadoCuenta
+    | FiltrosMorosidad
+)
 
 
 @dataclass
