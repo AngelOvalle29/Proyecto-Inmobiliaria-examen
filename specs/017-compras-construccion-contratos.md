@@ -279,6 +279,11 @@ Las acciones con motivo (`/anular/`, `/suspender/`, `/cancelar/`) reciben
 `{"motivo": "..."}`. `/avance/` recibe `{"porcentaje": 40, "descripcion": "..."}`.
 `/pagar/` recibe `{"fecha_pago": "2026-10-31", "referencia_pago": "TRF-123"}`.
 
+**El detalle del proyecto** (`GET /proyectos-construccion/{id}/`) incluye
+`total_comprometido`, que calcula el selector del mismo nombre (§6), y
+`disponible` (presupuesto menos comprometido), los dos en la moneda del
+proyecto. Así la pantalla de la spec 018 no suma los pagos por su cuenta.
+
 **Errores nuevos:**
 
 | Código | Situación | HTTP |
@@ -332,7 +337,8 @@ en el estado requerido, se revierte todo (reglas 6, 12, 15 y 16).
 
 **Selectores:** `listar_contratos_compra()`, `listar_proyectos()`,
 `listar_pagos()`, `total_comprometido(*, proyecto)` (suma de programados y
-pagados), `existe_contrato_no_anulado(*, propiedad)`,
+pagados; la usan `programar_pago`, `actualizar_proyecto` y el detalle del
+proyecto), `existe_contrato_no_anulado(*, propiedad)`,
 `existe_proyecto_activo(*, propiedad)`, `proveedor_tiene_contratos_en_proceso`
 y `constructora_tiene_proyectos_activos`.
 
@@ -375,6 +381,9 @@ referencia del pago. El cambio de estado de la propiedad lo audita
 - [ ] Un pago que supere el presupuesto responde 409; tras subir el presupuesto,
       se acepta. Bajar el presupuesto por debajo de lo comprometido responde 409.
 - [ ] Un `FINIQUITO` para un proyecto no finalizado responde 409.
+- [ ] El detalle de un proyecto devuelve `total_comprometido` y `disponible`;
+      al programar un pago, el comprometido sube y el disponible baja en su
+      monto, y al anularlo vuelven a su valor.
 - [ ] Pagar guarda fecha, referencia, tasa y monto en dólares; anular un pago
       pagado responde 409.
 - [ ] `CONTABILIDAD` paga pero no crea contratos ni proyectos (403); `AGENTE` y
@@ -445,6 +454,13 @@ aunque dos peticiones lleguen al mismo tiempo.
 **`PagoConstructora` sin `constructora`.** Se obtiene del proyecto; guardarla
 dos veces permitiría un pago a una constructora distinta de la de su obra.
 
+**`total_comprometido` y `disponible` en el detalle del proyecto (revisión de
+Douglas, PR #66).** Los pide la pantalla de la spec 018. Van aquí y no en la
+018 porque son un cambio de backend: la 018 queda sin cambios en el backend y
+solo los cita. Los calcula la API con el mismo selector que valida el
+presupuesto (regla 19), para que la pantalla y la validación nunca den números
+distintos.
+
 ## 11. Trabajo con agentes de IA
 
 **Sesión 2026-10-31, borrador (Claude, rol C).** El agente revisó el código real
@@ -455,6 +471,11 @@ acciones como subrecurso), para seguir los mismos patrones. Las cuatro
 decisiones de negocio de §10 las tomó el integrante C entre opciones planteadas
 por el agente; las demás son propuestas del agente que se validan en la
 revisión.
+
+**Sesión 2026-11-01, revisión de la spec 018 (Claude, rol C).** La revisión de
+Douglas en el PR #66 pidió mover `total_comprometido` a esta spec. El agente lo
+agregó en §5, §6, §8 y §10, junto con `disponible`, que la regla 6 de la 018 ya
+pedía calculado por la API.
 
 **Plan de implementación (un commit por incremento):**
 
