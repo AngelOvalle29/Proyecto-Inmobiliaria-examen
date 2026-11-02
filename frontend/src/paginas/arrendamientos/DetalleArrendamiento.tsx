@@ -9,9 +9,13 @@ import {
   type ArrendamientoDetalle,
   type PagoRenta,
 } from '../../api/arrendamientos/consultas'
-import { useFinalizarArrendamiento } from '../../api/arrendamientos/mutaciones'
+import {
+  useFinalizarArrendamiento,
+  useVincularDocumentoArrendamiento,
+} from '../../api/arrendamientos/mutaciones'
 import { leerErrorApi } from '../../api/errores'
 import { Dialogo } from '../../componentes/comunes/Dialogo'
+import { DocumentoDelContrato } from '../../componentes/comunes/DocumentoDelContrato'
 import { TablaDatos, type AccionFila } from '../../componentes/comunes/TablaDatos'
 import { Button } from '../../componentes/ui/button'
 import { fechaDeHoy, formatearFecha, formatearMoneda } from '../../lib/formato'
@@ -127,6 +131,7 @@ export function DetalleArrendamiento() {
   const { usuario } = useSesion()
   const consulta = useArrendamiento(Number(id))
   const finalizar = useFinalizarArrendamiento()
+  const vincular = useVincularDocumentoArrendamiento()
   const [paraPagar, setParaPagar] = useState<PagoRenta | null>(null)
   const [dialogo, setDialogo] = useState<'renovar' | 'rescindir' | 'finalizar' | null>(
     null,
@@ -202,6 +207,13 @@ export function DetalleArrendamiento() {
       )}
 
       <DatosDelContrato contrato={contrato} />
+
+      <DocumentoDelContrato
+        documento={contrato.documento}
+        propiedad={(contrato.propiedad?.id ?? contrato.unidad?.propiedad.id) as number}
+        puedeCambiar={rolPermitido(rol, ESCRIBEN_CRM)}
+        alVincular={(documento) => vincular.mutateAsync({ id: contrato.id, documento })}
+      />
 
       <h2 className="text-lg font-semibold">Calendario de pagos</h2>
       <TablaDatos

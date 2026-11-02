@@ -90,3 +90,19 @@ export function usePagarRenta() {
       clienteConsultas.invalidateQueries({ queryKey: ['arrendamientos'] }),
   })
 }
+
+/** POST .../documento/: vincula o cambia (spec 008, reglas 17 y 18). */
+export function useVincularDocumentoArrendamiento() {
+  const clienteConsultas = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, documento }: { id: number; documento: number }) =>
+      (
+        await clienteApi.post<ArrendamientoDetalle>(
+          `/contratos-arrendamiento/${id}/documento/`,
+          { documento },
+        )
+      ).data,
+    onSuccess: () =>
+      clienteConsultas.invalidateQueries({ queryKey: ['arrendamientos'] }),
+  })
+}

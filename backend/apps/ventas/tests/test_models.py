@@ -12,7 +12,7 @@ from django.db import IntegrityError, transaction
 from apps.catalogo.tests.factories import PropiedadFactory
 from apps.core.tests.factories import MonedaFactory
 from apps.crm.tests.factories import ClienteFactory
-from apps.ventas.enums import ModalidadVenta
+from apps.ventas.enums import EstadoContrato, ModalidadVenta
 from apps.ventas.models import ContratoVenta, CuotaPago
 
 pytestmark = pytest.mark.django_db
@@ -113,3 +113,20 @@ def test_la_cuota_en_mora_se_calcula_con_la_fecha():
 
     assert not cuota.en_mora(hoy=date(2026, 12, 1))
     assert cuota.en_mora(hoy=date(2026, 12, 2))
+
+
+def test_la_cuota_de_un_contrato_anulado_no_esta_en_mora():
+    """Regla 17: un contrato anulado ya no se cobra."""
+    venta = financiado()
+    cuota = CuotaPago.objects.create(
+        contrato=venta,
+        numero=1,
+        fecha_vencimiento=date(2026, 12, 1),
+        monto_capital=Decimal("100.00"),
+        monto_interes=Decimal("10.00"),
+        monto_total=Decimal("110.00"),
+    )
+    venta.estado = EstadoContrato.ANULADO
+    venta.save(update_fields=["estado"])
+
+    assert not cuota.en_mora(hoy=date(2026, 12, 2))

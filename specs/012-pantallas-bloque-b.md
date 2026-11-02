@@ -135,8 +135,8 @@ a un campo los `detalles` de un 400 de validación: los de un 409 son datos del
 caso, y su mensaje va arriba (regla 5). El buscador de unidad filtra la primera
 página de `/propiedades/{id}/unidades/`, porque ese endpoint no tiene búsqueda.
 
-**Agregado al implementar ventas:** `CuotaPago.en_mora()` no mira el estado del
-contrato, así que el detalle solo marca la mora en un contrato vigente. Las
+**Agregado al implementar ventas:** la mora de un contrato anulado se resuelve
+en `CuotaPago.en_mora()` (spec 007, regla 17), no en esta pantalla. Las
 opciones de propiedad y unidad viven en `api/catalogo/consultas.ts`, y
 `LayoutPrincipal` lleva `min-w-0` para que una tabla ancha haga scroll dentro de
 sí misma.
@@ -149,6 +149,11 @@ ese caso la API responde 409 `USUARIO_YA_ES_AGENTE`, arriba del formulario.
 **Agregado al verificar §8:** el `QueryClient` ya no reintenta los errores 4xx,
 porque un 404 de un contrato ajeno dejaba la pantalla unos 7 segundos en
 "Cargando…".
+
+**Documento del contrato (2026-11-01, specs 007 y 008):** las firmas agregan el
+campo opcional `documento`, y los dos detalles comparten
+`componentes/comunes/DocumentoDelContrato`, que muestra, descarga, vincula y
+cambia. Subir el archivo sigue siendo de la ficha de la propiedad (spec 014).
 
 **Agregado al implementar arrendamientos:** `DialogoPagarRenta` no usa
 `FormularioDatos`, porque el monto propuesto cambia con la fecha elegida. Un pago

@@ -4,6 +4,8 @@ Sin reglas de negocio ni acceso a la base de datos.
 """
 
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
 from apps.core.serializers import PaisResumenSerializer
 
@@ -19,6 +21,23 @@ class LoginSerializer(serializers.Serializer):
 class TokensSerializer(serializers.Serializer):
     access = serializers.CharField()
     refresh = serializers.CharField()
+
+
+class RenovarTokenSerializer(TokenRefreshSerializer):
+    """
+    El de SimpleJWT, salvo un caso: si el usuario del token ya no existe (por
+    ejemplo, se reinició la base), SimpleJWT 5.5.1 deja escapar DoesNotExist y
+    la API responde 500. Aquí es un 401 NO_AUTENTICADO, como un token inválido
+    (spec 001, §5), y el frontend cierra la sesión.
+    """
+
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except Usuario.DoesNotExist as error:
+            raise AuthenticationFailed(
+                "El usuario de esta sesión ya no existe.", "usuario_inexistente"
+            ) from error
 
 
 class UsuarioListadoSerializer(serializers.ModelSerializer):

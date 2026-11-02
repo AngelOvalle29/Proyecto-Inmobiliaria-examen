@@ -3,6 +3,8 @@
 import pytest
 from django.core.management import call_command
 
+from apps.catalogo.enums import EstadoPropiedad
+from apps.catalogo.models import Unidad
 from apps.crm.enums import EstadoCotizacion
 from apps.crm.models import Cotizacion
 from apps.ventas.enums import EstadoContrato, EstadoCuota
@@ -33,3 +35,12 @@ def test_seed_demo_carga_ventas_coherentes_y_no_duplica(monkeypatch):
     contado = ContratoVenta.objects.get(modalidad="CONTADO")
     assert contado.estado == EstadoContrato.LIQUIDADO
     assert Cotizacion.objects.filter(estado=EstadoCotizacion.APROBADA).count() == 1
+
+
+def test_seed_demo_deja_unidades_para_vender_en_vivo(monkeypatch):
+    monkeypatch.delenv("DEMO_AGENTES_PASSWORD", raising=False)
+
+    call_command("seed_demo")
+
+    disponibles = Unidad.objects.filter(estado=EstadoPropiedad.DISPONIBLE)
+    assert set(disponibles.values_list("codigo", flat=True)) == {"A-103", "A-203"}

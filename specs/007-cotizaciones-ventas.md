@@ -108,9 +108,12 @@ programada.
     (409 `CONTRATO_NO_VIGENTE`). Puede ser parcial: la cuota queda `PARCIAL`
     hasta completar su total, y entonces `PAGADA`. Un pago no puede exceder lo
     que falta de la cuota.
-17. Una cuota `PENDIENTE` o `PARCIAL` con fecha de vencimiento pasada está **en
-    mora**. No se guarda como estado: se calcula al consultar, así nunca queda
-    desactualizada (base del reporte R11).
+17. Una cuota `PENDIENTE` o `PARCIAL` de un contrato `VIGENTE`, con fecha de
+    vencimiento pasada, está **en mora**. No se guarda como estado: se calcula
+    al consultar, así nunca queda desactualizada (base del reporte R11). Un
+    contrato anulado ya no se cobra, así que sus cuotas no están en mora
+    (corregido el 2026-11-01: lo señaló B en #56, y A propuso resolverlo en el
+    modelo para que ninguna pantalla ni reporte tenga que recordarlo).
 18. Cuando todas las cuotas están `PAGADA`, el contrato pasa a `LIQUIDADO`.
 
 **Permisos** (esquema de la spec 004)
@@ -122,6 +125,18 @@ programada.
 22. Todos los roles autenticados leen; un agente solo ve las cotizaciones y
     contratos de sus clientes, y lo ajeno responde 404 (regla 14 de la spec
     004).
+
+**Documento del contrato** (agregado el 2026-11-01, pendiente desde #42)
+
+23. Un contrato puede apuntar a un documento oficial: el contrato firmado y
+    escaneado. Es opcional y debe ser un documento activo de la misma propiedad;
+    si se vende una unidad, de su edificio (409 `DOCUMENTO_DE_OTRA_PROPIEDAD`).
+24. **Se vincula al firmar o después** (decidido por B), porque el escaneado
+    suele existir después de firmar. **Se puede cambiar, pero no quitar**
+    (decidido por B): corrige un archivo equivocado sin dejar sin respaldo un
+    contrato que ya lo tenía. El cambio queda en la bitácora. Un contrato
+    `ANULADO` ya no cambia (409 `CONTRATO_NO_VIGENTE`); uno `LIQUIDADO` sí,
+    porque el de contado nace así. Vinculan los que firman (regla 20).
 
 ## 4. Modelo de datos
 
@@ -180,6 +195,7 @@ historia completa de pagos queda en la bitácora de auditoría.
 
 | Método | Ruta | Permiso |
 |---|---|---|
+| POST | `/api/v1/contratos-venta/{id}/documento/` · `{ "documento": 3 }` | Firman: regla 20. Reglas 23 y 24 |
 | GET, POST | `/api/v1/cotizaciones/` · filtros `?estado`, `?cliente`, `?agente` | Leer: todos · Crear: regla 19 |
 | GET, PATCH | `/api/v1/cotizaciones/{id}/` | Editar: regla 19, solo en `BORRADOR` |
 | POST | `/api/v1/cotizaciones/{id}/enviar/` · `/aprobar/` · `/rechazar/` | Regla 19 |
@@ -387,9 +403,9 @@ código de cada paso con sus pruebas, en cinco commits en #44.
   la de ventas usa los mismos servicios que la API, para que cada contrato
   quede coherente (cuotas, estado del bien, tasa y comisión). Por eso sus
   escrituras sí quedan en la bitácora, con usuario nulo.
-- **Pendiente:** el campo `documento` de `ContratoVenta`, acordado en la
-  revisión de la spec 011 (#42), se agrega cuando `DocumentoOficial` exista en
-  `develop`.
+- **Resuelto el 2026-11-01:** el campo `documento` de `ContratoVenta`, acordado
+  en la revisión de la spec 011 (#42), se agregó cuando `DocumentoOficial` llegó
+  a `develop` (reglas 23 y 24).
 
 Resultado: 387 pruebas del proyecto, cobertura de `ventas/services.py` del 96 %
 y de `crm/services.py` del 99 %, esquema OpenAPI sin advertencias.
