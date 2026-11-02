@@ -9,7 +9,7 @@
 | **Fecha** | 2026-11-01 |
 | **Apps afectadas** | `reportes`; lecturas de `catalogo`, `crm`, `ventas`, `arrendamientos`, `compras`, `construccion`, `core` y `auditoria` |
 | **Rama** | Propuesta: `feature/021-reportes-restantes-power-bi`, desde `develop` con la 016 integrada |
-| **Pull request** | Pendiente; avance de [#24](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/24) |
+| **Pull request** | [#78](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/78); avance de [#24](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/24) |
 
 ## 1. Problema
 
@@ -41,9 +41,12 @@ si fuera el de otra fecha.
 
 **Dependencias:** integrar la 016. R13/R15 y sus vistas requieren los modelos,
 migraciones y datos de la 017 integrados; no se crean copias locales de esos
-modelos. El 2026-11-01 la 017 aparece en `develop`, aunque su encabezado aún
-dice «En revisión»: comprobar aprobación e implementación antes de depender
-de ella. No se cuentan R13/R15 como terminados mientras falte esa integración.
+modelos. La 017 ya fue aprobada en el PR #64; su implementación está en #75
+(contratos de compra y proyectos) y #76 (pagos y cierre como Implementada).
+Ambos PR de implementación siguen abiertos al comprobar esta revisión del
+2026-11-01. Una vez fusionados, R13/R15 y sus vistas dejan de tener pendiente
+esa dependencia de integración. No se cuentan R13/R15 como terminados antes
+de implementarlos y verificarlos sobre esos modelos reales.
 
 ## 3. Reglas de negocio
 
@@ -92,9 +95,9 @@ detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
 | R10 `estado-cuenta-clientes` | Obligación `(origen,id)`: cliente, contrato, número/período, vencimiento, moneda, exigible, pagado, saldo y mora actual | Cliente, vencimiento desde/hasta, estado, agente, moneda, corte hoy | Exigible/pagado/saldo por cliente/origen/moneda |
 | R11 `morosidad` | Obligación vencida: cliente, contrato, origen, vencimiento, días de atraso, tramo, moneda y saldo | País del bien, agente, moneda, saldo mínimo/máximo, corte hoy | Conteo y saldo por tramo 1–30, 31–60, 61–90 y más de 90 días |
 | R12 `flujo-ingresos` | Cobro identificado: origen, ID fuente, contrato, fecha efectiva, moneda, recibido, tasa y USD | Pago desde/hasta, país del bien, origen, moneda | Cobros por mes/origen/moneda y consolidado USD; conciliación por fuente |
-| R13 `compras-proveedores` | Contrato de compra completado: proveedor, propiedad, fecha, moneda, monto, gastos, impuestos, costo total y USD | Compra desde/hasta, proveedor, país, moneda | Cantidad y componentes del costo por proveedor/mes/moneda; costo USD |
+| R13 `compras-proveedores` | Contrato de compra completado: proveedor, propiedad, fecha, moneda, monto, gastos, impuestos, costo total y USD | Compra desde/hasta, proveedor, país de la propiedad, moneda | Cantidad y componentes del costo por proveedor/mes/moneda; costo USD |
 | R14 `ocupacion-arrendamientos` | Propiedad: ciudad, tipo, bienes elegibles, arrendados, disponibles, otros estados, ocupación e ingreso recurrente por moneda | País, ciudad, tipo, corte hoy | Ocupación ponderada global y por ciudad; ingreso recurrente por moneda |
-| R15 `avance-presupuesto-obra` | Proyecto: constructora, propiedad, fechas, estado, moneda, presupuesto, programado, pagado, saldo, avance físico y financiero | Constructora, estado, país, inicio desde/hasta, moneda, corte hoy | Presupuesto/pagado/saldo por constructora/moneda y desviación de fechas |
+| R15 `avance-presupuesto-obra` | Proyecto: constructora, propiedad, fechas, estado, moneda, presupuesto, programado, pagado, total comprometido, disponible, saldo por pagar, avance físico y financiero | Constructora, estado, país, inicio desde/hasta, moneda, corte hoy | Presupuesto/programado/pagado/comprometido/disponible/saldo por constructora y moneda; pagos realizados USD y desviación de fechas |
 
 ### Precisiones de cálculo que se someten a revisión
 
@@ -138,10 +141,20 @@ detalle, filtros y agregación; no cuenta como reporte una tarjeta de conteo.
     el resultado no puede aparentar estar completo: 409 `DATOS_INCOMPLETOS`,
     diagnóstico sin datos sensibles y conciliación con los acumulados.
 16. R13 incluye `COMPLETADO`; `EN_PROCESO` no se presenta como adquisición
-    realizada. R15 suma cada pago `PAGADO` una vez; anulado aporta cero.
-    Saldo por pagar = presupuesto − pagado; disponible para programar =
-    presupuesto − pagado − programado. Avance financiero = pagado/presupuesto
-    × 100 en moneda del proyecto; no es el avance físico. Desviación = fin
+    realizada. Su filtro de país se aplica al país de la propiedad adquirida,
+    no al del proveedor. R15 suma cada pago `PAGADO` una vez; anulado aporta
+    cero. Usa las definiciones del detalle de proyecto de la 017:
+    `total_comprometido = programado + pagado` y
+    `disponible = presupuesto − total_comprometido`, reutilizando el selector
+    `total_comprometido` de construcción. Saldo por pagar = presupuesto −
+    pagado; se etiqueta por separado y no se confunde con disponible.
+    Solo los pagos `PAGADO` tienen `tasa_a_usd` y `monto_usd`, guardados al
+    pagar. El programado permanece en la moneda del proyecto y no se consolida
+    en USD ni se convierte con la tasa del presupuesto. Comprometido y
+    disponible también se presentan en la moneda del proyecto; el total USD
+    de pagos realizados suma exclusivamente los `monto_usd` de pagos `PAGADO`.
+    Avance financiero = pagado/presupuesto × 100 en moneda del proyecto;
+    no es el avance físico. Desviación = fin
     real − fin estimada, o máximo(0, hoy − fin estimada) si sigue activo;
     cancelados no se califican como obra atrasada.
 17. R14: denominador son todos los bienes activos elegibles del filtro;
@@ -165,10 +178,11 @@ vistas de este incremento. No modifica tablas de otras apps.
 | `bi.dim_cliente` | Cliente / ID, código, tipo y país; sin documento, NIT, correo, teléfono ni dirección |
 | `bi.dim_agente` | Agente / ID y código; sin credenciales ni correo |
 | `bi.dim_constructora` | Constructora / ID y código |
+| `bi.dim_proveedor` | Proveedor / ID y código; sin NIT ni correo |
 | `bi.hechos_ventas` | Contrato no anulado / contrato ID, fecha firma, bien, cliente, agente, moneda, neto y USD |
 | `bi.hechos_cobros` | Cobro / `(origen,id_fuente)`, fecha efectiva, contrato, moneda, recibido y USD; regla 15 |
 | `bi.hechos_arrendamientos` | Mes de contrato / `(contrato_id,fecha_id)`; renta programada y USD, sin llamarla cobro |
-| `bi.hechos_compras` | Contrato completado / compra ID, fecha compra, bien, proveedor, costo y USD |
+| `bi.hechos_compras` | Contrato completado / compra ID, fecha compra, bien, `proveedor_id` hacia `bi.dim_proveedor`, costo y USD |
 | `bi.hechos_construccion` | Pago pagado / pago ID, fecha pago, proyecto, constructora, moneda, monto y USD |
 
 Cada hecho tiene `fecha_id` y claves de sus dimensiones. Se incluirán en la
@@ -176,6 +190,11 @@ migración comprobaciones de claves únicas, importes y fechas, y las vistas
 auxiliares necesarias para contratos/obligaciones. No se relacionan hechos
 entre sí mediante uniones que dupliquen importes. `dim_tiempo` cubre todas las
 fechas expuestas por hechos, incluso meses programados futuros.
+
+`bi.hechos_construccion` incluye exclusivamente pagos `PAGADO`, con su tasa y
+`monto_usd` guardados al pagar. Los pagos `PROGRAMADO` no entran en este hecho
+de pagos realizados ni se convierten a USD; R15 conserva sus importes en la
+moneda del proyecto para comprometido y disponible.
 
 La renta programada usa la tasa guardada del contrato; el cobro usa la del
 pago. Se redondea cada hecho USD a centavos antes de sumar. Los montos
@@ -235,6 +254,8 @@ totales siguen incluyendo otras carteras. Las firmas actuales de la 016 se
 adaptan con sus pruebas, conservando sus permisos. Los exportadores reciben
 `Reporte` y siguen sin consultar modelos. Los selectores aplican permisos antes
 de contar, agregar y paginar. BI se valida con SQL de conciliación por fuente.
+R15 reutiliza `total_comprometido` de los selectores de construcción de la 017
+para coincidir con el detalle del proyecto, sin duplicar su regla de cálculo.
 
 En el frontend el catálogo autorizado seguirá paginado: al superar 25 reportes
 no se ocultarán silenciosamente las páginas siguientes. Para los quince de
@@ -259,6 +280,9 @@ atribuidas a un usuario de negocio.
 - [ ] Los datos desconocidos se distinguen del cero y tienen cobertura explícita.
 - [ ] Los dos abonos de una cuota en meses/tasas distintos caen en sus meses correctos.
 - [ ] R13/R15 funcionan con los modelos y migraciones reales de la 017.
+- [ ] R13 filtra por país de la propiedad, aunque el proveedor sea de otro país.
+- [ ] R15 coincide con el detalle de proyecto en comprometido y disponible; solo pagos `PAGADO` aportan USD.
+- [ ] `bi.hechos_compras.proveedor_id` referencia `bi.dim_proveedor`, que expone solo ID y código.
 - [ ] Vistas BI concilian claves, conteos y montos con los selectores de origen.
 - [ ] `powerbi_reader` lee las vistas, pero no tablas operativas ni escribe.
 - [ ] El `.pbix` se abre, actualiza desde PostgreSQL y filtra ambos tableros.
@@ -277,6 +301,7 @@ atribuidas a un usuario de negocio.
 | Servicios/API | Matriz de cinco roles, filtros inválidos, páginas, totales completos, rechazo de 5,001 filas antes de cargar detalle |
 | Exportación | Columnas y totales equivalentes, tipos XLSX, fórmulas literales, PDF multipágina, cobertura desconocida |
 | Migración/SQL | Aplicar/revertir vistas, unicidad de grano, claves a dimensiones, permisos reales y conciliación por fuente |
+| Compras/construcción | Proveedor y propiedad de países distintos; comprometido/disponible iguales al detalle de la 017; programados sin tasa ni USD excluidos del total USD; pagados con su tasa histórica; dimensión de proveedor sin NIT/correo |
 | Manual | Quince consultas, treinta descargas, filtros y errores visibles; abrir/actualizar `.pbix`, segmentadores y cifras conciliadas |
 
 ## 10. Decisiones y alternativas descartadas
@@ -318,3 +343,14 @@ La estudiante solicitó preparar una spec para revisión del equipo. Este
 archivo es esa propuesta, sin implementación nueva, aprobación, commit ni
 garantía de plazo. Se explicitan las métricas que no deben inferirse de campos
 insuficientes. La validación de la 016 se registra en su documento propio.
+
+### Ajustes a la revisión del integrante C
+
+Nathaly trasladó cinco observaciones de Angel sobre R13, R15 y sus hechos BI.
+Se añadió `bi.dim_proveedor`, se precisó el país de la propiedad para R13,
+se alinearon comprometido y disponible con el selector de construcción y
+se limitó el USD a pagos realizados. Se corrigió además el estado de la 017:
+aprobada en #64, con implementación en #75/#76 todavía pendiente de fusión
+al consultar GitHub en esta sesión. Los criterios y casos de prueba reflejan
+los ajustes. No se da por aprobada la parte de C hasta que Angel registre su
+aprobación sobre la revisión actualizada del PR #78.
