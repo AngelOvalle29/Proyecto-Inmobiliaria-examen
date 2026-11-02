@@ -5,7 +5,7 @@ from dataclasses import asdict
 from django.http import Http404
 
 from apps.auditoria.enums import AccionAuditoria
-from apps.catalogo.enums import TipoDocumento
+from apps.catalogo.enums import EstadoPropiedad, TipoDocumento
 from apps.crm.enums import EstadoCotizacion, TipoCliente
 from apps.usuarios.enums import NombreRol
 from apps.ventas.enums import ModalidadVenta
@@ -256,6 +256,79 @@ CATALOGO = {
         ],
     },
 }
+
+
+# Reportes del catálogo (spec 021, rol A). Todos los roles (regla 7).
+CIUDAD = filtro("ciudad", "Ciudad", "entero", "/ciudades/")
+TIPO_PROPIEDAD = filtro("tipo", "Tipo de propiedad", "entero", "/tipos-propiedad/")
+
+CATALOGO.update(
+    {
+        "propiedades-por-estado": {
+            "codigo": "R06",
+            "titulo": "Propiedades por estado",
+            "roles": list(NombreRol.values),
+            "columnas": [
+                Columna("origen", "Origen"),
+                Columna("id", "ID", "entero"),
+                Columna("codigo", "Código"),
+                Columna("nombre", "Propiedad"),
+                Columna("tipo", "Tipo"),
+                Columna("ciudad", "Ciudad"),
+                Columna("estado", "Estado"),
+                Columna("fecha_estado", "En el estado desde", "fecha", "dd/mm/yyyy"),
+                Columna("dias_en_estado", "Días en el estado", "entero"),
+            ],
+            "filtros": [
+                PAIS,
+                CIUDAD,
+                TIPO_PROPIEDAD,
+                filtro("estado", "Estado", opciones=opciones(EstadoPropiedad.choices)),
+            ],
+        },
+        "evolucion-avaluos": {
+            "codigo": "R08",
+            "titulo": "Evolución de avalúos",
+            "roles": list(NombreRol.values),
+            "columnas": [
+                Columna("id", "ID", "entero"),
+                Columna("propiedad_codigo", "Código"),
+                Columna("propiedad_nombre", "Propiedad"),
+                Columna("fecha", "Fecha", "fecha", "dd/mm/yyyy"),
+                Columna("perito", "Perito"),
+                Columna("moneda_codigo", "Moneda"),
+                Columna("valor", "Valor", "decimal", "#,##0.00", "right"),
+                Columna("anterior", "Avalúo anterior", "decimal", "#,##0.00", "right"),
+                Columna("variacion_pct", "Variación %", "decimal", "#,##0.00", "right"),
+            ],
+            "filtros": [
+                filtro("propiedad", "Propiedad", "entero", "/propiedades/"),
+                PAIS,
+                MONEDA,
+                *filtros_periodo("Avalúo"),
+            ],
+        },
+        "ocupacion-arrendamientos": {
+            "codigo": "R14",
+            "titulo": "Ocupación de arrendamientos",
+            "roles": list(NombreRol.values),
+            "columnas": [
+                Columna("id", "ID", "entero"),
+                Columna("codigo", "Código"),
+                Columna("nombre", "Propiedad"),
+                Columna("ciudad", "Ciudad"),
+                Columna("tipo", "Tipo"),
+                Columna("elegibles", "Bienes", "entero"),
+                Columna("arrendados", "Arrendados", "entero"),
+                Columna("disponibles", "Disponibles", "entero"),
+                Columna("otros", "Otros estados", "entero"),
+                Columna("ocupacion_pct", "Ocupación %", "decimal", "#,##0.00", "right"),
+                Columna("ingreso_recurrente", "Renta mensual vigente"),
+            ],
+            "filtros": [PAIS, CIUDAD, TIPO_PROPIEDAD],
+        },
+    }
+)
 
 
 def definicion_reporte(slug: str) -> dict:
