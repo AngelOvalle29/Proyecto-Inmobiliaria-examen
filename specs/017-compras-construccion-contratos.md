@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 017 |
-| **Estado** | En revisión |
+| **Estado** | Implementada |
 | **Autor** | Angel Glicerio Ovalle Fernandez (rol C) |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce), PR #64 |
 | **Fecha** | 2026-10-31 |
-| **Apps afectadas** | `compras`, `construccion` (incluidos sus comandos de demostración) |
-| **Rama** | `feature/017-contratos-compra-proyectos` |
-| **Pull request** | — |
+| **Apps afectadas** | `compras`, `construccion` (incluidos sus comandos de demostración), `config/settings/base.py` (nombres de enums del esquema), `docs/modelo-datos.md` |
+| **Rama** | `feature/017-contratos-compra-proyectos` y `feature/017-pagos-constructora` |
+| **Pull request** | #75 (contratos y proyectos) y el PR de pagos, demostración y cierre |
 
 ---
 
@@ -97,10 +97,12 @@ propiedad que se compra para revender tal como está, sin obra, pasa de
     `SUSPENDIDO`). No cambian el estado de la propiedad.
 15. **Finalizar** solo en `EN_EJECUCION` y con avance 100. La fecha de fin real
     es la de hoy. Pasa la propiedad de `EN_CONSTRUCCION` a `DISPONIBLE` y, si la
-    propiedad tiene unidades, también sus unidades activas que estén en
-    `EN_NEGOCIACION` (con `cambiar_estado_unidad`), porque en un edificio lo que
-    se cotiza y se vende son las unidades. Si la propiedad ya no está
-    `EN_CONSTRUCCION`, no se finaliza (regla 26).
+    propiedad tiene unidades, también sus unidades activas que todavía no
+    estaban a la venta, en `EN_NEGOCIACION` o `EN_CONSTRUCCION` (con
+    `cambiar_estado_unidad`), porque en un edificio lo que se cotiza y se vende
+    son las unidades. Las que ya tienen otro estado (reservada, vendida) no se
+    tocan. Si la propiedad ya no está `EN_CONSTRUCCION`, no se finaliza
+    (regla 26).
 16. **Cancelar** desde `PLANIFICADO`, `EN_EJECUCION` o `SUSPENDIDO`, con motivo.
     Si la propiedad está `EN_CONSTRUCCION`, vuelve a `ADQUIRIDA`; si alguien ya
     la movió a mano a otro estado, se cancela el proyecto sin tocar la propiedad
@@ -297,7 +299,7 @@ proyecto. Así la pantalla de la spec 018 no suma los pagos por su cuenta.
 | `FECHA_INVALIDA` | Fecha futura, o fecha de pago anterior al inicio (reglas 4 y 21) | 400 |
 | `PROVEEDOR_CON_CONTRATOS` · `CONSTRUCTORA_CON_PROYECTOS` | Desactivación bloqueada (reglas 22 y 23) | 409 |
 
-`TipoCambioNoDisponible` (422) y `DocumentoDeOtraPropiedad` (400) se reutilizan
+`TipoCambioNoDisponible` (422) y `DocumentoDeOtraPropiedad` (409) se reutilizan
 de `core` y `catalogo`.
 
 ## 6. Servicios y selectores
@@ -358,41 +360,42 @@ referencia del pago. El cambio de estado de la propiedad lo audita
 
 ## 8. Criterios de aceptación
 
-- [ ] Registrar un contrato sobre una propiedad `EN_NEGOCIACION` crea `CC-00001`
+- [x] Registrar un contrato sobre una propiedad `EN_NEGOCIACION` crea `CC-00001`
       con su costo total, su tasa y su costo en dólares, sin cambiar la propiedad.
-- [ ] Completarlo deja la propiedad `ADQUIRIDA`; completarlo otra vez responde 409.
-- [ ] Un segundo contrato no anulado sobre la misma propiedad responde 409; tras
+- [x] Completarlo deja la propiedad `ADQUIRIDA`; completarlo otra vez responde 409.
+- [x] Un segundo contrato no anulado sobre la misma propiedad responde 409; tras
       anular el primero, se acepta.
-- [ ] Anular un contrato completado responde 409; anular uno en proceso sin
+- [x] Anular un contrato completado responde 409; anular uno en proceso sin
       motivo responde 400.
-- [ ] Un proyecto sobre una propiedad que no está `ADQUIRIDA` responde 409.
-- [ ] Iniciar deja la propiedad `EN_CONSTRUCCION`; finalizar con avance 100 la
-      deja `DISPONIBLE`, junto con sus unidades en negociación, y guarda la
-      fecha de hoy; finalizar con avance menor responde 400.
-- [ ] Un `ANTICIPO` se paga con fecha anterior al inicio de la obra; otro tipo de
+- [x] Un proyecto sobre una propiedad que no está `ADQUIRIDA` responde 409.
+- [x] Iniciar deja la propiedad `EN_CONSTRUCCION`; finalizar con avance 100 la
+      deja `DISPONIBLE`, junto con sus unidades en negociación o en
+      construcción, y guarda la fecha de hoy; finalizar con avance menor
+      responde 400.
+- [x] Un `ANTICIPO` se paga con fecha anterior al inicio de la obra; otro tipo de
       pago con esa fecha responde 400.
-- [ ] En un proyecto finalizado se puede subir el presupuesto y pagar el
+- [x] En un proyecto finalizado se puede subir el presupuesto y pagar el
       finiquito.
-- [ ] Si la propiedad se movió a mano durante la obra, cancelar el proyecto
+- [x] Si la propiedad se movió a mano durante la obra, cancelar el proyecto
       funciona y finalizar responde 409 con el estado actual.
-- [ ] Un avance menor que el anterior, o mayor que 100, responde 400.
-- [ ] Cancelar una obra iniciada devuelve la propiedad a `ADQUIRIDA` y anula sus
+- [x] Un avance menor que el anterior, o mayor que 100, responde 400.
+- [x] Cancelar una obra iniciada devuelve la propiedad a `ADQUIRIDA` y anula sus
       pagos programados.
-- [ ] Un pago que supere el presupuesto responde 409; tras subir el presupuesto,
+- [x] Un pago que supere el presupuesto responde 409; tras subir el presupuesto,
       se acepta. Bajar el presupuesto por debajo de lo comprometido responde 409.
-- [ ] Un `FINIQUITO` para un proyecto no finalizado responde 409.
-- [ ] El detalle de un proyecto devuelve `total_comprometido` y `disponible`;
+- [x] Un `FINIQUITO` para un proyecto no finalizado responde 409.
+- [x] El detalle de un proyecto devuelve `total_comprometido` y `disponible`;
       al programar un pago, el comprometido sube y el disponible baja en su
       monto, y al anularlo vuelven a su valor.
-- [ ] Pagar guarda fecha, referencia, tasa y monto en dólares; anular un pago
+- [x] Pagar guarda fecha, referencia, tasa y monto en dólares; anular un pago
       pagado responde 409.
-- [ ] `CONTABILIDAD` paga pero no crea contratos ni proyectos (403); `AGENTE` y
+- [x] `CONTABILIDAD` paga pero no crea contratos ni proyectos (403); `AGENTE` y
       `CONSULTA` solo leen.
-- [ ] Desactivar un proveedor con un contrato en proceso, o una constructora con
+- [x] Desactivar un proveedor con un contrato en proceso, o una constructora con
       un proyecto activo, responde 409.
-- [ ] Cada operación queda en la bitácora del sistema.
-- [ ] Los comandos de demostración no duplican nada al correrlos dos veces.
-- [ ] `ruff`, `makemigrations --check` y `pytest` pasan (`docs/convenciones.md` §1.1).
+- [x] Cada operación queda en la bitácora del sistema.
+- [x] Los comandos de demostración no duplican nada al correrlos dos veces.
+- [x] `ruff`, `makemigrations --check` y `pytest` pasan (`docs/convenciones.md` §1.1).
 
 ## 9. Pruebas
 
@@ -461,6 +464,39 @@ solo los cita. Los calcula la API con el mismo selector que valida el
 presupuesto (regla 19), para que la pantalla y la validación nunca den números
 distintos.
 
+**Decisiones de la implementación (2026-11-01):**
+
+- **Finalizar publica también las unidades `EN_CONSTRUCCION` (decidido por el
+  integrante C).** La demo del catálogo marca así las unidades del hotel en
+  obra. Si finalizar solo publicara las `EN_NEGOCIACION`, en la demostración el
+  hotel quedaría disponible con sus suites todavía "en construcción". Las dos
+  significan lo mismo para una obra: la unidad aún no está a la venta
+  (regla 15).
+- **Dos PR en lugar de uno.** Con los cuatro incrementos juntos, el PR pasaba de
+  5,000 líneas (`CLAUDE.md` §2 pide incrementos revisables). El #75 lleva
+  contratos y proyectos; el segundo, pagos, demostración y este cierre.
+- **La demostración es una foto, sin auditoría.** Contratos, proyectos y pagos
+  se guardan con el estado que ya tienen sus propiedades en la demo del
+  catálogo (el terreno en negociación, la gasolinera adquirida, el hotel en
+  obra), sin pasar por los servicios que cambian estados. Es el mismo criterio
+  de las specs 004 y 006, y deja la obra del hotel lista para finalizarla en la
+  defensa por la API.
+- **`obtener_dolar` repetido en cada app.** Ventas ya lo tenía; compras y
+  construcción tienen su propia copia de una línea, porque las apps no dependen
+  entre sí (§4).
+- **Cancelar bloquea los pagos programados antes de anularlos.** Si alguien
+  paga uno de ellos al mismo tiempo, la cancelación espera, y PostgreSQL vuelve
+  a revisar el filtro sobre la fila ya pagada: un pago `PAGADO` nunca se anula.
+- **El mismo porcentaje de avance se puede registrar otra vez.** "Nunca baja"
+  (regla 13) permite repetirlo con otra descripción, que queda en la bitácora.
+- **Editar un campo que el estado no permite responde `TRANSICION_INVALIDA`**
+  (regla 17): por ejemplo, el nombre de un proyecto finalizado.
+- **Nombres del esquema OpenAPI.** Para que el frontend reciba tipos con nombres
+  claros, los enums de compras y construcción se agregaron a
+  `ENUM_NAME_OVERRIDES` (como los de ventas y arrendamientos) y se renombraron
+  tres serializadores que chocaban con los de otras apps. El esquema queda sin
+  advertencias.
+
 ## 11. Trabajo con agentes de IA
 
 **Sesión 2026-10-31, borrador (Claude, rol C).** El agente revisó el código real
@@ -483,3 +519,35 @@ pedía calculado por la API.
 2. `ProyectoConstruccion`: modelo, servicios de su ciclo, API y desactivación de constructora
 3. `PagoConstructora`: modelo, servicios, API
 4. Datos de demostración y cierre de la spec
+
+**Implementación, 2026-11-01 (Claude, rol C).** Los cuatro incrementos del plan
+se hicieron en orden, uno por commit:
+
+| Commit | Incremento | PR |
+|---|---|---|
+| `feat(compras): agregar contratos de compra con API, auditoría y regla de desactivación` | 1 | #75 |
+| `feat(construccion): agregar proyectos de construcción con su ciclo, API y auditoría` | 2 | #75 |
+| `feat(construccion): agregar pagos a constructoras con el control del presupuesto` | 3 | 2.º PR |
+| `feat(compras, construccion): datos de demostración y cierre de la spec 017` | 4 | 2.º PR |
+
+**Qué generó el agente.** El código de los tres modelos, sus servicios,
+selectores, API, pruebas y datos de demostración. Antes de escribirlo revisó el
+código real de `ventas` (`ContratoVenta`, la tasa al dólar, las acciones como
+subrecurso), `catalogo` (`cambiar_estado_propiedad`, `cambiar_estado_unidad`,
+sus selectores y excepciones) y las apps `compras` y `construccion` de la spec
+006, para seguir los mismos patrones. Cada incremento lo corrió en una réplica
+con PostgreSQL 16 y pgvector: `ruff`, `makemigrations --check`, la suite
+completa y el esquema de `drf-spectacular`. Además, en cada uno quitó a
+propósito las reglas nuevas (presupuesto, unicidad, desactivación, unidades,
+anticipo) para comprobar que alguna prueba fallaba sin ellas.
+
+**Qué verificó el integrante C en su máquina:** cada incremento por separado,
+con las migraciones aplicadas y la suite completa (665, 744, 776 y 783
+pruebas; 161 nuevas sobre las 622 de `develop`), `ruff` y
+`makemigrations --check` limpios. Tomó la
+decisión de la regla 15 al preparar la demostración.
+
+**Pendiente para A (Douglas):** agregar `cargar_demo_compras` y
+`cargar_demo_construccion` a `COMANDOS_DE_DEMO` de `seed_demo`, después de
+`cargar_demo_catalogo`; y decidir si `/cambiar-estado/` debe rechazar las
+propiedades con un proyecto activo (regla 26).
