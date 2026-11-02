@@ -119,7 +119,10 @@ dólar aplicada, mora calculada y cambios de estado por `catalogo`.
     bitácora. Vale en cualquier estado: los contratos no se anulan, y uno
     terminado sigue siendo el respaldo de lo que se cobró. Renovar no copia el
     documento: el contrato nuevo se firma aparte. Vinculan los que firman
-    (regla 13).
+    (regla 13). La
+    pantalla ofrece solo los documentos de tipo `CONTRATO`. Si el documento se
+    desactiva después, el contrato conserva su nombre, pero ya no se descarga
+    (404): la descarga solo sirve documentos activos.
 
 ## 4. Modelo de datos
 

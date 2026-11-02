@@ -2257,7 +2257,11 @@ export interface components {
             nombre_completo: string;
         };
         /** @description Vincula o cambia el documento; no acepta null: no se quita (regla 18). */
-        VincularDocumento: {
+        VincularDocumentoArrendamiento: {
+            documento: number;
+        };
+        /** @description Vincula o cambia el documento; no acepta null: no se quita (regla 24). */
+        VincularDocumentoVenta: {
             documento: number;
         };
     };
@@ -2878,9 +2882,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["VincularDocumento"];
-                "application/x-www-form-urlencoded": components["schemas"]["VincularDocumento"];
-                "multipart/form-data": components["schemas"]["VincularDocumento"];
+                "application/json": components["schemas"]["VincularDocumentoArrendamiento"];
+                "application/x-www-form-urlencoded": components["schemas"]["VincularDocumentoArrendamiento"];
+                "multipart/form-data": components["schemas"]["VincularDocumentoArrendamiento"];
             };
         };
         responses: {
@@ -3082,9 +3086,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["VincularDocumento"];
-                "application/x-www-form-urlencoded": components["schemas"]["VincularDocumento"];
-                "multipart/form-data": components["schemas"]["VincularDocumento"];
+                "application/json": components["schemas"]["VincularDocumentoVenta"];
+                "application/x-www-form-urlencoded": components["schemas"]["VincularDocumentoVenta"];
+                "multipart/form-data": components["schemas"]["VincularDocumentoVenta"];
             };
         };
         responses: {

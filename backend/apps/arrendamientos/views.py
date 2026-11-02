@@ -27,7 +27,7 @@ from .serializers import (
     PagoRentaSerializer,
     RenovarArrendamientoSerializer,
     RescindirArrendamientoSerializer,
-    VincularDocumentoSerializer,
+    VincularDocumentoArrendamientoSerializer,
 )
 from .services import (
     finalizar_arrendamiento,
@@ -179,10 +179,10 @@ class DocumentoArrendamientoView(AccionArrendamientoView):
     """POST /api/v1/contratos-arrendamiento/{id}/documento/ (reglas 17 y 18)."""
 
     roles_por_metodo = {"POST": FIRMAN}
-    entrada = VincularDocumentoSerializer
+    entrada = VincularDocumentoArrendamientoSerializer
 
     @extend_schema(
-        request=VincularDocumentoSerializer,
+        request=VincularDocumentoArrendamientoSerializer,
         responses={200: ArrendamientoDetalleSerializer},
         summary="Vincular o cambiar el documento de un contrato",
     )

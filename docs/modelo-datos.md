@@ -187,11 +187,12 @@ GOBIERNO, OTRO) · `nombre` · `nit` · `email` · `telefono` · `pais` (FK) ·
 ### ContratoCompra ★
 `id` · `codigo` · `proveedor` (FK) · `propiedad` (FK) · `fecha_compra` ·
 `monto` · `moneda` (FK) · `gastos_legales` · `impuestos` ·
-`costo_total` (calculado) · `estado` (EN_PROCESO, COMPLETADO, ANULADO) ·
-`observaciones` · `activo`
+`costo_total` (calculado) · `tasa_a_usd` · `costo_total_usd` ·
+`estado` (EN_PROCESO, COMPLETADO, ANULADO) · `observaciones` · `activo`
 
 *Regla:* el `costo_total` es la base para calcular la rentabilidad de la
-propiedad cuando se venda.
+propiedad cuando se venda. Una propiedad tiene como máximo un contrato no
+anulado; completarlo la pasa de EN_NEGOCIACION a ADQUIRIDA (spec 017).
 
 ---
 
@@ -205,11 +206,20 @@ propiedad cuando se venda.
 `id` · `codigo` · `nombre` · `propiedad` (FK) · `constructora` (FK) ·
 `fecha_inicio` · `fecha_fin_estimada` · `fecha_fin_real` ·
 `presupuesto_total` · `moneda` (FK) · `estado` (PLANIFICADO, EN_EJECUCION,
-SUSPENDIDO, FINALIZADO, CANCELADO) · `porcentaje_avance` · `activo`
+SUSPENDIDO, FINALIZADO, CANCELADO) · `porcentaje_avance` · `tasa_a_usd` ·
+`presupuesto_total_usd` · `activo`
+
+*Regla:* una propiedad tiene como máximo un proyecto activo (PLANIFICADO,
+EN_EJECUCION o SUSPENDIDO). Iniciar pasa la propiedad a EN_CONSTRUCCION y
+finalizar, con avance 100, a DISPONIBLE (spec 017).
 
 ### AvanceObra
 `id` · `proyecto` (FK) · `fecha` · `porcentaje` · `descripcion` ·
 `supervisor` (FK Usuario) · `evidencia_url`
+
+*No se implementa por ahora* (spec 017, §10): el avance es el
+`porcentaje_avance` del proyecto, y cada avance queda en la bitácora con su
+descripción.
 
 ### PagoConstructora ★
 `id` · `codigo` · `proyecto` (FK) · `constructora` (FK) · `fecha` ·
@@ -247,15 +257,26 @@ Ver `docs/arquitectura.md`, sección 5.
 Ver `docs/arquitectura.md`, sección 5.
 
 ### DocumentoRAG
-`id` · `titulo` · `tipo` (POLITICA, MANUAL, LEGAL, PLANTILLA, FICHA_PROPIEDAD) ·
-`pais` (FK, opcional) · `archivo_url` · `documento_oficial` (FK, opcional) ·
-`fecha_indexacion` · `version` · `activo`
+`id` · `titulo` (único) · `tipo` (POLITICA, MANUAL, LEGAL, PLANTILLA,
+FICHA_PROPIEDAD) · `pais` (FK, opcional) · `contenido_fuente` (el Markdown
+completo) · `version` · `fecha_indexacion` · `activo` y demás campos de
+`ModeloBase`
+
+*Reglas:* `fecha_indexacion` nula significa pendiente de indexar; se vacía cada
+vez que cambia el contenido. *Cambios respecto de la versión original:*
+`archivo_url` pasa a `contenido_fuente`, para poder reindexar sin depender del
+almacenamiento de archivos, y `documento_oficial` se pospone a otra spec
+(detalle en `specs/005-agente-ia-rag.md`).
 
 ### FragmentoRAG
-`id` · `documento` (FK) · `orden` · `contenido` · `seccion` ·
-`embedding` (vector, dimensión según `IA_DIMENSION_EMBEDDINGS`) · `tokens`
+`id` · `documento` (FK, borrado en cascada) · `orden` · `contenido` · `seccion` ·
+`embedding` (vector de 768, igual a `IA_DIMENSION_EMBEDDINGS`) · `tokens`
 
-*Índice:* IVFFlat o HNSW sobre `embedding` para búsqueda por similitud de coseno.
+*Regla:* único por documento y orden. No hereda `ModeloBase`: se regenera desde
+el documento al reindexar.
+
+*Índice:* HNSW con `vector_cosine_ops` sobre `embedding`, para búsqueda por
+similitud de coseno (se descartó IVFFlat porque necesita datos para crearse).
 
 ---
 

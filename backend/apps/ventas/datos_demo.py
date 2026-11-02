@@ -31,10 +31,24 @@ CONTRATOS = [
         "dias_desde_firma": 40,
         "modalidad": "CONTADO",
     },
+    {
+        # Nace de una cotización con descuento: así los reportes de ventas y
+        # cotizaciones (spec 021) tienen una conversión y un descuento reales.
+        "cliente": "cliente5@demo.test",
+        "bien": ("Torre Mirador del Valle", "A-104"),
+        "dias_desde_firma": 0,
+        "modalidad": "CONTADO",
+        "descuento_cotizacion": Decimal("20000.00"),
+    },
 ]
 
 # (cliente, bien, hasta qué estado se lleva). El Restaurante Plaza Central
 # se dejó para la demo de arrendamientos (spec 008): era el único bien libre.
+# Hay una por estado para los reportes de la spec 021. Solo APROBADA reserva
+# el bien: A-103 y A-203 siguen disponibles.
 COTIZACIONES = [
     ("cliente2@demo.test", ("Torre Mirador del Valle", "A-101"), "APROBADA"),
+    ("cliente4@demo.test", ("Torre Mirador del Valle", "A-103"), "BORRADOR"),
+    ("cliente5@demo.test", ("Torre Mirador del Valle", "A-203"), "ENVIADA"),
+    ("cliente1@demo.test", ("Torre Mirador del Valle", "A-103"), "RECHAZADA"),
 ]

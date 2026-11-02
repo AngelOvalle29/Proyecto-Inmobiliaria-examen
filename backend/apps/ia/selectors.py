@@ -2,3 +2,34 @@
 
 Nunca escriben en la base de datos.
 """
+
+from pgvector.django import CosineDistance
+
+from .models import DocumentoRAG, FragmentoRAG
+
+
+def obtener_documento(*, documento_id: int) -> DocumentoRAG:
+    """Lanza DocumentoRAG.DoesNotExist si no existe."""
+    return DocumentoRAG.objects.get(pk=documento_id)
+
+
+def obtener_documento_por_titulo(*, titulo: str) -> DocumentoRAG | None:
+    return DocumentoRAG.objects.filter(titulo=titulo).first()
+
+
+def buscar_fragmentos_similares(
+    *, embedding: list[float], distancia_maxima: float, limite: int = 5
+) -> list[FragmentoRAG]:
+    """Los fragmentos más cercanos a la pregunta, del más al menos cercano.
+
+    Solo de documentos activos (regla 4) y solo los que no pasan de
+    distancia_maxima. La distancia de coseno va de 0 (mismo significado) a 2
+    (opuesto); queda anotada en cada fragmento como .distancia.
+    """
+    return list(
+        FragmentoRAG.objects.filter(documento__activo=True)
+        .annotate(distancia=CosineDistance("embedding", embedding))
+        .filter(distancia__lte=distancia_maxima)
+        .select_related("documento")
+        .order_by("distancia")[:limite]
+    )

@@ -136,7 +136,10 @@ programada.
     (decidido por B): corrige un archivo equivocado sin dejar sin respaldo un
     contrato que ya lo tenía. El cambio queda en la bitácora. Un contrato
     `ANULADO` ya no cambia (409 `CONTRATO_NO_VIGENTE`); uno `LIQUIDADO` sí,
-    porque el de contado nace así. Vinculan los que firman (regla 20).
+    porque el de contado nace así. Vinculan los que firman (regla 20). La
+    pantalla ofrece solo los documentos de tipo `CONTRATO`. Si el documento se
+    desactiva después, el contrato conserva su nombre, pero ya no se descarga
+    (404): la descarga solo sirve documentos activos.
 
 ## 4. Modelo de datos
 

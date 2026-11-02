@@ -25,7 +25,7 @@ from .serializers import (
     CuotaSerializer,
     FirmarContratoSerializer,
     PagoCuotaSerializer,
-    VincularDocumentoSerializer,
+    VincularDocumentoVentaSerializer,
 )
 from .services import (
     anular_contrato,
@@ -123,13 +123,13 @@ class DocumentoContratoView(GenericAPIView):
         return _contratos_visibles(self)
 
     @extend_schema(
-        request=VincularDocumentoSerializer,
+        request=VincularDocumentoVentaSerializer,
         responses={200: ContratoVentaDetalleSerializer},
         summary="Vincular o cambiar el documento de un contrato",
     )
     def post(self, request: Request, pk: int) -> Response:
         contrato = self.get_object()
-        entrada = VincularDocumentoSerializer(data=request.data)
+        entrada = VincularDocumentoVentaSerializer(data=request.data)
         entrada.is_valid(raise_exception=True)
         contrato = vincular_documento(
             contrato=contrato,
