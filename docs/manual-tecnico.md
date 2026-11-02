@@ -39,24 +39,44 @@ models.py                   datos: campos y constraints
 El detalle está en `docs/arquitectura.md`, y las entidades en
 `docs/modelo-datos.md`.
 
-*Pendiente: rol A, diagrama y despliegue.*
+### 2.1 Cómo se conectan las piezas en producción
+
+```
+Navegador ──► Vercel (React)          proyecto-inmobiliaria-chi.vercel.app
+    │
+    └── HTTPS + JWT ──► Render: un contenedor   inmobiliaria-api-x8gr.onrender.com
+                         ├─ gunicorn (API de Django)
+                         └─ worker de Celery ◄── colas celery y documentos
+                              │       │
+             PostgreSQL ◄─────┘       └────► RabbitMQ
+             Neon, con pgvector              CloudAMQP
+                              │
+             Supabase Storage (documentos oficiales, privado)
+             Gemini (agente y embeddings, solo desde apps/ia/proveedores/)
+```
+
+La API y el worker comparten un contenedor para caber en el plan gratuito de
+Render. El detalle y las alternativas descartadas están en
+`specs/002-despliegue.md`; la operación, en la §12.
 
 ## 3. Instalación
 
 ```bash
-docker compose up -d
+docker compose up -d                 # PostgreSQL con pgvector y RabbitMQ
 cd backend
 python -m venv .venv
+.venv\Scripts\activate               # Windows; en Linux: source .venv/bin/activate
 pip install -r requirements/dev.txt
 python manage.py migrate
 python manage.py seed_demo
 python manage.py runserver
 ```
 
-En otra terminal, el worker:
+En otra terminal, el worker. Con `-Q` consume las dos colas: sin ella, la
+indexación de los documentos del agente se queda esperando (§8).
 
 ```bash
-celery -A config worker -l info
+celery -A config worker -Q celery,documentos -l info
 ```
 
 Y el frontend:
@@ -67,19 +87,76 @@ npm install
 npm run dev
 ```
 
-Las variables de entorno se copian de `.env.example`. Ningún secreto va en el
-repositorio.
+**Variables de entorno:**
+- **Backend:** se copian de `.env.example` a `.env`, en la raíz.
+- **Frontend:** se copian de `frontend/.env.example` a `frontend/.env`; basta
+  `VITE_API_URL=http://localhost:8000/api/v1`.
+
+Ningún secreto va en el repositorio. Las de producción están en la §12.
 
 **Pruebas:** `pytest`, desde `backend/`. En Windows fallan las pruebas que
 generan PDF, porque WeasyPrint necesita librerías GTK; en la imagen de Docker
 pasan.
 
-*Pendiente: rol A, variables de producción. Si la spec 020 se fusiona, el worker
-local necesita `-Q celery,documentos`.*
+## 4. Catálogo, avalúos y documentos (rol A)
 
-## 4. Catálogo, avalúos y documentos
+### 4.1 Entidades
 
-*Pendiente: rol A.*
+| Entidad | Qué es |
+|---|---|
+| `TipoPropiedad` | Siete tipos de la migración (casa, terreno, apartamentos…). `requiere_unidades` dice si se vende por unidades |
+| `Propiedad` | El bien: tipo, ciudad, áreas, precio de lista con su moneda, estado y `es_publica` |
+| `Unidad` | Un apartamento o local de una propiedad que requiere unidades |
+| `Avaluo` | Una valuación con fecha, valor, moneda, perito y metodología |
+| `DocumentoOficial` | Escritura, licencia, plano, certificación, avalúo, contrato u otro, con su archivo |
+
+Reglas completas: `specs/003-catalogo-propiedades.md` y
+`specs/011-avaluos-documentos.md`. Pantallas: `specs/014-pantallas-catalogo.md`.
+
+### 4.2 Reglas que más se preguntan
+
+- **El código `PROP-00001` lo pone el sistema** y no cambia.
+- **Un edificio no se vende ni se arrienda entero:** se venden sus unidades.
+  Por eso los reportes cuentan como bien la unidad, no el edificio.
+- **El estado solo cambia por `cambiar_estado_propiedad` o
+  `cambiar_estado_unidad`.** Esa función bloquea la fila (`select_for_update`) y
+  acepta `estado_requerido`: si otro proceso cambió el bien mientras tanto,
+  responde 409 `PROPIEDAD_NO_DISPONIBLE`. Ventas, arrendamientos, compras y
+  construcción la usan, así dos contratos no toman el mismo bien.
+- **Estados:** `EN_NEGOCIACION` (el inicial), `ADQUIRIDA`, `EN_CONSTRUCCION`,
+  `DISPONIBLE`, `RESERVADA`, `VENDIDA`, `ARRENDADA` y `BAJA`.
+- **Nada se borra:** desactivar marca `activo` en falso. Una propiedad con
+  unidades activas no se desactiva (409).
+- **Los avalúos no se editan:** el historial es la plusvalía. Uno equivocado se
+  desactiva y se registra otro.
+- **Documentos:**
+  - solo PDF, JPG o PNG de hasta 10 MB, revisados por su contenido y no solo
+    por la extensión;
+  - se guardan con un nombre generado (`documentos/PROP-00001/<uuid>.pdf`);
+  - en producción van a un bucket privado de Supabase, y se descargan con una
+    URL firmada que vence a los 5 minutos;
+  - un documento que respalda un avalúo activo no se desactiva (409).
+
+### 4.3 Permisos
+
+Escriben `ADMINISTRADOR` y `GERENTE`; los tipos de propiedad, solo
+`ADMINISTRADOR`. Todos los roles autenticados leen y descargan.
+
+### 4.4 API y pantallas
+
+| Recurso | Ruta |
+|---|---|
+| Tipos de propiedad | `/api/v1/tipos-propiedad/` |
+| Propiedades | `/api/v1/propiedades/` (filtros por tipo, ciudad, país, estado, precio y `?buscar=`) |
+| Cambiar estado | `/api/v1/propiedades/{id}/cambiar-estado/` y `/api/v1/unidades/{id}/cambiar-estado/` |
+| Unidades | `/api/v1/propiedades/{id}/unidades/` (`?buscar=` por código) |
+| Avalúos | `/api/v1/propiedades/{id}/avaluos/` |
+| Documentos | `/api/v1/propiedades/{id}/documentos/` (multipart) y `/api/v1/documentos/{id}/descarga/` |
+
+En el frontend, la **ficha de la propiedad** (`/catalogo/propiedades/{id}`)
+reúne todo en pestañas: Datos (con el último avalúo), Unidades, Avalúos y
+Documentos. Los vencidos se ven en rojo y los que vencen en 30 días, en ámbar.
+La pestaña va en la URL (`?pestana=documentos`), así se puede compartir.
 
 ## 5. CRM, ventas y arrendamientos (rol B)
 
@@ -178,9 +255,46 @@ vivo. Los comandos no duplican datos.
 
 *Pendiente: rol C.*
 
-## 8. Mensajería
+## 8. Mensajería (rol A, spec 020)
 
-*Pendiente: roles A y D.*
+El flujo con RabbitMQ es **la ingesta de los documentos del agente**: subir o
+reemplazar un documento encola su indexación. La API responde enseguida, y el
+worker trocea el texto, pide los vectores a Gemini e indexa.
+
+```
+Gerente sube un .md ──► API: guarda el documento PENDIENTE
+                         └─ al confirmar la transacción (on_commit)
+                              └─► RabbitMQ, cola "documentos"
+                                   └─► worker: ia.indexar_documento
+                                        ├─ trocea, pide vectores, guarda fragmentos → INDEXADO
+                                        └─ si Gemini falla: reintenta a 1, 2 y 4 minutos → ERROR
+```
+
+**Decisiones que se defienden:**
+- **`transaction.on_commit`:** se encola solo si la transacción se confirma. El
+  worker nunca busca un documento que todavía no existe, y si algo falla no
+  queda un mensaje huérfano.
+- **El estado vive en el documento** (`PENDIENTE`, `INDEXADO`, `ERROR`), no en
+  un backend de resultados. Así no hace falta Redis, que se dejó fuera.
+- **`acks_late`:** el mensaje se confirma al terminar. Si Render reinicia el
+  worker a mitad de una tarea, RabbitMQ lo entrega de nuevo. Repetir es seguro,
+  porque indexar reemplaza los fragmentos.
+- **Reindexar vale en cualquier estado**, para que ningún documento quede
+  atascado.
+- **La tarea es una cáscara:** recibe el id y llama a `indexar_documento`; la
+  lógica vive en el servicio.
+
+**Dónde se ve:** la pantalla *Documentos del asistente*
+(`/asistente/documentos`, administración y gerencia). Sube un `.md` y el estado
+pasa de Pendiente a Indexado; mientras hay pendientes recientes, la lista se
+actualiza cada 5 segundos. En el log de Render aparece `ia.indexar_documento`
+recibida en la cola `documentos`.
+
+**Cuota:** CloudAMQP gratuito da 1 millón de mensajes al mes; cada subida es un
+mensaje. El worker corre sin eventos de monitoreo, que serían mensajes extra.
+
+Las notificaciones por correo (cola `notificaciones`) quedaron fuera de esta
+entrega.
 
 ## 9. Auditoría
 
@@ -191,8 +305,6 @@ vivo. Los comandos no duplican datos.
 Capa genérica: *pendiente, rol D.*
 
 ### 10.1 Reportes comerciales (rol B)
-
-*Disponibles cuando se fusione #80.*
 
 | Código | Reporte | Contenido |
 |---|---|---|
@@ -206,13 +318,116 @@ Capa genérica: *pendiente, rol D.*
 Todos respetan la cartera, en el detalle y en los totales. Las reglas están en
 `specs/021-reportes-restantes-power-bi.md`.
 
+### 10.2 Reportes de catálogo, compras y obra (rol A)
+
+| Código | Reporte | Contenido | Quién lo ve |
+|---|---|---|---|
+| R06 | Propiedades por estado | Cada bien, desde cuándo está en su estado (según la bitácora) y cuántos días lleva | Todos |
+| R08 | Evolución de avalúos | Cada avalúo con el anterior comparable (misma propiedad y moneda) y su variación | Todos |
+| R14 | Ocupación de arrendamientos | Bienes, arrendados y disponibles por propiedad; ocupación ponderada; renta vigente por moneda | Todos |
+| R13 | Compras por proveedor | Compras completadas, con sus componentes de costo por proveedor, mes y moneda, y en USD | Administración, gerencia y contabilidad |
+| R15 | Avance y presupuesto de obra | Presupuesto, programado, pagado, comprometido, disponible, saldo y atraso de cada proyecto | Administración, gerencia y contabilidad |
+
+- **Sin dato es sin dato:** si un bien no tiene historia en la bitácora, R06
+  deja la fecha vacía. No usa la última edición, que no dice cuándo entró al
+  estado.
+- **R14 pondera:** 2 arrendados de 5 bienes es 40 %, no el promedio de los
+  porcentajes de cada propiedad.
+- **R15 da los mismos números que el detalle del proyecto:** usa la misma
+  regla de comprometido. Las sumas de pagos van en subconsultas: un `JOIN`
+  contaría el presupuesto una vez por cada pago.
+
 ## 11. Power BI
+
+### 11.1 Vistas del esquema `bi` (rol A)
+
+La migración `reportes/0001_vistas_bi` crea cuatro vistas en modelo estrella:
+`dim_tiempo`, `dim_geografia`, `dim_propiedad` y `hechos_ventas`. Son vistas,
+no tablas: no copian datos.
+
+Power BI se conecta con el rol `powerbi_reader`, que solo puede leer esas
+vistas. Se crea con `docs/powerbi/crear_lector.sql`, a mano en Neon, y la
+contraseña nunca va al repositorio. Las relaciones y la conexión están en
+`docs/powerbi/README.md`.
+
+### 11.2 Tablero
 
 *Pendiente: rol D.*
 
-## 12. Despliegue
+## 12. Despliegue (rol A, spec 002)
 
-*Pendiente: rol A. Ver `specs/002-despliegue.md`.*
+### 12.1 Servicios
+
+| Pieza | Servicio, plan gratuito | Dirección |
+|---|---|---|
+| API y worker | Render, un contenedor Docker | `inmobiliaria-api-x8gr.onrender.com` |
+| Frontend | Vercel | `proyecto-inmobiliaria-chi.vercel.app` |
+| PostgreSQL 16 con pgvector | Neon | La de `DATABASE_URL` |
+| RabbitMQ | CloudAMQP | La de `RABBITMQ_URL` |
+| Documentos oficiales | Supabase Storage, bucket privado | Las variables `STORAGE_*` |
+| Agente de IA | Gemini, capa gratuita | `IA_API_KEY` |
+
+### 12.2 Cómo se publica una versión
+
+1. Todo entra a `develop` por pull request.
+2. Un pull request de `develop` a `main` es el release. Al fusionarlo, Render
+   construye la imagen desde `backend/Dockerfile` y Vercel compila el frontend,
+   los dos solos.
+3. Render solo da la versión por buena cuando `/api/v1/health/` responde.
+
+Al arrancar, `backend/scripts/iniciar.sh` hace, en orden:
+1. Aplica las migraciones.
+2. Crea el administrador inicial si no existe (`asegurar_administrador`).
+3. Carga la demo (`seed_demo`) si `CARGAR_DATOS_DEMO=true`. Es idempotente:
+   correrla en cada arranque no duplica nada.
+4. Levanta el worker de Celery con `-Q celery,documentos`, dentro de un ciclo
+   que lo reinicia si se cae.
+5. Encola una tarea de diagnóstico: si el log dice "tarea de diagnóstico
+   recibida", la API publica en RabbitMQ y el worker consume.
+6. Arranca gunicorn, con un solo proceso por los 512 MB del plan.
+
+### 12.3 Variables de producción
+
+Se cargan en el panel de Render. `render.yaml` las declara, pero las secretas
+van con `sync: false`, sin valor.
+
+| Variable | Para qué |
+|---|---|
+| `SECRET_KEY` | La llave de Django |
+| `DATABASE_URL` | Neon |
+| `RABBITMQ_URL` | CloudAMQP |
+| `CORS_ALLOWED_ORIGINS` | La dirección de Vercel: solo el frontend puede llamar a la API |
+| `DJANGO_SUPERUSER_EMAIL`, `_NOMBRE_COMPLETO`, `_PASSWORD` | El administrador inicial |
+| `STORAGE_BACKEND=s3` y `STORAGE_*` | Supabase Storage |
+| `IA_API_KEY` | Gemini. Sin ella, el agente responde 503 y el resto funciona |
+| `NUM_PROXIES=3` | Cloudflare, el borde de Render y un proxy interno: así la auditoría guarda la IP real del cliente. Medido en producción |
+| `CARGAR_DATOS_DEMO=true` | La demo en cada arranque |
+
+En Vercel van `VITE_API_URL` (`https://…onrender.com/api/v1`) y
+`VITE_ENTORNO=produccion`, como variables normales y no secretas: Vercel no
+acepta como secreta una variable que empieza con `VITE_`, y de todos modos el
+navegador la ve.
+`frontend/vercel.json` manda toda ruta a `index.html`, para que recargar
+`/catalogo/propiedades` no dé 404.
+
+### 12.4 Lo que impone el plan gratuito
+
+- **Render se duerme** a los 15 minutos sin tráfico, y la primera petición
+  tarda alrededor de un minuto. Antes de una demostración, abra la app un par
+  de minutos antes. Si la API duerme, el worker también, pero las tareas
+  esperan en RabbitMQ y se ejecutan al despertar.
+- **Neon se duerme** a los 5 minutos y despierta en menos de un segundo.
+- **No hay límite de gasto que configurar:** si se agota una cuota, el
+  servicio se detiene, no cobra.
+
+### 12.5 Problemas que ya pasaron
+
+- **Finales de línea:** un script con CRLF no corre en Linux. El
+  `.gitattributes` fuerza LF en todo el repositorio.
+- **Los PDF necesitan Pango y Cairo:** el `Dockerfile` los instala. En Windows
+  faltan, y por eso las pruebas de PDF fallan ahí y pasan en Docker.
+- **Un token de un usuario que ya no existe** daba 500 al renovar la sesión;
+  ahora responde 401 y el frontend cierra la sesión (#73).
 
 ## 13. Uso de agentes de IA
 
