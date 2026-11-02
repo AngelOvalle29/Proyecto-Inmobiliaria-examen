@@ -31,3 +31,5 @@ WHITENOISE_AUTOREFRESH = True
 # hace que un error dentro de la tarea falle la prueba en vez de perderse.
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
+# Las pruebas nunca llaman a Gemini, aunque el .env local tenga una llave real.
+IA_API_KEY = ""

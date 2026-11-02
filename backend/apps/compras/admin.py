@@ -5,12 +5,12 @@ Sin reglas de negocio.
 
 from django.contrib import admin
 
-from .models import Proveedor
+from .models import ContratoCompra, Proveedor
 
 
 class AdminSoloLectura(admin.ModelAdmin):
     """
-    El panel solo consulta proveedores; no crea, edita ni borra.
+    El panel solo consulta proveedores y contratos; no crea, edita ni borra.
 
     Toda escritura de compras pasa por los servicios de la API, que aplican las
     reglas de la spec 006 (código generado, NIT normalizado, borrado lógico) y
@@ -34,3 +34,10 @@ class ProveedorAdmin(AdminSoloLectura):
     list_display = ("codigo", "nombre", "tipo", "nit", "pais", "activo")
     list_filter = ("tipo", "pais", "activo")
     search_fields = ("codigo", "nombre", "nit")
+
+
+@admin.register(ContratoCompra)
+class ContratoCompraAdmin(AdminSoloLectura):
+    list_display = ("codigo", "proveedor", "propiedad", "fecha_compra", "estado")
+    list_filter = ("estado",)
+    search_fields = ("codigo",)
