@@ -18,6 +18,13 @@ export interface ValorSesion {
   abrirSesion: (tokens: Tokens) => void
   /** Borra los tokens y la caché de TanStack Query (spec 010, regla 6). */
   cerrarSesion: () => void
+  /**
+   * Cierra la sesión porque el usuario lo pidió: el login no recuerda su
+   * página, que no es del siguiente usuario. Si la sesión vence, sí se recuerda.
+   */
+  salir: () => void
+  /** false después de salir: RutaProtegida no guarda la ruta actual. */
+  recordarRuta: boolean
   /** Vuelve a pedir el usuario después de un error de conexión. */
   reintentar: () => void
 }

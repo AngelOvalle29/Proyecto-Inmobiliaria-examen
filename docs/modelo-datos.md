@@ -137,7 +137,8 @@ edita directamente.
 `propiedad` (FK, opcional) · `unidad` (FK, opcional) · `agente` (FK) ·
 `fecha_firma` · `monto_total` · `moneda` (FK) · `enganche` ·
 `modalidad` (CONTADO, FINANCIADO) · `estado` (VIGENTE, LIQUIDADO, ANULADO) ·
-`comision_agente` · `observaciones` · `activo`
+`comision_agente` · `observaciones` · `documento` (FK DocumentoOficial,
+opcional) · `activo`
 
 *Reglas:*
 - Exactamente uno de `propiedad` o `unidad` debe estar presente.
@@ -165,7 +166,7 @@ como mora. Es la base del reporte de morosidad.
 `unidad` (FK, opcional) · `agente` (FK) · `fecha_inicio` · `fecha_fin` ·
 `renta_mensual` · `moneda` (FK) · `deposito` · `dia_cobro` ·
 `estado` (VIGENTE, VENCIDO, RESCINDIDO, RENOVADO) · `renovacion_automatica` ·
-`activo`
+`documento` (FK DocumentoOficial, opcional) · `activo`
 
 ### PagoRenta ★
 `id` · `contrato` (FK) · `periodo_anio` · `periodo_mes` · `fecha_vencimiento` ·
@@ -256,15 +257,26 @@ Ver `docs/arquitectura.md`, sección 5.
 Ver `docs/arquitectura.md`, sección 5.
 
 ### DocumentoRAG
-`id` · `titulo` · `tipo` (POLITICA, MANUAL, LEGAL, PLANTILLA, FICHA_PROPIEDAD) ·
-`pais` (FK, opcional) · `archivo_url` · `documento_oficial` (FK, opcional) ·
-`fecha_indexacion` · `version` · `activo`
+`id` · `titulo` (único) · `tipo` (POLITICA, MANUAL, LEGAL, PLANTILLA,
+FICHA_PROPIEDAD) · `pais` (FK, opcional) · `contenido_fuente` (el Markdown
+completo) · `version` · `fecha_indexacion` · `activo` y demás campos de
+`ModeloBase`
+
+*Reglas:* `fecha_indexacion` nula significa pendiente de indexar; se vacía cada
+vez que cambia el contenido. *Cambios respecto de la versión original:*
+`archivo_url` pasa a `contenido_fuente`, para poder reindexar sin depender del
+almacenamiento de archivos, y `documento_oficial` se pospone a otra spec
+(detalle en `specs/005-agente-ia-rag.md`).
 
 ### FragmentoRAG
-`id` · `documento` (FK) · `orden` · `contenido` · `seccion` ·
-`embedding` (vector, dimensión según `IA_DIMENSION_EMBEDDINGS`) · `tokens`
+`id` · `documento` (FK, borrado en cascada) · `orden` · `contenido` · `seccion` ·
+`embedding` (vector de 768, igual a `IA_DIMENSION_EMBEDDINGS`) · `tokens`
 
-*Índice:* IVFFlat o HNSW sobre `embedding` para búsqueda por similitud de coseno.
+*Regla:* único por documento y orden. No hereda `ModeloBase`: se regenera desde
+el documento al reindexar.
+
+*Índice:* HNSW con `vector_cosine_ops` sobre `embedding`, para búsqueda por
+similitud de coseno (se descartó IVFFlat porque necesita datos para crearse).
 
 ---
 

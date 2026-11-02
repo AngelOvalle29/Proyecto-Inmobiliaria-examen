@@ -25,8 +25,14 @@ from .serializers import (
     CuotaSerializer,
     FirmarContratoSerializer,
     PagoCuotaSerializer,
+    VincularDocumentoVentaSerializer,
 )
-from .services import anular_contrato, firmar_contrato, registrar_pago_cuota
+from .services import (
+    anular_contrato,
+    firmar_contrato,
+    registrar_pago_cuota,
+    vincular_documento,
+)
 
 # Spec 007, reglas 20 y 21.
 FIRMAN = [NombreRol.ADMINISTRADOR, NombreRol.GERENTE, NombreRol.AGENTE]
@@ -100,6 +106,34 @@ class AnularContratoView(GenericAPIView):
     def post(self, request: Request, pk: int) -> Response:
         contrato = anular_contrato(
             contrato=self.get_object(),
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(ContratoVentaDetalleSerializer(contrato).data)
+
+
+class DocumentoContratoView(GenericAPIView):
+    """POST /api/v1/contratos-venta/{id}/documento/ (reglas 23 y 24)."""
+
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"POST": FIRMAN}
+    serializer_class = ContratoVentaDetalleSerializer
+
+    def get_queryset(self):
+        return _contratos_visibles(self)
+
+    @extend_schema(
+        request=VincularDocumentoVentaSerializer,
+        responses={200: ContratoVentaDetalleSerializer},
+        summary="Vincular o cambiar el documento de un contrato",
+    )
+    def post(self, request: Request, pk: int) -> Response:
+        contrato = self.get_object()
+        entrada = VincularDocumentoVentaSerializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        contrato = vincular_documento(
+            contrato=contrato,
+            documento=entrada.validated_data["documento"],
             autor=request.user,
             ip=obtener_ip_cliente(request),
         )

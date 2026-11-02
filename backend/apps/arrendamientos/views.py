@@ -27,6 +27,7 @@ from .serializers import (
     PagoRentaSerializer,
     RenovarArrendamientoSerializer,
     RescindirArrendamientoSerializer,
+    VincularDocumentoArrendamientoSerializer,
 )
 from .services import (
     finalizar_arrendamiento,
@@ -34,6 +35,7 @@ from .services import (
     registrar_pago_renta,
     renovar_arrendamiento,
     rescindir_arrendamiento,
+    vincular_documento,
 )
 
 # Spec 008, reglas 13 a 15.
@@ -171,6 +173,24 @@ class FinalizarArrendamientoView(AccionArrendamientoView):
 
     def ejecutar(self, contrato, datos, autor, ip):
         return finalizar_arrendamiento(contrato=contrato, autor=autor, ip=ip)
+
+
+class DocumentoArrendamientoView(AccionArrendamientoView):
+    """POST /api/v1/contratos-arrendamiento/{id}/documento/ (reglas 17 y 18)."""
+
+    roles_por_metodo = {"POST": FIRMAN}
+    entrada = VincularDocumentoArrendamientoSerializer
+
+    @extend_schema(
+        request=VincularDocumentoArrendamientoSerializer,
+        responses={200: ArrendamientoDetalleSerializer},
+        summary="Vincular o cambiar el documento de un contrato",
+    )
+    def post(self, request: Request, pk: int) -> Response:
+        return super().post(request, pk)
+
+    def ejecutar(self, contrato, datos, autor, ip):
+        return vincular_documento(contrato=contrato, autor=autor, ip=ip, **datos)
 
 
 class PagarRentaView(GenericAPIView):

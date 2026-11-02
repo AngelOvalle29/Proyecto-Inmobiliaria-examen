@@ -14,6 +14,7 @@ from django.utils import timezone
 from apps.auditoria.enums import AccionAuditoria
 from apps.auditoria.services import registrar_auditoria
 from apps.catalogo.enums import EstadoPropiedad
+from apps.catalogo.exceptions import DocumentoDeOtraPropiedad
 from apps.catalogo.selectors import listar_propiedades, listar_unidades
 from apps.catalogo.services import cambiar_estado_propiedad, cambiar_estado_unidad
 from apps.core.exceptions import ErrorDominio, TipoCambioNoDisponible
@@ -30,6 +31,7 @@ from apps.crm.services import (
     aprobar_cotizacion,
     crear_cotizacion,
     enviar_cotizacion,
+    rechazar_cotizacion,
 )
 from apps.usuarios.models import Usuario
 
@@ -123,6 +125,7 @@ CAMPOS_CONTRATO_AUDITADOS = [
     "numero_cuotas",
     "tasa_interes_anual",
     "fecha_primera_cuota",
+    "documento",
     "comision_agente",
     "estado",
 ]
@@ -143,6 +146,7 @@ def firmar_contrato(*, datos: dict, autor: Usuario, ip: str | None) -> ContratoV
       con calcular_cuotas (reglas 11 y 12).
     - Guarda la comisión del agente (regla 13) y la tasa al dólar de la fecha
       de firma, con el monto convertido (regla 14). Sin tasa, se rechaza.
+    - El documento, si se indica, debe ser de la misma propiedad (regla 23).
 
     datos ya viene validado: cotización y cliente visibles para el autor
     (cartera), y los datos del plan en rango si es financiado.
@@ -167,6 +171,10 @@ def firmar_contrato(*, datos: dict, autor: Usuario, ip: str | None) -> ContratoV
 
     if propiedad is not None and propiedad.tipo.requiere_unidades:
         raise SeVendePorUnidades(propiedad=propiedad.codigo)
+
+    documento = datos.get("documento")
+    if documento is not None:
+        _validar_documento(documento, propiedad=propiedad, unidad=unidad)
 
     financiado = datos["modalidad"] == ModalidadVenta.FINANCIADO
     enganche = datos.get("enganche", Decimal("0")) if financiado else Decimal("0")
@@ -210,6 +218,7 @@ def firmar_contrato(*, datos: dict, autor: Usuario, ip: str | None) -> ContratoV
         comision_agente=_a_centavos(monto_total * agente.porcentaje_comision / 100),
         estado=EstadoContrato.VIGENTE if financiado else EstadoContrato.LIQUIDADO,
         observaciones=datos.get("observaciones", ""),
+        documento=documento,
         creado_por=autor,
         actualizado_por=autor,
     )
@@ -286,6 +295,50 @@ def anular_contrato(
         ip=ip,
     )
     return contrato
+
+
+@transaction.atomic
+def vincular_documento(
+    *, contrato: ContratoVenta, documento, autor: Usuario, ip: str | None
+) -> ContratoVenta:
+    """
+    Regla 24: vincula o cambia el documento de un contrato ya firmado, que
+    suele escanearse después de firmar. Debe ser de la misma propiedad (regla
+    23). Un contrato anulado ya no cambia, y uno LIQUIDADO sí: el de contado
+    nace así. Si es el mismo documento, no se guarda ni se audita.
+    """
+    contrato = ContratoVenta.objects.select_for_update().get(pk=contrato.pk)
+    if contrato.estado == EstadoContrato.ANULADO:
+        raise ContratoNoVigente(contrato=contrato.codigo, estado=contrato.estado)
+    _validar_documento(documento, propiedad=contrato.propiedad, unidad=contrato.unidad)
+    if contrato.documento_id == documento.pk:
+        return contrato
+
+    anterior = contrato.documento_id
+    contrato.documento = documento
+    contrato.actualizado_por = autor
+    contrato.save(update_fields=["documento", "actualizado_por", "actualizado_en"])
+    registrar_auditoria(
+        usuario=autor,
+        entidad=ContratoVenta._meta.db_table,
+        entidad_id=contrato.pk,
+        accion=AccionAuditoria.ACTUALIZAR,
+        valores_anteriores={"documento": anterior},
+        valores_nuevos={"documento": documento.pk},
+        ip=ip,
+    )
+    return contrato
+
+
+def _validar_documento(documento, *, propiedad, unidad) -> None:
+    """Regla 23: de la misma propiedad; si el bien es una unidad, de su edificio."""
+    duena = propiedad if propiedad is not None else unidad.propiedad
+    if documento.propiedad_id != duena.pk:
+        raise DocumentoDeOtraPropiedad(
+            documento=documento.nombre,
+            propiedad=duena.codigo,
+            propiedad_documento=documento.propiedad.codigo,
+        )
 
 
 # ---------- Pagos de cuotas ----------
@@ -471,9 +524,12 @@ def cargar_demo_ventas() -> dict[str, int]:
                     autor=None,
                     ip=None,
                 )
-                enviar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+                if hasta != "BORRADOR":
+                    enviar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
                 if hasta == "APROBADA":
                     aprobar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+                if hasta == "RECHAZADA":
+                    rechazar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
                 creados["cotizaciones"] += 1
         except ErrorDominio:
             continue
@@ -504,6 +560,25 @@ def _firmar_demo(datos: dict, cliente, propiedad, unidad, hoy: date) -> None:
         "fecha_firma": fecha_firma,
         "modalidad": datos["modalidad"],
     }
+    if "descuento_cotizacion" in datos:
+        cotizacion = crear_cotizacion(
+            datos={
+                "cliente": cliente,
+                "propiedad": propiedad,
+                "unidad": unidad,
+                "fecha_vencimiento": hoy + timedelta(days=15),
+                "descuento": datos["descuento_cotizacion"],
+            },
+            autor=None,
+            ip=None,
+        )
+        enviar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+        aprobar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+        entrada = {
+            "cotizacion": cotizacion,
+            "fecha_firma": fecha_firma,
+            "modalidad": datos["modalidad"],
+        }
     if datos["modalidad"] == ModalidadVenta.FINANCIADO:
         entrada.update(
             enganche=_a_centavos(

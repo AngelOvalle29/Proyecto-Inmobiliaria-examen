@@ -11,23 +11,28 @@ import {
   type ContratoVentaDetalle,
   type Cuota,
 } from '../../api/ventas/consultas'
-import { useAnularContratoVenta } from '../../api/ventas/mutaciones'
+import {
+  useAnularContratoVenta,
+  useVincularDocumentoVenta,
+} from '../../api/ventas/mutaciones'
 import { Dialogo } from '../../componentes/comunes/Dialogo'
+import { DocumentoDelContrato } from '../../componentes/comunes/DocumentoDelContrato'
 import { TablaDatos, type AccionFila } from '../../componentes/comunes/TablaDatos'
 import { Button } from '../../componentes/ui/button'
 import { formatearFecha, formatearMoneda } from '../../lib/formato'
-import { ADMINISTRAN_CRM, REGISTRAN_PAGOS, rolPermitido } from '../../menu'
+import {
+  ADMINISTRAN_CRM,
+  ESCRIBEN_CRM,
+  REGISTRAN_PAGOS,
+  rolPermitido,
+} from '../../menu'
 import { useSesion } from '../../sesion/useSesion'
 import { DialogoPagarCuota } from './DialogoPagarCuota'
 
 const columna = createColumnHelper<Cuota>()
 
-/**
- * Las columnas de dinero necesitan la moneda del contrato. La mora solo se
- * marca en un contrato vigente: la API la calcula por cuota, sin mirar si el
- * contrato se anuló.
- */
-function crearColumnas(moneda: string, vigente: boolean) {
+/** Las columnas de dinero necesitan la moneda del contrato. */
+function crearColumnas(moneda: string) {
   const dinero = (monto: string) => formatearMoneda(monto, moneda)
   return [
     columna.accessor('numero', { header: 'Cuota' }),
@@ -57,7 +62,7 @@ function crearColumnas(moneda: string, vigente: boolean) {
       cell: ({ row }) => (
         <>
           {ETIQUETAS_ESTADO_CUOTA[row.original.estado ?? 'PENDIENTE']}
-          {vigente && row.original.en_mora && (
+          {row.original.en_mora && (
             <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-xs font-medium whitespace-nowrap text-red-700">
               En mora
             </span>
@@ -128,6 +133,7 @@ export function DetalleContratoVenta() {
   const { usuario } = useSesion()
   const consulta = useContratoVenta(Number(id))
   const anular = useAnularContratoVenta()
+  const vincular = useVincularDocumentoVenta()
   const [paraPagar, setParaPagar] = useState<Cuota | null>(null)
   const [confirmando, setConfirmando] = useState(false)
   const contrato = consulta.data
@@ -178,11 +184,18 @@ export function DetalleContratoVenta() {
 
       <DatosDelContrato contrato={contrato} />
 
+      <DocumentoDelContrato
+        documento={contrato.documento}
+        propiedad={(contrato.propiedad?.id ?? contrato.unidad?.propiedad.id) as number}
+        puedeCambiar={contrato.estado !== 'ANULADO' && rolPermitido(rol, ESCRIBEN_CRM)}
+        alVincular={(documento) => vincular.mutateAsync({ id: contrato.id, documento })}
+      />
+
       {contrato.modalidad === 'FINANCIADO' && (
         <>
           <h2 className="text-lg font-semibold">Cuotas</h2>
           <TablaDatos
-            columnas={crearColumnas(contrato.moneda.codigo, vigente)}
+            columnas={crearColumnas(contrato.moneda.codigo)}
             datos={contrato.cuotas}
             acciones={acciones}
           />

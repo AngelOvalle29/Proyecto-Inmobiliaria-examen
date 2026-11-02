@@ -109,6 +109,30 @@ def test_refresh_con_un_token_invalido_devuelve_401(cliente):
     assert respuesta.json()["error"]["codigo"] == "NO_AUTENTICADO"
 
 
+def test_refresh_de_un_usuario_que_ya_no_existe_devuelve_401(cliente, usuario):
+    """Pasa si se reinicia la base y el navegador conserva el token: antes era
+    un 500 y la app no salía de "No se pudo conectar con el servidor"."""
+    refresh = iniciar_sesion(cliente).json()["refresh"]
+    LogAuditoria.objects.all().delete()  # el login lo audita, y protege al usuario
+    usuario.delete()
+
+    respuesta = cliente.post(REFRESH, {"refresh": refresh}, format="json")
+
+    assert respuesta.status_code == 401
+    assert respuesta.json()["error"]["codigo"] == "NO_AUTENTICADO"
+
+
+def test_refresh_de_un_usuario_desactivado_devuelve_401(cliente, usuario):
+    refresh = iniciar_sesion(cliente).json()["refresh"]
+    usuario.is_active = False
+    usuario.save(update_fields=["is_active"])
+
+    respuesta = cliente.post(REFRESH, {"refresh": refresh}, format="json")
+
+    assert respuesta.status_code == 401
+    assert respuesta.json()["error"]["codigo"] == "NO_AUTENTICADO"
+
+
 # ---------- yo ----------
 
 

@@ -156,8 +156,11 @@ export function useAvaluos(propiedad: number, pagina: number) {
   })
 }
 
-/** Los documentos de una propiedad, con filtro por tipo. */
-export function useDocumentos(propiedad: number, filtros: FiltrosDocumentos = {}) {
+/** Los documentos de una propiedad, con filtro por tipo. Sin propiedad no consulta. */
+export function useDocumentos(
+  propiedad: number | undefined,
+  filtros: FiltrosDocumentos = {},
+) {
   return useQuery({
     queryKey: ['catalogo', 'documentos', propiedad, filtros],
     queryFn: async () =>
@@ -170,7 +173,27 @@ export function useDocumentos(propiedad: number, filtros: FiltrosDocumentos = {}
         )
       ).data,
     placeholderData: keepPreviousData,
+    enabled: propiedad !== undefined,
   })
+}
+
+/**
+ * Contratos escaneados de la propiedad elegida, para CampoRelacion (spec 007,
+ * regla 23). Son pocos: se filtra por texto lo que devuelve la API.
+ */
+export function useOpcionesDocumento(texto: string, valores: { propiedad: string }) {
+  const propiedad = valores.propiedad ? Number(valores.propiedad) : undefined
+  const consulta = useDocumentos(propiedad, { tipo: 'CONTRATO' })
+  const buscado = texto.toLowerCase()
+  return {
+    opciones: (consulta.data?.results ?? [])
+      .filter((documento) => documento.nombre.toLowerCase().includes(buscado))
+      .map((documento) => ({
+        valor: String(documento.id),
+        etiqueta: documento.nombre,
+      })),
+    cargando: consulta.isFetching,
+  }
 }
 
 /** Tipos de propiedad activos. Son pocos (siete): caben en una página. */

@@ -73,7 +73,9 @@ hacer lo mismo y nadie puede explicar las demás en la defensa.
    la renovación falla, se cierra la sesión. Un 401 de `/auth/login/` o de
    `/auth/refresh/` **nunca** dispara la renovación: así no hay un ciclo.
 6. **Cerrar sesión** borra los dos tokens y la caché de TanStack Query, para que
-   el siguiente usuario no vea datos del anterior.
+   el siguiente usuario no vea datos del anterior. Al entrar, ese usuario va a
+   Inicio, no a la última página del anterior; volver a la ruta pedida (regla 1)
+   solo aplica si la sesión venció o se abrió una ruta sin sesión.
 7. **Toda lista se pagina en el servidor** (`?page=`, 25 por página, como la
    API). Los filtros viajan como parámetros de la URL de la API, nunca se
    filtra en el navegador.
