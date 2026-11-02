@@ -196,12 +196,12 @@ endpoint que ya audita (specs 005, 006 y 017).
       supera el presupuesto muestra el 409, y tras subir el presupuesto se acepta.
 - [ ] Pagar un pago programado guarda su fecha y referencia, y deja de ofrecer
       Pagar y Anular.
-- [ ] El asistente responde sin iniciar sesión, con sus marcas `[n]` enlazadas a
+- [x] El asistente responde sin iniciar sesión, con sus marcas `[n]` enlazadas a
       las citas; una pregunta ajena muestra que no hay información, sin citas.
-- [ ] El asistente muestra el aviso de no escribir datos personales antes de la
+- [x] El asistente muestra el aviso de no escribir datos personales antes de la
       primera pregunta y lo mantiene visible; la pantalla de inicio de sesión
       enlaza al asistente.
-- [ ] Con el asistente sin llave o con Gemini caído, la pantalla muestra que no
+- [x] Con el asistente sin llave o con Gemini caído, la pantalla muestra que no
       está disponible y no se rompe.
 - [ ] Montos con su moneda y fechas `dd/mm/aaaa`.
 - [ ] `npm run lint`, `npm run typecheck` y `npm run build` pasan.
@@ -270,3 +270,19 @@ integrante C revisó y aceptó cada cambio.
 **Plan de implementación:** (1) proveedores y constructoras; (2) asistente;
 (3) contratos de compra; (4) proyectos, su detalle y sus pagos; (5) verificación
 de §8.
+
+**Paso 2, el asistente, implementado por A (Douglas) el 2026-11-02**, con
+Claude Code y el acuerdo del equipo para el cierre, para que C se concentre en
+compras y construcción:
+- `/asistente` público, fuera de `RutaProtegida`, con un enlace "Iniciar
+  sesión" o "Volver al sistema" según la sesión. Entrada *Asistente* en el
+  menú y enlace desde el inicio de sesión.
+- `RespuestaConCitas` enlaza cada `[n]` a su cita; un número que no está entre
+  las citas queda como texto.
+- Un 429 dice cuántos segundos esperar (`detalles.espera_segundos`); un 503,
+  que el asistente no está disponible.
+- `useConsultarAgente` es una mutación, no una consulta: cada pregunta es una
+  llamada nueva a Gemini y no se guarda en caché.
+- Verificado en local: sin sesión, el aviso, el 503 sin llave, y, con
+  respuestas simuladas en el navegador, las citas, el 429 y la respuesta sin
+  información. En producción el agente ya respondió con citas por la API.
