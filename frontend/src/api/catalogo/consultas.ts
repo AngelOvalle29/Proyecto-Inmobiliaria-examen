@@ -178,19 +178,19 @@ export function useDocumentos(
 }
 
 /**
- * Documentos de la propiedad elegida, para CampoRelacion (spec 007, regla 23).
- * Una propiedad tiene pocos: se filtra por texto lo que devuelve la API.
+ * Contratos escaneados de la propiedad elegida, para CampoRelacion (spec 007,
+ * regla 23). Son pocos: se filtra por texto lo que devuelve la API.
  */
 export function useOpcionesDocumento(texto: string, valores: { propiedad: string }) {
   const propiedad = valores.propiedad ? Number(valores.propiedad) : undefined
-  const consulta = useDocumentos(propiedad)
+  const consulta = useDocumentos(propiedad, { tipo: 'CONTRATO' })
   const buscado = texto.toLowerCase()
   return {
     opciones: (consulta.data?.results ?? [])
       .filter((documento) => documento.nombre.toLowerCase().includes(buscado))
       .map((documento) => ({
         valor: String(documento.id),
-        etiqueta: `${documento.nombre} (${ETIQUETAS_TIPO_DOCUMENTO[documento.tipo]})`,
+        etiqueta: documento.nombre,
       })),
     cargando: consulta.isFetching,
   }

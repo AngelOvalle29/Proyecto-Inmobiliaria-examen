@@ -142,7 +142,7 @@ class FirmarArrendamientoSerializer(serializers.Serializer):
         return datos
 
 
-class VincularDocumentoSerializer(serializers.Serializer):
+class VincularDocumentoArrendamientoSerializer(serializers.Serializer):
     """Vincula o cambia el documento; no acepta null: no se quita (regla 18)."""
 
     documento = serializers.PrimaryKeyRelatedField(queryset=listar_documentos())

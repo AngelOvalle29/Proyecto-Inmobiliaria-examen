@@ -31,6 +31,7 @@ from apps.crm.services import (
     aprobar_cotizacion,
     crear_cotizacion,
     enviar_cotizacion,
+    rechazar_cotizacion,
 )
 from apps.usuarios.models import Usuario
 
@@ -523,9 +524,12 @@ def cargar_demo_ventas() -> dict[str, int]:
                     autor=None,
                     ip=None,
                 )
-                enviar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+                if hasta != "BORRADOR":
+                    enviar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
                 if hasta == "APROBADA":
                     aprobar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+                if hasta == "RECHAZADA":
+                    rechazar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
                 creados["cotizaciones"] += 1
         except ErrorDominio:
             continue
@@ -556,6 +560,25 @@ def _firmar_demo(datos: dict, cliente, propiedad, unidad, hoy: date) -> None:
         "fecha_firma": fecha_firma,
         "modalidad": datos["modalidad"],
     }
+    if "descuento_cotizacion" in datos:
+        cotizacion = crear_cotizacion(
+            datos={
+                "cliente": cliente,
+                "propiedad": propiedad,
+                "unidad": unidad,
+                "fecha_vencimiento": hoy + timedelta(days=15),
+                "descuento": datos["descuento_cotizacion"],
+            },
+            autor=None,
+            ip=None,
+        )
+        enviar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+        aprobar_cotizacion(cotizacion=cotizacion, autor=None, ip=None)
+        entrada = {
+            "cotizacion": cotizacion,
+            "fecha_firma": fecha_firma,
+            "modalidad": datos["modalidad"],
+        }
     if datos["modalidad"] == ModalidadVenta.FINANCIADO:
         entrada.update(
             enganche=_a_centavos(

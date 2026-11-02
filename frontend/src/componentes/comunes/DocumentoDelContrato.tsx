@@ -91,7 +91,8 @@ export function DocumentoDelContrato({
         {abierto && (
           <>
             <p className="text-sm text-slate-600">
-              Se elige entre los documentos de la propiedad. Si aún no está,{' '}
+              Se elige entre los documentos de tipo Contrato de la propiedad. Si aún no
+              está,{' '}
               <Link
                 className="underline"
                 to={`/catalogo/propiedades/${propiedad}?pestana=documentos`}
