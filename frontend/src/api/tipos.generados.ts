@@ -4,6 +4,29 @@
  */
 
 export interface paths {
+    "/api/v1/agente/consultas/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preguntar al agente de IA
+         * @description POST /api/v1/agente/consultas/: el agente público (spec 005, §5).
+         *
+         *     Público a propósito: lo usa cualquier visitante del sitio. Por eso lleva
+         *     límite de peticiones por IP, que además protege la cuota de Gemini.
+         */
+        post: operations["v1_agente_consultas_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agentes/": {
         parameters: {
             query?: never;
@@ -397,6 +420,84 @@ export interface paths {
          * @description POST /api/v1/contratos-arrendamiento/{id}/rescindir/ (regla 10).
          */
         post: operations["v1_contratos_arrendamiento_rescindir_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-compra/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/contratos-compra/ */
+        get: operations["v1_contratos_compra_list"];
+        put?: never;
+        /**
+         * Registrar un contrato de compra
+         * @description GET y POST /api/v1/contratos-compra/
+         */
+        post: operations["v1_contratos_compra_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-compra/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET /api/v1/contratos-compra/{id}/ (sin edición, spec 017 §10). */
+        get: operations["v1_contratos_compra_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-compra/{id}/anular/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Anular un contrato de compra en proceso
+         * @description POST /api/v1/contratos-compra/{id}/anular/ (regla 7).
+         */
+        post: operations["v1_contratos_compra_anular_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contratos-compra/{id}/completar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Completar una compra: la propiedad pasa a ADQUIRIDA
+         * @description POST /api/v1/contratos-compra/{id}/completar/ (regla 6).
+         */
+        post: operations["v1_contratos_compra_completar_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -876,6 +977,150 @@ export interface paths {
         patch: operations["v1_proveedores_partial_update"];
         trace?: never;
     };
+    "/api/v1/proyectos-construccion/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/proyectos-construccion/ */
+        get: operations["v1_proyectos_construccion_list"];
+        put?: never;
+        /**
+         * Registrar un proyecto de construcción
+         * @description GET y POST /api/v1/proyectos-construccion/
+         */
+        post: operations["v1_proyectos_construccion_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y PATCH /api/v1/proyectos-construccion/{id}/ (regla 17). */
+        get: operations["v1_proyectos_construccion_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Editar el nombre, la fecha de fin estimada o el presupuesto
+         * @description GET y PATCH /api/v1/proyectos-construccion/{id}/ (regla 17).
+         */
+        patch: operations["v1_proyectos_construccion_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/avance/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/avance/ (regla 13). */
+        post: operations["v1_proyectos_construccion_avance_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/cancelar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/cancelar/ (regla 16). */
+        post: operations["v1_proyectos_construccion_cancelar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/finalizar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/finalizar/ (regla 15). */
+        post: operations["v1_proyectos_construccion_finalizar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/iniciar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/iniciar/ (regla 12). */
+        post: operations["v1_proyectos_construccion_iniciar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/reanudar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/reanudar/ (regla 14). */
+        post: operations["v1_proyectos_construccion_reanudar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proyectos-construccion/{id}/suspender/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/proyectos-construccion/{id}/suspender/ (regla 14). */
+        post: operations["v1_proyectos_construccion_suspender_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tipos-cambio/": {
         parameters: {
             query?: never;
@@ -1098,10 +1343,22 @@ export interface components {
             documento_id?: number | null;
             observaciones?: string;
         };
+        /** @description Entrada de /avance/ (regla 13). Que no baje lo revisa el servicio. */
+        Avance: {
+            porcentaje: number;
+            descripcion: string;
+        };
         /** @description Entrada de /propiedades/{id}/cambiar-estado/ y /unidades/{id}/cambiar-estado/. */
         CambiarEstado: {
             estado: components["schemas"]["EstadoPropiedadEnum"];
             motivo: string;
+        };
+        Cita: {
+            numero: number;
+            documento: string;
+            seccion: string;
+            tipo: string;
+            extracto: string;
         };
         Ciudad: {
             readonly id: number;
@@ -1113,6 +1370,10 @@ export interface components {
             id: number;
             nombre: string;
             pais: components["schemas"]["PaisResumen"];
+        };
+        CiudadProveedorResumen: {
+            id: number;
+            nombre: string;
         };
         CiudadResumen: {
             id: number;
@@ -1194,6 +1455,75 @@ export interface components {
             pais: number;
             calificacion?: number | null;
         };
+        ConstructoraResumen: {
+            id: number;
+            codigo: string;
+            nombre: string;
+        };
+        ConsultaAgente: {
+            pregunta: string;
+        };
+        /** @description Salida de un contrato de compra, con proveedor, propiedad y moneda. */
+        ContratoCompra: {
+            readonly id: number;
+            codigo?: string | null;
+            proveedor: components["schemas"]["ProveedorResumen"];
+            propiedad: components["schemas"]["PropiedadResumen"];
+            /** Format: date */
+            fecha_compra: string;
+            /** Format: decimal */
+            monto: string;
+            /** Format: decimal */
+            gastos_legales?: string;
+            /** Format: decimal */
+            impuestos?: string;
+            /** Format: decimal */
+            costo_total: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: decimal */
+            tasa_a_usd: string;
+            /** Format: decimal */
+            costo_total_usd: string;
+            /** @default EN_PROCESO */
+            estado: components["schemas"]["ContratoCompraEstadoEnum"];
+            observaciones?: string;
+        };
+        /**
+         * @description Entrada para registrar un contrato (POST). Solo valida el formato: que la
+         *     propiedad esté en negociación y sin otro contrato, la fecha y la tasa los
+         *     revisa el servicio (spec 017, reglas 1 a 5).
+         *
+         *     El proveedor se busca entre los activos: uno desactivado responde 400 como
+         *     si no existiera (regla 1). costo_total no se recibe: lo calcula el sistema.
+         */
+        ContratoCompraEntrada: {
+            proveedor: number;
+            propiedad: number;
+            /** Format: date */
+            fecha_compra: string;
+            /** Format: decimal */
+            monto: string;
+            /**
+             * Format: decimal
+             * @default 0.00
+             */
+            gastos_legales: string;
+            /**
+             * Format: decimal
+             * @default 0.00
+             */
+            impuestos: string;
+            moneda: number;
+            /** @default  */
+            observaciones: string;
+        };
+        /**
+         * @description * `EN_PROCESO` - En proceso
+         *     * `COMPLETADO` - Completado
+         *     * `ANULADO` - Anulado
+         * @enum {string}
+         */
+        ContratoCompraEstadoEnum: "EN_PROCESO" | "COMPLETADO" | "ANULADO";
         /** @description Salida de un contrato en el listado (sin sus cuotas). */
         ContratoVenta: {
             readonly id: number;
@@ -1484,6 +1814,14 @@ export interface components {
             id: number;
             codigo: string;
         };
+        /** @description Entrada de /anular/: el motivo es obligatorio (regla 7). */
+        MotivoContratoCompra: {
+            motivo: string;
+        };
+        /** @description Entrada de /suspender/ y /cancelar/: el motivo es obligatorio. */
+        MotivoProyecto: {
+            motivo: string;
+        };
         PagarRenta: {
             /** Format: date */
             fecha: string;
@@ -1580,6 +1918,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Constructora"][];
+        };
+        PaginatedContratoCompraList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ContratoCompra"][];
         };
         PaginatedContratoVentaList: {
             /** @example 123 */
@@ -1685,6 +2038,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Proveedor"][];
+        };
+        PaginatedProyectoList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Proyecto"][];
         };
         PaginatedTipoCambioList: {
             /** @example 123 */
@@ -1900,6 +2268,17 @@ export interface components {
             /** @default  */
             direccion: string;
         };
+        /**
+         * @description Entrada de PATCH: solo los tres campos que la regla 17 deja editar. Qué se
+         *     puede cambiar según el estado del proyecto lo decide el servicio.
+         */
+        PatchedProyectoEdicion: {
+            nombre?: string;
+            /** Format: date */
+            fecha_fin_estimada?: string;
+            /** Format: decimal */
+            presupuesto_total?: string;
+        };
         PatchedTipoPropiedad: {
             readonly id?: number;
             nombre?: string;
@@ -1965,7 +2344,7 @@ export interface components {
             email?: string;
             telefono?: string;
             pais: components["schemas"]["PaisResumen"];
-            ciudad: components["schemas"]["CiudadResumen"] | null;
+            ciudad: components["schemas"]["CiudadProveedorResumen"] | null;
             direccion?: string;
             activo?: boolean;
         };
@@ -1988,6 +2367,64 @@ export interface components {
             /** @default  */
             direccion: string;
         };
+        ProveedorResumen: {
+            id: number;
+            codigo: string;
+            nombre: string;
+        };
+        /** @description Salida de un proyecto, con su propiedad, constructora y moneda. */
+        Proyecto: {
+            readonly id: number;
+            codigo?: string | null;
+            nombre: string;
+            propiedad: components["schemas"]["PropiedadResumen"];
+            constructora: components["schemas"]["ConstructoraResumen"];
+            /** Format: date */
+            fecha_inicio: string;
+            /** Format: date */
+            fecha_fin_estimada: string;
+            /** Format: date */
+            fecha_fin_real?: string | null;
+            /** Format: decimal */
+            presupuesto_total: string;
+            moneda: components["schemas"]["MonedaResumen"];
+            /** Format: decimal */
+            tasa_a_usd: string;
+            /** Format: decimal */
+            presupuesto_total_usd: string;
+            /** @default PLANIFICADO */
+            estado: components["schemas"]["ProyectoEstadoEnum"];
+            porcentaje_avance?: number;
+        };
+        /**
+         * @description Entrada para registrar un proyecto (POST). Solo valida el formato: que la
+         *     propiedad esté adquirida y sin otra obra activa, las fechas y la tasa los
+         *     revisa el servicio (spec 017, reglas 9 a 11).
+         *
+         *     La constructora se busca entre las activas: una desactivada responde 400
+         *     como si no existiera (regla 9).
+         */
+        ProyectoEntrada: {
+            nombre: string;
+            propiedad: number;
+            constructora: number;
+            /** Format: date */
+            fecha_inicio: string;
+            /** Format: date */
+            fecha_fin_estimada: string;
+            /** Format: decimal */
+            presupuesto_total: string;
+            moneda: number;
+        };
+        /**
+         * @description * `PLANIFICADO` - Planificado
+         *     * `EN_EJECUCION` - En ejecución
+         *     * `SUSPENDIDO` - Suspendido
+         *     * `FINALIZADO` - Finalizado
+         *     * `CANCELADO` - Cancelado
+         * @enum {string}
+         */
+        ProyectoEstadoEnum: "PLANIFICADO" | "EN_EJECUCION" | "SUSPENDIDO" | "FINALIZADO" | "CANCELADO";
         ReasignarCliente: {
             agente: number;
         };
@@ -2009,6 +2446,11 @@ export interface components {
         RescindirArrendamiento: {
             /** Format: date */
             fecha_rescision: string;
+        };
+        RespuestaAgente: {
+            respuesta: string;
+            sin_informacion: boolean;
+            citas: components["schemas"]["Cita"][];
         };
         /**
          * @description * `PROPIETARIO_PARTICULAR` - Propietario particular
@@ -2133,6 +2575,31 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    v1_agente_consultas_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsultaAgente"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConsultaAgente"];
+                "multipart/form-data": components["schemas"]["ConsultaAgente"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespuestaAgente"];
+                };
+            };
+        };
+    };
     v1_agentes_list: {
         parameters: {
             query?: {
@@ -2829,6 +3296,132 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArrendamientoDetalle"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_list: {
+        parameters: {
+            query?: {
+                /**
+                 * @description * `EN_PROCESO` - En proceso
+                 *     * `COMPLETADO` - Completado
+                 *     * `ANULADO` - Anulado
+                 */
+                estado?: "ANULADO" | "COMPLETADO" | "EN_PROCESO";
+                fecha_desde?: string;
+                fecha_hasta?: string;
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                propiedad?: number;
+                proveedor?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedContratoCompraList"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContratoCompraEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ContratoCompraEntrada"];
+                "multipart/form-data": components["schemas"]["ContratoCompraEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoCompra"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoCompra"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_anular_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MotivoContratoCompra"];
+                "application/x-www-form-urlencoded": components["schemas"]["MotivoContratoCompra"];
+                "multipart/form-data": components["schemas"]["MotivoContratoCompra"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoCompra"];
+                };
+            };
+        };
+    };
+    v1_contratos_compra_completar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContratoCompra"];
                 };
             };
         };
@@ -3791,6 +4384,255 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Proveedor"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_list: {
+        parameters: {
+            query?: {
+                constructora?: number;
+                /**
+                 * @description * `PLANIFICADO` - Planificado
+                 *     * `EN_EJECUCION` - En ejecución
+                 *     * `SUSPENDIDO` - Suspendido
+                 *     * `FINALIZADO` - Finalizado
+                 *     * `CANCELADO` - Cancelado
+                 */
+                estado?: "CANCELADO" | "EN_EJECUCION" | "FINALIZADO" | "PLANIFICADO" | "SUSPENDIDO";
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+                propiedad?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedProyectoList"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProyectoEntrada"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProyectoEntrada"];
+                "multipart/form-data": components["schemas"]["ProyectoEntrada"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedProyectoEdicion"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedProyectoEdicion"];
+                "multipart/form-data": components["schemas"]["PatchedProyectoEdicion"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_avance_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Avance"];
+                "application/x-www-form-urlencoded": components["schemas"]["Avance"];
+                "multipart/form-data": components["schemas"]["Avance"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_cancelar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MotivoProyecto"];
+                "application/x-www-form-urlencoded": components["schemas"]["MotivoProyecto"];
+                "multipart/form-data": components["schemas"]["MotivoProyecto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_finalizar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_iniciar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_reanudar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
+                };
+            };
+        };
+    };
+    v1_proyectos_construccion_suspender_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MotivoProyecto"];
+                "application/x-www-form-urlencoded": components["schemas"]["MotivoProyecto"];
+                "multipart/form-data": components["schemas"]["MotivoProyecto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Proyecto"];
                 };
             };
         };
