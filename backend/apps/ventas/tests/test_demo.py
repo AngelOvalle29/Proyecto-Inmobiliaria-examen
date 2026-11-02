@@ -19,8 +19,8 @@ def test_seed_demo_carga_ventas_coherentes_y_no_duplica(monkeypatch):
     call_command("seed_demo")
     call_command("seed_demo")
 
-    assert ContratoVenta.objects.count() == 2
-    assert Cotizacion.objects.count() == 1
+    assert ContratoVenta.objects.count() == 3
+    assert Cotizacion.objects.count() == 5
 
     financiado = ContratoVenta.objects.get(modalidad="FINANCIADO")
     cuotas = list(financiado.cuotas.order_by("numero")[:3])
@@ -32,9 +32,20 @@ def test_seed_demo_carga_ventas_coherentes_y_no_duplica(monkeypatch):
     assert cuotas[1].en_mora() and cuotas[2].en_mora()
     assert financiado.estado == EstadoContrato.VIGENTE
 
-    contado = ContratoVenta.objects.get(modalidad="CONTADO")
+    contado = ContratoVenta.objects.get(modalidad="CONTADO", cotizacion=None)
     assert contado.estado == EstadoContrato.LIQUIDADO
-    assert Cotizacion.objects.filter(estado=EstadoCotizacion.APROBADA).count() == 1
+
+    con_cotizacion = ContratoVenta.objects.get(cotizacion__isnull=False)
+    assert con_cotizacion.cotizacion.descuento > 0
+    assert con_cotizacion.monto_total == con_cotizacion.cotizacion.total
+
+    estados = list(Cotizacion.objects.values_list("estado", flat=True))
+    assert estados.count(EstadoCotizacion.APROBADA) == 2
+    assert {
+        EstadoCotizacion.BORRADOR,
+        EstadoCotizacion.ENVIADA,
+        EstadoCotizacion.RECHAZADA,
+    } < set(estados)
 
 
 def test_seed_demo_deja_unidades_para_vender_en_vivo(monkeypatch):
@@ -43,4 +54,4 @@ def test_seed_demo_deja_unidades_para_vender_en_vivo(monkeypatch):
     call_command("seed_demo")
 
     disponibles = Unidad.objects.filter(estado=EstadoPropiedad.DISPONIBLE)
-    assert set(disponibles.values_list("codigo", flat=True)) == {"A-103", "A-203"}
+    assert {"A-103", "A-203"} <= set(disponibles.values_list("codigo", flat=True))

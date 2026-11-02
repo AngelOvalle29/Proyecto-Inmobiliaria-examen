@@ -112,9 +112,10 @@ UNIDADES = {
     "Torre Mirador del Valle": [
         ("A-101", 1, Decimal("85.00"), 2, 1, Decimal("650000.00"), "DISPONIBLE"),
         ("A-102", 1, Decimal("85.00"), 2, 1, Decimal("650000.00"), "RESERVADA"),
-        # A-103 y A-203 no las usan los demás demos: quedan para mostrar en
-        # vivo una venta y un arrendamiento (A-101 y A-201 sí se consumen).
+        # A-103 y A-203 quedan libres para mostrar en vivo una venta y un
+        # arrendamiento: sus cotizaciones de la demo no las reservan.
         ("A-103", 1, Decimal("85.00"), 2, 1, Decimal("650000.00"), "DISPONIBLE"),
+        ("A-104", 1, Decimal("85.00"), 2, 1, Decimal("650000.00"), "DISPONIBLE"),
         ("A-201", 2, Decimal("110.00"), 3, 2, Decimal("820000.00"), "DISPONIBLE"),
         ("A-202", 2, Decimal("110.00"), 3, 2, Decimal("820000.00"), "VENDIDA"),
         ("A-203", 2, Decimal("110.00"), 3, 2, Decimal("820000.00"), "DISPONIBLE"),
