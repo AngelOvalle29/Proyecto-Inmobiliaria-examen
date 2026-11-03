@@ -23,6 +23,27 @@ import { DialogoCambiarEstado } from './DialogoCambiarEstado'
 const columna = createColumnHelper<Propiedad>()
 
 const COLUMNAS = [
+  // Spec 019: la portada identifica a la propiedad en la lista; sin foto, un
+  // marcador del mismo tamaño para que las filas no salten.
+  columna.accessor('portada_url', {
+    header: 'Foto',
+    cell: ({ getValue, row }) => {
+      const url = getValue()
+      return url ? (
+        <img
+          src={url}
+          alt={`Portada de ${row.original.nombre}`}
+          loading="lazy"
+          className="h-12 w-16 rounded-lg object-cover"
+        />
+      ) : (
+        <span
+          aria-label="Sin foto"
+          className="block h-12 w-16 rounded-lg border border-dashed border-ceniza bg-niebla"
+        />
+      )
+    },
+  }),
   columna.accessor('codigo', { header: 'Código' }),
   columna.accessor('nombre', { header: 'Nombre' }),
   columna.accessor((propiedad) => propiedad.tipo.nombre, {

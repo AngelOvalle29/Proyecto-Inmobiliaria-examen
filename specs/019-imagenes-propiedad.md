@@ -3,9 +3,9 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 019 |
-| **Estado** | En revisión |
+| **Estado** | Implementada (falta la verificación en producción, §8) |
 | **Autor** | Douglas (rol A) |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce), aprobó la spec en DouGMV/Proyecto-Inmobiliaria#68 |
 | **Fecha** | 2026-11-01 |
 | **Apps afectadas** | `catalogo` (modelo, servicios, selectores, API) y `frontend/` (`paginas/catalogo`) |
 | **Rama** | `feature/019-imagenes-propiedad` |
@@ -171,8 +171,9 @@ def listar_imagenes(*, propiedad) -> QuerySet[ImagenPropiedad]   # activas, por 
   parámetros, para servir a documentos e imágenes sin duplicarse.
 - La URL firmada se arma en el serializer con `default_storage.url()`, como la
   descarga de documentos.
-- `listar_propiedades` agrega un `Prefetch` de la portada activa, para no hacer
-  una consulta por fila (N+1).
+- `listar_propiedades_con_portada` agrega un `Prefetch` de la portada activa,
+  para no hacer una consulta por fila (N+1). Es un selector aparte de
+  `listar_propiedades` (ver §11).
 
 **Frontend** (spec 010):
 
@@ -197,22 +198,22 @@ src/paginas/catalogo/
 
 ## 8. Criterios de aceptación
 
-- [ ] Subir un JPG lo agrega a la galería; la primera imagen queda como portada
+- [x] Subir un JPG lo agrega a la galería; la primera imagen queda como portada
 - [ ] Un archivo que no es JPG ni PNG, o de más de 5 MB, muestra el error del
       navegador junto al campo; un `.exe` renombrado a `.jpg` muestra arriba del
       formulario el 400 `ARCHIVO_NO_PERMITIDO` de la API
-- [ ] La undécima imagen muestra el 409 `LIMITE_IMAGENES`
-- [ ] Marcar otra imagen como portada deja una sola portada, y la lista de
+- [x] La undécima imagen muestra el 409 `LIMITE_IMAGENES`
+- [x] Marcar otra imagen como portada deja una sola portada, y la lista de
       propiedades muestra la nueva
-- [ ] Desactivar la portada pasa la marca a la siguiente según el orden
-- [ ] Cambiar el orden reordena la galería
-- [ ] La lista de propiedades muestra la miniatura de la portada, o un marcador
+- [x] Desactivar la portada pasa la marca a la siguiente según el orden
+- [x] Cambiar el orden reordena la galería
+- [x] La lista de propiedades muestra la miniatura de la portada, o un marcador
       si no tiene, sin una consulta por fila
-- [ ] `CONSULTA` ve la galería y las portadas, sin botones de escritura; un
+- [x] `CONSULTA` ve la galería y las portadas, sin botones de escritura; un
       `POST` suyo responde 403
-- [ ] Cada escritura queda en la bitácora de auditoría
+- [x] Cada escritura queda en la bitácora de auditoría
 - [ ] En producción, subir y ver funcionan contra Supabase
-- [ ] `pytest`, `ruff`, `npm run lint`, `npm run typecheck` y `npm run build`
+- [x] `pytest`, `ruff`, `npm run lint`, `npm run typecheck` y `npm run build`
       pasan
 
 ## 9. Pruebas
@@ -273,3 +274,36 @@ el resto del plan va primero. Para el borrador, el agente revisó:
 2. `portada_url` en `/propiedades/`, con su prueba de número de consultas.
 3. Frontend: pestaña Imágenes, diálogo y miniatura en la lista; verificación de
    §8 en local y en producción.
+
+**Sesión 2026-11-03 (Claude Code, rol A): implementación.** A pidió terminar la
+spec antes de la entrega. Se siguió el plan en los tres incrementos.
+
+Desviaciones respecto del borrador, decididas al implementar:
+- **`listar_propiedades_con_portada` y no un `Prefetch` dentro de
+  `listar_propiedades`.** Las demás apps (ventas, arrendamientos, compras,
+  construcción, el agente) leen propiedades con `listar_propiedades`, y los
+  campos `*_id` de sus serializers lo usan como queryset: el `Prefetch` les
+  sumaría una consulta en cada lectura sin que usen la foto. Solo las dos
+  vistas de propiedades usan el selector nuevo.
+- **`portada_url` es `null` en la respuesta de crear y editar una propiedad**,
+  porque esa instancia viene del servicio sin el `Prefetch`. La pantalla
+  invalida la lista y la vuelve a pedir, así que no se nota; consultar la
+  portada en el serializer rompería la regla de no acceder a la base ahí.
+- **La galería se vuelve a pedir cada 4 minutos** (`refetchInterval`) además
+  del `staleTime`: con la pestaña abierta sin interacción, las URL firmadas
+  vencerían a los 5 sin que nada las renovara.
+- **El texto del error de `_validar_archivo` se arma con los tipos aceptados**
+  ("JPG o PNG", "PDF, JPG o PNG") y el tamaño máximo, para no duplicar la
+  función. Los mensajes de los documentos quedan iguales.
+
+Verificación:
+- 20 pruebas nuevas (servicio, constraint y API, incluida la de que la lista no
+  hace una consulta por fila); la suite completa pasa salvo las 10 de PDF que
+  en Windows fallan por WeasyPrint, como siempre.
+- En el navegador local, como gerente: subir dos fotos, la primera como
+  portada, marcar la segunda y ver su miniatura en la lista.
+- **Nota:** el `.env` local de A usa `STORAGE_BACKEND=s3`, así que esas dos
+  fotos sintéticas (5 KB, sin datos) subieron al bucket de Supabase. Se
+  borraron del bucket al terminar con `default_storage.delete`.
+- Falta el criterio de producción (§8) y ver con `CONSULTA` en la pantalla que
+  no aparecen los botones; la API ya responde 403 en las pruebas.

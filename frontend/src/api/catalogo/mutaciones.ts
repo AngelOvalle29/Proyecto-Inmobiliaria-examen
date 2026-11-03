@@ -5,6 +5,7 @@ import type { components } from '../tipos.generados'
 import type {
   Avaluo,
   DocumentoOficial,
+  ImagenPropiedad,
   Propiedad,
   TipoPropiedad,
   Unidad,
@@ -311,6 +312,67 @@ export function useDesactivarTipoPropiedad() {
   return useMutation({
     mutationFn: async (id: number) => {
       await clienteApi.delete(`/tipos-propiedad/${id}/`)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+/**
+ * Después de escribir en la galería se vuelven a pedir las imágenes y las
+ * propiedades: la miniatura de la lista sale de la portada (spec 019).
+ */
+function useInvalidarImagenes() {
+  return useInvalidar('imagenes', 'propiedades')
+}
+
+/** POST /propiedades/{id}/imagenes/ como multipart, como los documentos. */
+export function useSubirImagen(propiedad: number) {
+  const invalidar = useInvalidarImagenes()
+  return useMutation({
+    mutationFn: async (datos: { archivo: File; descripcion: string }) => {
+      const formulario = new FormData()
+      formulario.append('archivo', datos.archivo)
+      formulario.append('descripcion', datos.descripcion)
+      return (
+        await clienteApi.post<ImagenPropiedad>(
+          `/propiedades/${propiedad}/imagenes/`,
+          formulario,
+        )
+      ).data
+    },
+    onSuccess: invalidar,
+  })
+}
+
+/** PATCH /imagenes/{id}/: solo descripción y orden (spec 019, regla 4). */
+export function useActualizarImagen() {
+  const invalidar = useInvalidarImagenes()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...datos
+    }: Pick<ImagenPropiedad, 'id' | 'descripcion' | 'orden'>) =>
+      (await clienteApi.patch<ImagenPropiedad>(`/imagenes/${id}/`, datos)).data,
+    onSuccess: invalidar,
+  })
+}
+
+/** POST /imagenes/{id}/marcar-portada/ (spec 019, regla 6). */
+export function useMarcarPortada() {
+  const invalidar = useInvalidarImagenes()
+  return useMutation({
+    mutationFn: async (id: number) =>
+      (await clienteApi.post<ImagenPropiedad>(`/imagenes/${id}/marcar-portada/`)).data,
+    onSuccess: invalidar,
+  })
+}
+
+/** DELETE /imagenes/{id}/: desactiva; si era la portada, pasa a la siguiente. */
+export function useDesactivarImagen() {
+  const invalidar = useInvalidarImagenes()
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await clienteApi.delete(`/imagenes/${id}/`)
     },
     onSuccess: invalidar,
   })

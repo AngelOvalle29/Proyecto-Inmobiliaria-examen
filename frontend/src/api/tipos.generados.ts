@@ -830,6 +830,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/imagenes/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET, PATCH y DELETE /api/v1/imagenes/{id}/ — DELETE desactiva. */
+        get: operations["v1_imagenes_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description GET, PATCH y DELETE /api/v1/imagenes/{id}/ — DELETE desactiva. */
+        delete: operations["v1_imagenes_destroy"];
+        options?: never;
+        head?: never;
+        /** @description GET, PATCH y DELETE /api/v1/imagenes/{id}/ — DELETE desactiva. */
+        patch: operations["v1_imagenes_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/imagenes/{id}/marcar-portada/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Marcar una imagen como la portada de su propiedad
+         * @description POST /api/v1/imagenes/{id}/marcar-portada/ — sin cuerpo (regla 6).
+         */
+        post: operations["v1_imagenes_marcar_portada_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/monedas/": {
         parameters: {
             query?: never;
@@ -1022,6 +1061,24 @@ export interface paths {
         put?: never;
         /** @description GET y POST /api/v1/propiedades/{id}/documentos/ — POST multipart. */
         post: operations["v1_propiedades_documentos_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/propiedades/{id}/imagenes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y POST /api/v1/propiedades/{id}/imagenes/ — POST multipart. */
+        get: operations["v1_propiedades_imagenes_list"];
+        put?: never;
+        /** @description GET y POST /api/v1/propiedades/{id}/imagenes/ — POST multipart. */
+        post: operations["v1_propiedades_imagenes_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2103,6 +2160,28 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * @description Una imagen de la galería (spec 019, §5). Se editan solo la descripción y
+         *     el orden (regla 4); la portada cambia por /marcar-portada/.
+         */
+        ImagenPropiedad: {
+            readonly id: number;
+            descripcion?: string;
+            orden?: number;
+            readonly es_portada: boolean;
+            readonly url: string;
+            readonly vence_en_segundos: number;
+            readonly nombre_original: string;
+            /** Format: date-time */
+            readonly creado_en: string;
+        };
+        /** @description Entrada de la subida: multipart con la foto y su descripción (regla 1). */
+        ImagenSubir: {
+            /** Format: uri */
+            archivo: string;
+            /** @default  */
+            descripcion: string;
+        };
         Login: {
             /** Format: email */
             email: string;
@@ -2331,6 +2410,21 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["DocumentoOficial"][];
+        };
+        PaginatedImagenPropiedadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ImagenPropiedad"][];
         };
         PaginatedMonedaList: {
             /** @example 123 */
@@ -2610,10 +2704,32 @@ export interface components {
             /** Format: date-time */
             readonly creado_en?: string;
         };
+        /**
+         * @description Una imagen de la galería (spec 019, §5). Se editan solo la descripción y
+         *     el orden (regla 4); la portada cambia por /marcar-portada/.
+         */
+        PatchedImagenPropiedad: {
+            readonly id?: number;
+            descripcion?: string;
+            orden?: number;
+            readonly es_portada?: boolean;
+            readonly url?: string;
+            readonly vence_en_segundos?: number;
+            readonly nombre_original?: string;
+            /** Format: date-time */
+            readonly creado_en?: string;
+        };
         PatchedPropiedad: {
             readonly id?: number;
             readonly codigo?: string | null;
             nombre?: string;
+            /**
+             * @description Spec 019, §5: la URL firmada de la portada, o null. Las portadas vienen
+             *     del Prefetch de listar_propiedades_con_portada; sin él (la respuesta de
+             *     crear o editar) se devuelve null y la pantalla vuelve a pedir la lista,
+             *     en vez de hacer aquí una consulta por propiedad.
+             */
+            readonly portada_url?: string | null;
             readonly tipo?: components["schemas"]["TipoPropiedadResumen"];
             tipo_id?: number;
             readonly ciudad?: components["schemas"]["CiudadConPais"];
@@ -2714,6 +2830,13 @@ export interface components {
             readonly id: number;
             readonly codigo: string | null;
             nombre: string;
+            /**
+             * @description Spec 019, §5: la URL firmada de la portada, o null. Las portadas vienen
+             *     del Prefetch de listar_propiedades_con_portada; sin él (la respuesta de
+             *     crear o editar) se devuelve null y la pantalla vuelve a pedir la lista,
+             *     en vez de hacer aquí una consulta por propiedad.
+             */
+            readonly portada_url: string | null;
             readonly tipo: components["schemas"]["TipoPropiedadResumen"];
             tipo_id: number;
             readonly ciudad: components["schemas"]["CiudadConPais"];
@@ -4492,6 +4615,95 @@ export interface operations {
             };
         };
     };
+    v1_imagenes_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImagenPropiedad"];
+                };
+            };
+        };
+    };
+    v1_imagenes_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_imagenes_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedImagenPropiedad"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedImagenPropiedad"];
+                "multipart/form-data": components["schemas"]["PatchedImagenPropiedad"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImagenPropiedad"];
+                };
+            };
+        };
+    };
+    v1_imagenes_marcar_portada_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImagenPropiedad"];
+                };
+            };
+        };
+    };
     v1_monedas_list: {
         parameters: {
             query?: {
@@ -4923,6 +5135,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentoOficial"];
+                };
+            };
+        };
+    };
+    v1_propiedades_imagenes_list: {
+        parameters: {
+            query?: {
+                /** @description Un número de página dentro del conjunto de resultados paginado. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedImagenPropiedadList"];
+                };
+            };
+        };
+    };
+    v1_propiedades_imagenes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImagenSubir"];
+                "application/x-www-form-urlencoded": components["schemas"]["ImagenSubir"];
+                "multipart/form-data": components["schemas"]["ImagenSubir"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImagenPropiedad"];
                 };
             };
         };

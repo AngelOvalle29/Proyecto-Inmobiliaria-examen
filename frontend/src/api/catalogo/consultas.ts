@@ -16,6 +16,8 @@ export type DocumentoOficial = components['schemas']['DocumentoOficial']
 export type TipoDocumento = components['schemas']['TipoDocumentoEnum']
 type PaginaAvaluos = components['schemas']['PaginatedAvaluoList']
 type PaginaDocumentos = components['schemas']['PaginatedDocumentoOficialList']
+export type ImagenPropiedad = components['schemas']['ImagenPropiedad']
+type PaginaImagenes = components['schemas']['PaginatedImagenPropiedadList']
 
 /** Filtros de GET /propiedades/{id}/documentos/: página y tipo. */
 export type FiltrosDocumentos = NonNullable<
@@ -215,5 +217,26 @@ export function useTiposPropiedad() {
     queryFn: async () =>
       (await clienteApi.get<PaginaTipos>('/tipos-propiedad/')).data.results,
     staleTime: 5 * 60_000,
+  })
+}
+
+/**
+ * Las URL firmadas de las imágenes vencen a los 5 minutos (spec 019, regla 8):
+ * la galería se vuelve a pedir a los 4, antes de que las fotos dejen de cargar.
+ */
+const CUATRO_MINUTOS = 4 * 60_000
+
+/**
+ * La galería de una propiedad, en su orden (spec 019). Son 10 como máximo, así
+ * que caben en una página.
+ */
+export function useImagenes(propiedad: number) {
+  return useQuery({
+    queryKey: ['catalogo', 'imagenes', propiedad],
+    queryFn: async () =>
+      (await clienteApi.get<PaginaImagenes>(`/propiedades/${propiedad}/imagenes/`))
+        .data,
+    staleTime: CUATRO_MINUTOS,
+    refetchInterval: CUATRO_MINUTOS,
   })
 }
