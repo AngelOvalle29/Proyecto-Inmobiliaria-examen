@@ -1,0 +1,319 @@
+{
+  "fecha": "2026-11-03T03:25:10.276Z",
+  "navegador": "156.0.4314.58",
+  "resultados": [
+    {
+      "slug": "ventas-por-periodo",
+      "titulo": "R01 · Ventas por período",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R01_ventas_por_periodo_2026-11-02.xlsx",
+          "bytes": 6718,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R01_ventas_por_periodo_2026-11-02.pdf",
+          "bytes": 13952,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "desempeno-agentes",
+      "titulo": "R02 · Desempeño por agente",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R02_desempeno_agentes_2026-11-02.xlsx",
+          "bytes": 6320,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R02_desempeno_agentes_2026-11-02.pdf",
+          "bytes": 11477,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "embudo-cotizaciones",
+      "titulo": "R03 · Embudo de cotizaciones",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R03_embudo_cotizaciones_2026-11-02.xlsx",
+          "bytes": 6618,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R03_embudo_cotizaciones_2026-11-02.pdf",
+          "bytes": 13068,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "ranking-clientes",
+      "titulo": "R04 · Ranking de clientes",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R04_ranking_clientes_2026-11-02.xlsx",
+          "bytes": 6300,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R04_ranking_clientes_2026-11-02.pdf",
+          "bytes": 11198,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "inventario-disponible",
+      "titulo": "R05 · Inventario disponible",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R05_inventario_disponible_2026-11-02.xlsx",
+          "bytes": 6320,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R05_inventario_disponible_2026-11-02.pdf",
+          "bytes": 11693,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "propiedades-por-estado",
+      "titulo": "R06 · Propiedades por estado",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R06_propiedades_por_estado_2026-11-02.xlsx",
+          "bytes": 7906,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R06_propiedades_por_estado_2026-11-02.pdf",
+          "bytes": 20144,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "evolucion-avaluos",
+      "titulo": "R08 · Evolución de avalúos",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R08_evolucion_avaluos_2026-11-02.xlsx",
+          "bytes": 7371,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R08_evolucion_avaluos_2026-11-02.pdf",
+          "bytes": 17830,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "estado-cuenta-clientes",
+      "titulo": "R10 · Estado de cuenta de clientes",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R10_estado_cuenta_clientes_2026-11-02.xlsx",
+          "bytes": 9439,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R10_estado_cuenta_clientes_2026-11-02.pdf",
+          "bytes": 28608,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "morosidad",
+      "titulo": "R11 · Morosidad",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R11_morosidad_2026-11-02.xlsx",
+          "bytes": 6453,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R11_morosidad_2026-11-02.pdf",
+          "bytes": 12422,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "flujo-ingresos",
+      "titulo": "R12 · Flujo de ingresos",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R12_flujo_ingresos_2026-11-02.xlsx",
+          "bytes": 7375,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R12_flujo_ingresos_2026-11-02.pdf",
+          "bytes": 16959,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "compras-proveedores",
+      "titulo": "R13 · Compras por proveedor",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R13_compras_proveedores_2026-11-02.xlsx",
+          "bytes": 6645,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R13_compras_proveedores_2026-11-02.pdf",
+          "bytes": 13642,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "ocupacion-arrendamientos",
+      "titulo": "R14 · Ocupación de arrendamientos",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R14_ocupacion_arrendamientos_2026-11-02.xlsx",
+          "bytes": 7216,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R14_ocupacion_arrendamientos_2026-11-02.pdf",
+          "bytes": 16186,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "avance-presupuesto-obra",
+      "titulo": "R15 · Avance y presupuesto de obra",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R15_avance_presupuesto_obra_2026-11-02.xlsx",
+          "bytes": 6976,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R15_avance_presupuesto_obra_2026-11-02.pdf",
+          "bytes": 14666,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "documentos-por-vencer",
+      "titulo": "R16 · Documentos por vencer",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R16_documentos_por_vencer_2026-11-02.xlsx",
+          "bytes": 5892,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R16_documentos_por_vencer_2026-11-02.pdf",
+          "bytes": 9187,
+          "error": null
+        }
+      ],
+      "alertas": []
+    },
+    {
+      "slug": "bitacora-auditoria",
+      "titulo": "R17 · Bitácora de auditoría",
+      "descargas": [
+        {
+          "formato": "Excel",
+          "nombre": "R17_bitacora_auditoria_2026-11-02.xlsx",
+          "bytes": 7919,
+          "error": null
+        },
+        {
+          "formato": "PDF",
+          "nombre": "R17_bitacora_auditoria_2026-11-02.pdf",
+          "bytes": 18060,
+          "error": null
+        }
+      ],
+      "alertas": []
+    }
+  ],
+  "filtros": [
+    {
+      "origen": "CONTADO",
+      "count": 2
+    },
+    {
+      "origen": "ENGANCHE",
+      "count": 1
+    },
+    {
+      "origen": "CUOTA",
+      "count": 2
+    },
+    {
+      "origen": "RENTA",
+      "count": 2
+    },
+    {
+      "fecha_desde": "2099-01-01",
+      "count": 0
+    },
+    {
+      "rango_invalido": 400,
+      "alerta": "Los datos enviados no son válidos.\n\nfecha_hasta: Debe ser mayor o igual a desde."
+    }
+  ],
+  "tasa": "Pago de renta\t1\tARR-00001\t05/08/2026\tColombia\tCOP\t12,000,000.00\t0.000243\t2,916.00",
+  "errores": []
+}

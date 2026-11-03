@@ -1,0 +1,9 @@
+// Crear estas medidas en la tabla importada 'bi hechos_ventas'.
+// Este es el nombre que Desktop dio a la vista al cargarla desde Neon.
+// Se suman USD históricos;
+// neto sin filtro de moneda nunca se usa como total consolidado.
+Ventas USD = SUM('bi hechos_ventas'[neto_usd])
+
+Contratos = COUNTROWS('bi hechos_ventas')
+
+Ticket promedio USD = DIVIDE([Ventas USD], [Contratos])

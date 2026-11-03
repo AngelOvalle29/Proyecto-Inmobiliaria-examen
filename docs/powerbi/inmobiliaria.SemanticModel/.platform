@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "inmobiliaria"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "cbf034ae-a01e-4be3-ae60-35b79124afaf"
+  }
+}

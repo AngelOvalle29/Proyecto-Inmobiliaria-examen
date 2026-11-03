@@ -150,8 +150,18 @@ class FiltrosObras:
     moneda: str | None = None
 
 
+@dataclass(frozen=True)
+class FiltrosIngresos:
+    fecha_desde: date | None = None
+    fecha_hasta: date | None = None
+    pais: int | None = None
+    origen: str | None = None
+    moneda: str | None = None
+
+
 FiltrosReporte = (
-    FiltrosInventario
+    FiltrosIngresos
+    | FiltrosInventario
     | FiltrosVencimientos
     | FiltrosBitacora
     | FiltrosVentas

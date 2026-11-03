@@ -15,7 +15,17 @@ documentación, avalúos, cotizaciones, venta y arrendamiento. Incluye un agente
 de IA con recuperación de documentos, mensajería asíncrona, reportes exportables
 y bitácoras de auditoría.
 
-*Pendiente: el equipo completa el resumen de funcionalidades.*
+El frontend React consume una API Django REST con PostgreSQL. Los roles
+controlan las operaciones y, para agentes comerciales, la cartera del cliente
+limita tanto los detalles como los totales. Los contratos conservan sus tasas
+de cambio para que una nueva tasa no modifique las cifras históricas.
+
+La entrega se verifica por bloques: catálogo y flujo comercial, compras y
+construcción, asistente con documentos, procesamiento asíncrono con RabbitMQ,
+dos bitácoras, quince reportes con Excel/PDF e integración analítica mediante
+cuatro vistas `bi`. Este manual distingue funcionalidades implementadas de
+evidencia aún pendiente: la existencia de las vistas no certifica por sí sola
+que el tablero Power BI esté conectado y actualizado.
 
 ## 2. Arquitectura
 
@@ -298,11 +308,66 @@ entrega.
 
 ## 9. Auditoría
 
-*Pendiente: rol D.*
+Hay dos registros separados e inmutables en la aplicación:
+
+- `LogAuditoria` (`auditoria_log_sistema`): usuario, entidad e ID, acción,
+  valores anteriores/nuevos, IP, user-agent y fecha. Los servicios registran
+  escrituras de negocio junto con su transacción. Un fallo no debe dejar una
+  escritura de negocio parcial.
+- `LogAgenteIA` (`auditoria_log_agente`): pregunta, respuesta, modo, usuario,
+  herramientas, documentos recuperados, tokens, duración y resultado. `null`
+  en tokens significa desconocido; cero significa consumo conocido de cero.
+
+Los modelos rechazan edición/borrado y el admin permite consulta. No se usan
+`QuerySet.update/delete` sobre estas bitácoras en la aplicación. R17 permite
+a administración consultar/exportar fecha, usuario, entidad y acción, sin
+exponer IP, user-agent ni los JSON completos.
+
+Cada abono de cuota deja un evento con su monto, fecha efectiva y tasa. R12
+lee esos campos y concilia su suma con `CuotaPago.monto_pagado`. Esto permite
+separar pagos de meses diferentes sin atribuir todo al último pago.
 
 ## 10. Reportes
 
-Capa genérica: *pendiente, rol D.*
+Una sola pantalla `/reportes` construye filtros y columnas a partir del
+catálogo. Los serializers validan parámetros; los selectores consultan y
+agregan en PostgreSQL; los servicios comprueban permisos y eligen página o
+exportación; los exportadores solo reciben el objeto `Reporte`.
+
+JSON devuelve 25 filas por página y totales de todo el conjunto filtrado.
+Excel y PDF incluyen todas las filas del filtro aplicado, con límite de
+5,000: si se supera, se rechaza antes de cargar detalle. El formulario conserva
+por separado lo escrito y el filtro aplicado; las descargas usan este último.
+Los importes JSON son texto decimal exacto. No se suman monedas originales
+distintas; donde se consolida en USD se usa la tasa histórica correspondiente.
+
+R05 muestra inventario disponible sin contar dos veces edificios y unidades;
+R16 muestra documentos vencidos o próximos a vencer, y R17 la auditoría solo
+para administración. La 021 completa el conjunto hasta quince con los reportes
+de las secciones siguientes y R12.
+
+### 10.0 Flujo de ingresos R12 (rol D)
+
+`GET /api/v1/reportes/flujo-ingresos/`, más `/excel/` y `/pdf/`, para
+administración, gerencia y contabilidad. Filtros: fecha efectiva desde/hasta
+inclusive, país del bien, moneda y origen (`CONTADO`, `ENGANCHE`, `CUOTA`,
+`RENTA`). Cada fila identifica origen e ID fuente, contrato, fecha, país,
+moneda, recibido, tasa y recibido USD. Agrupa por mes/origen/moneda y presenta
+el total USD, redondeado por cobro antes de sumar.
+
+- Contado y enganche usan fecha de firma y tasa del contrato. Anulados no
+  aportan cobros. No se agrega nuevamente el precio de una venta financiada.
+- Cada abono usa el ID de su log, su fecha y su tasa, incluso si la cuota
+  recibió otro abono en otro mes. La pareja origen/ID evita colisiones.
+- Una renta pagada aporta `monto_pagado`, que ya incluye el recargo. No se
+  suma otra vez el recargo ni se trata el depósito como ingreso.
+- Si falta evidencia, hay una fecha/tasa inválida o los abonos no concilian,
+  responde 409 `DATOS_INCOMPLETOS` en JSON y archivos. La conciliación usa
+  toda la historia de las cuotas del país/moneda seleccionados: no se conoce
+  a qué mes pertenece un log ausente, por lo que acotar fechas no lo oculta.
+
+Ejemplo: dos abonos de GTQ 100 y GTQ 200, con tasas USD 0.10 y 0.20, aportan
+USD 10 y USD 40 en sus respectivas fechas: total USD 50, no USD 60.
 
 ### 10.1 Reportes comerciales (rol B)
 
@@ -352,7 +417,31 @@ contraseña nunca va al repositorio. Las relaciones y la conexión están en
 
 ### 11.2 Tablero
 
-*Pendiente: rol D.*
+Se entrega `docs/powerbi/inmobiliaria.pbix` y su fuente editable
+`inmobiliaria.pbip`. La página **Comercial** contiene tarjetas de ventas USD,
+contratos y ticket promedio, gráficos por mes/país/tipo y filtros de
+año/país/ciudad. Solo usa el USD guardado al firmar para sumar entre monedas.
+
+Las medidas son `SUM('bi hechos_ventas'[neto_usd])`,
+`COUNTROWS('bi hechos_ventas')` y `DIVIDE([Ventas USD], [Contratos])`.
+Las tres relaciones son muchos-a-uno desde hechos a dimensiones, activas y
+con filtro desde dimensión. No se mantiene una relación adicional entre
+geografía y propiedad que cree rutas ambiguas.
+
+Nathaly conectó Desktop a Neon con el lector, cargó las vistas, ejecutó
+Actualizar, seleccionó meses, comprobó las respuestas cruzadas y guardó el
+PBIX final. Las capturas muestran tres contratos sin selección y uno al
+seleccionar julio, septiembre o noviembre. Los permisos negativos en
+producción los confirmó Douglas por separado.
+
+![Tablero comercial con tres contratos](powerbi/capturas/comercial-general.png)
+
+La evidencia y sus límites están en [powerbi/evidencia.md](powerbi/evidencia.md).
+Queda para revisión la conciliación SQL de importes exactos en producción:
+las tarjetas abrevian importes en miles. El procedimiento reproducible está
+en `docs/powerbi/conciliacion.sql`; no se afirma haber ejecutado esas consultas
+contra producción desde Codex. No se requiere publicar el tablero en la nube
+para abrir el PBIX local de la entrega.
 
 ## 12. Despliegue (rol A, spec 002)
 
@@ -431,4 +520,21 @@ navegador la ve.
 
 ## 13. Uso de agentes de IA
 
-*Pendiente: el equipo acuerda cómo declararlo. Cada spec tiene su §11.*
+Se usaron agentes de IA como apoyo para especificaciones, implementación,
+pruebas, revisión de cambios y documentación. Las decisiones se registran en
+el §11 de cada spec y se revisan mediante PR; no se presenta código generado
+como una aprobación del estudiante ni de sus compañeros.
+
+En el bloque D, Codex contrastó la rúbrica y los modelos, preparó las specs
+015/016/021 y apoyó la bitácora de IA, la capa genérica, exportadores y R12.
+Nathaly trasladó las observaciones de B/C/A y autorizó al agente a ejecutar
+commit, push y apertura de PR con su configuración Git. Los compañeros
+revisaron y aprobaron en GitHub los cambios correspondientes; la aprobación
+no se infiere de que las pruebas pasen.
+
+Correcciones relevantes para explicar en defensa: separación de monedas,
+doble conteo de propiedades/unidades, totales completos frente a página de
+25 filas, límite previo a exportación y cada abono con su tasa histórica.
+El equipo debe poder explicar cualquier módulo. Cada integrante completa
+su evidencia personal en las specs y confirma su comprensión; este resumen
+no afirma una defensa oral o una revisión personal que todavía no ocurrió.

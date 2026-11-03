@@ -116,11 +116,12 @@ def exportar_excel(reporte: Reporte) -> bytes:
     return salida.getvalue()
 
 
-def _mostrar(valor, tipo="texto") -> str:
+def _mostrar(valor, tipo="texto", formato="#,##0.00") -> str:
     if valor is None:
         return "Sin dato"
     if tipo == "decimal":
-        return f"{valor:,.2f}"
+        decimales = len(formato.partition(".")[2])
+        return f"{valor:,.{decimales}f}"
     if tipo == "fecha_hora":
         return timezone.localtime(valor, GUATEMALA).strftime("%d/%m/%Y %H:%M")
     if tipo == "fecha":
@@ -134,7 +135,7 @@ def contexto_pdf(reporte: Reporte) -> dict:
     for columna in reporte.columnas:
         longitudes = [len(columna.etiqueta)]
         longitudes.extend(
-            len(_mostrar(fila.get(columna.nombre), columna.tipo))
+            len(_mostrar(fila.get(columna.nombre), columna.tipo, columna.formato))
             for fila in reporte.filas
         )
         pesos.append(max(5, min(30, max(longitudes))))
@@ -145,7 +146,7 @@ def contexto_pdf(reporte: Reporte) -> dict:
         horizontal=len(reporte.columnas) > 6,
         fecha=timezone.localtime(reporte.generado_en, GUATEMALA),
         filas=[
-            [_mostrar(f.get(c.nombre), c.tipo) for c in reporte.columnas]
+            [_mostrar(f.get(c.nombre), c.tipo, c.formato) for c in reporte.columnas]
             for f in reporte.filas
         ],
         totales=_resumen(reporte.totales),
