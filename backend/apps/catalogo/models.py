@@ -30,6 +30,17 @@ def ruta_documento(instancia: "DocumentoOficial", nombre_original: str) -> str:
     return f"documentos/{instancia.propiedad.codigo}/{uuid.uuid4().hex}{extension}"
 
 
+# Spec 019, regla 1: las fotos pesan menos que un documento, porque una
+# propiedad tiene varias y el plan gratuito de Supabase tiene 1 GB.
+TAMANO_MAXIMO_IMAGEN = 5 * 1024 * 1024
+
+
+def ruta_imagen(instancia: "ImagenPropiedad", nombre_original: str) -> str:
+    """Spec 019, regla 3: imagenes/<código de propiedad>/<uuid>.<extensión>."""
+    extension = Path(nombre_original).suffix.lower()
+    return f"imagenes/{instancia.propiedad.codigo}/{uuid.uuid4().hex}{extension}"
+
+
 class TipoPropiedad(ModeloBase):
     """Terreno, casa, edificio de apartamentos, hotel… (spec 003, §4)."""
 
@@ -204,6 +215,52 @@ class DocumentoOficial(ModeloBase):
 
     def __str__(self) -> str:
         return f"{self.get_tipo_display()} · {self.nombre}"
+
+
+class ImagenPropiedad(ModeloBase):
+    """
+    Una foto de la galería de una propiedad (spec 019).
+
+    Es un modelo aparte de DocumentoOficial porque una foto no tiene emisor ni
+    vencimiento, y sí portada y orden (§10). El archivo no se reemplaza: una
+    foto distinta es otra imagen (regla 4).
+    """
+
+    propiedad = models.ForeignKey(
+        Propiedad, on_delete=models.PROTECT, related_name="imagenes"
+    )
+    archivo = models.FileField(upload_to=ruta_imagen, max_length=255)
+    nombre_original = models.CharField(max_length=255)
+    # image/jpeg o image/png, deducido del contenido (regla 1).
+    tipo_contenido = models.CharField(max_length=50)
+    tamano_bytes = models.PositiveIntegerField()
+    # También es el texto alternativo de la imagen en la pantalla.
+    descripcion = models.CharField(max_length=200, blank=True)
+    orden = models.PositiveSmallIntegerField(default=1)
+    es_portada = models.BooleanField(default=False)
+
+    class Meta:
+        # Regla 7: por orden y, a igual orden, por fecha de subida.
+        ordering = ["orden", "creado_en", "id"]
+        verbose_name = "imagen de propiedad"
+        verbose_name_plural = "imágenes de propiedad"
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(tamano_bytes__gt=0)
+                & Q(tamano_bytes__lte=TAMANO_MAXIMO_IMAGEN),
+                name="catalogo_imagen_tamano_valido",
+            ),
+            # Regla 6: una sola portada activa por propiedad. La base lo
+            # garantiza aunque dos personas marquen portada a la vez.
+            models.UniqueConstraint(
+                fields=["propiedad"],
+                condition=Q(es_portada=True, activo=True),
+                name="catalogo_imagen_una_portada",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.propiedad.codigo} · {self.descripcion or self.nombre_original}"
 
 
 class Avaluo(ModeloBase):

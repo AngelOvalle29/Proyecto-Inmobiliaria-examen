@@ -11,6 +11,7 @@ ciudad o una moneda activos.
 
 from decimal import Decimal
 
+from django.core.files.storage import default_storage
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -18,12 +19,37 @@ from apps.core.selectors import listar_ciudades, listar_monedas
 from apps.core.serializers import MonedaResumenSerializer, PaisResumenSerializer
 
 from .enums import EstadoPropiedad, TipoDocumento
-from .models import Avaluo, DocumentoOficial, Propiedad, TipoPropiedad, Unidad
+from .models import (
+    Avaluo,
+    DocumentoOficial,
+    ImagenPropiedad,
+    Propiedad,
+    TipoPropiedad,
+    Unidad,
+)
 from .selectors import listar_documentos, listar_tipos_propiedad
 
 # Regla 4: precios y áreas mayores que cero. La base lo garantiza con sus
 # constraints; validarlo aquí da un 400 con el campo señalado en vez de un 500.
 MAYOR_QUE_CERO = {"min_value": Decimal("0.01")}
+
+# Spec 019, regla 8: la URL firmada de S3 vence a los 5 minutos
+# (querystring_expire en config/settings/base.py).
+SEGUNDOS_URL_IMAGEN = 300
+
+
+def url_de_imagen(imagen: ImagenPropiedad, request) -> str:
+    """
+    La URL para mostrar la imagen (spec 019, regla 8). Con S3, default_storage
+    la firma con la llave: es un cálculo local, sin consultar a Supabase, y ya
+    es absoluta. En desarrollo el almacenamiento es local y devuelve
+    /media/...: se completa con el host de la API, como la descarga de
+    documentos.
+    """
+    url = default_storage.url(imagen.archivo.name)
+    if url.startswith("/") and request is not None:
+        url = request.build_absolute_uri(url)
+    return url
 
 
 class TipoPropiedadSerializer(serializers.ModelSerializer):
@@ -56,6 +82,7 @@ class PropiedadSerializer(serializers.ModelSerializer):
     moneda_id = serializers.PrimaryKeyRelatedField(
         source="moneda", queryset=listar_monedas(), write_only=True
     )
+    portada_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Propiedad
@@ -63,6 +90,7 @@ class PropiedadSerializer(serializers.ModelSerializer):
             "id",
             "codigo",
             "nombre",
+            "portada_url",
             "tipo",
             "tipo_id",
             "ciudad",
@@ -88,6 +116,18 @@ class PropiedadSerializer(serializers.ModelSerializer):
             "area_construida_m2": MAYOR_QUE_CERO,
             "precio_lista": MAYOR_QUE_CERO,
         }
+
+    def get_portada_url(self, propiedad: Propiedad) -> str | None:
+        """
+        Spec 019, §5: la URL firmada de la portada, o null. Las portadas vienen
+        del Prefetch de listar_propiedades_con_portada; sin él (la respuesta de
+        crear o editar) se devuelve null y la pantalla vuelve a pedir la lista,
+        en vez de hacer aquí una consulta por propiedad.
+        """
+        portadas = getattr(propiedad, "portadas", None)
+        if not portadas:
+            return None
+        return url_de_imagen(portadas[0], self.context.get("request"))
 
 
 class CambiarEstadoSerializer(serializers.Serializer):
@@ -244,3 +284,43 @@ class DocumentoSubirSerializer(serializers.Serializer):
 class DescargaDocumentoSerializer(serializers.Serializer):
     url = serializers.CharField()
     vence_en_segundos = serializers.IntegerField()
+
+
+class ImagenPropiedadSerializer(serializers.ModelSerializer):
+    """
+    Una imagen de la galería (spec 019, §5). Se editan solo la descripción y
+    el orden (regla 4); la portada cambia por /marcar-portada/.
+    """
+
+    url = serializers.SerializerMethodField()
+    vence_en_segundos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ImagenPropiedad
+        fields = [
+            "id",
+            "descripcion",
+            "orden",
+            "es_portada",
+            "url",
+            "vence_en_segundos",
+            "nombre_original",
+            "creado_en",
+        ]
+        read_only_fields = ["es_portada", "nombre_original", "creado_en"]
+        extra_kwargs = {"orden": {"min_value": 1}}
+
+    def get_url(self, imagen: ImagenPropiedad) -> str:
+        return url_de_imagen(imagen, self.context.get("request"))
+
+    def get_vence_en_segundos(self, imagen: ImagenPropiedad) -> int:
+        return SEGUNDOS_URL_IMAGEN
+
+
+class ImagenSubirSerializer(serializers.Serializer):
+    """Entrada de la subida: multipart con la foto y su descripción (regla 1)."""
+
+    archivo = serializers.FileField()
+    descripcion = serializers.CharField(
+        max_length=200, required=False, allow_blank=True, default=""
+    )

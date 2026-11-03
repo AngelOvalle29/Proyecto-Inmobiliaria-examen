@@ -30,7 +30,9 @@ from .models import Propiedad
 from .selectors import (
     listar_avaluos,
     listar_documentos,
+    listar_imagenes,
     listar_propiedades,
+    listar_propiedades_con_portada,
     listar_tipos_propiedad,
     listar_unidades,
 )
@@ -40,6 +42,8 @@ from .serializers import (
     DescargaDocumentoSerializer,
     DocumentoOficialSerializer,
     DocumentoSubirSerializer,
+    ImagenPropiedadSerializer,
+    ImagenSubirSerializer,
     PropiedadSerializer,
     TipoPropiedadSerializer,
     UnidadSerializer,
@@ -47,6 +51,7 @@ from .serializers import (
 from .services import (
     SEGUNDOS_URL_DESCARGA,
     actualizar_documento,
+    actualizar_imagen,
     actualizar_propiedad,
     actualizar_tipo_propiedad,
     actualizar_unidad,
@@ -57,12 +62,15 @@ from .services import (
     crear_unidad,
     desactivar_avaluo,
     desactivar_documento,
+    desactivar_imagen,
     desactivar_propiedad,
     desactivar_tipo_propiedad,
     desactivar_unidad,
     generar_url_descarga,
+    marcar_portada,
     registrar_avaluo,
     subir_documento,
+    subir_imagen,
 )
 
 # Regla 8: leen todos los autenticados; escriben administración y gerencia.
@@ -134,7 +142,8 @@ class PropiedadesView(ListCreateAPIView):
     roles_por_metodo = {"POST": ADMINISTRACION_Y_GERENCIA}
 
     def get_queryset(self):
-        return listar_propiedades()
+        # Con la portada de cada fila en una sola consulta más (spec 019, §6).
+        return listar_propiedades_con_portada()
 
     def perform_create(self, serializer):
         serializer.instance = crear_propiedad(
@@ -156,7 +165,7 @@ class PropiedadDetalleView(RetrieveUpdateDestroyAPIView):
     http_method_names = METODOS_DETALLE
 
     def get_queryset(self):
-        return listar_propiedades()
+        return listar_propiedades_con_portada()
 
     def perform_update(self, serializer):
         serializer.instance = actualizar_propiedad(
@@ -440,3 +449,100 @@ class DocumentoDescargaView(GenericAPIView):
         if url.startswith("/"):
             url = request.build_absolute_uri(url)
         return Response({"url": url, "vence_en_segundos": SEGUNDOS_URL_DESCARGA})
+
+
+# ---------- Imágenes de las propiedades (spec 019) ----------
+
+
+@extend_schema_view(
+    post=extend_schema(
+        request=ImagenSubirSerializer,
+        responses={201: ImagenPropiedadSerializer},
+    )
+)
+class ImagenesDePropiedadView(ListCreateAPIView):
+    """GET y POST /api/v1/propiedades/{id}/imagenes/ — POST multipart."""
+
+    serializer_class = ImagenPropiedadSerializer
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"POST": ADMINISTRACION_Y_GERENCIA}
+
+    def obtener_propiedad_de_la_url(self) -> Propiedad:
+        """La propiedad del {id} de la ruta; 404 si no existe o está desactivada."""
+        return get_object_or_404(listar_propiedades(), pk=self.kwargs["pk"])
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return listar_imagenes().none()
+        return listar_imagenes(propiedad=self.obtener_propiedad_de_la_url())
+
+    def create(self, request: Request, *args, **kwargs) -> Response:
+        # Como los documentos: valida la entrada con ImagenSubirSerializer y
+        # responde con la imagen ya guardada, con su URL firmada.
+        entrada = ImagenSubirSerializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        imagen = subir_imagen(
+            propiedad=self.obtener_propiedad_de_la_url(),
+            archivo=entrada.validated_data["archivo"],
+            descripcion=entrada.validated_data["descripcion"],
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        salida = ImagenPropiedadSerializer(
+            imagen, context=self.get_serializer_context()
+        )
+        return Response(salida.data, status=201)
+
+
+class ImagenDetalleView(RetrieveUpdateDestroyAPIView):
+    """GET, PATCH y DELETE /api/v1/imagenes/{id}/ — DELETE desactiva."""
+
+    serializer_class = ImagenPropiedadSerializer
+    permission_classes = [TieneRol]
+    roles_por_metodo = {
+        "PATCH": ADMINISTRACION_Y_GERENCIA,
+        "DELETE": ADMINISTRACION_Y_GERENCIA,
+    }
+    http_method_names = METODOS_DETALLE
+
+    def get_queryset(self):
+        return listar_imagenes()
+
+    def perform_update(self, serializer):
+        serializer.instance = actualizar_imagen(
+            imagen=serializer.instance,
+            datos=serializer.validated_data,
+            autor=self.request.user,
+            ip=obtener_ip_cliente(self.request),
+        )
+
+    def perform_destroy(self, instance):
+        desactivar_imagen(
+            imagen=instance,
+            autor=self.request.user,
+            ip=obtener_ip_cliente(self.request),
+        )
+
+
+class MarcarPortadaView(GenericAPIView):
+    """POST /api/v1/imagenes/{id}/marcar-portada/ — sin cuerpo (regla 6)."""
+
+    serializer_class = ImagenPropiedadSerializer
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"POST": ADMINISTRACION_Y_GERENCIA}
+
+    def get_queryset(self):
+        return listar_imagenes()
+
+    @extend_schema(
+        request=None,
+        responses={200: ImagenPropiedadSerializer},
+        summary="Marcar una imagen como la portada de su propiedad",
+    )
+    def post(self, request: Request, pk: int) -> Response:
+        imagen = marcar_portada(
+            imagen=self.get_object(),
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(self.get_serializer(imagen).data)

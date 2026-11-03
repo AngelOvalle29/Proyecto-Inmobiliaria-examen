@@ -17,19 +17,22 @@ import { DialogoCambiarEstado } from './DialogoCambiarEstado'
 import { PestanaAvaluos } from './PestanaAvaluos'
 import { PestanaDatos } from './PestanaDatos'
 import { PestanaDocumentos } from './PestanaDocumentos'
+import { PestanaImagenes } from './PestanaImagenes'
 import { PestanaUnidades } from './PestanaUnidades'
 
-type Pestana = 'datos' | 'unidades' | 'avaluos' | 'documentos'
+type Pestana = 'datos' | 'unidades' | 'avaluos' | 'documentos' | 'imagenes'
 
 const ETIQUETAS_PESTANA: Record<Pestana, string> = {
   datos: 'Datos',
   unidades: 'Unidades',
   avaluos: 'Avalúos',
   documentos: 'Documentos',
+  imagenes: 'Imágenes',
 }
 
 /**
- * Ficha de una propiedad (spec 014, regla 1): una página con cuatro pestañas.
+ * Ficha de una propiedad (spec 014, regla 1): una página con pestañas; la de
+ * Imágenes la agregó la spec 019.
  * La pestaña elegida va en la URL (?pestana=documentos), así se puede recargar
  * o compartir. Solo se dibuja la pestaña abierta, así que cada una pide sus
  * datos a la API únicamente cuando alguien la mira.
@@ -63,8 +66,8 @@ function Ficha({ propiedad }: { propiedad: Propiedad }) {
     tipos.data?.find((tipo) => tipo.id === propiedad.tipo.id)?.requiere_unidades ??
     false
   const pestanas: Pestana[] = admiteUnidades
-    ? ['datos', 'unidades', 'avaluos', 'documentos']
-    : ['datos', 'avaluos', 'documentos']
+    ? ['datos', 'unidades', 'avaluos', 'documentos', 'imagenes']
+    : ['datos', 'avaluos', 'documentos', 'imagenes']
 
   const pedida = parametros.get('pestana') as Pestana | null
   const abierta: Pestana = pedida && pestanas.includes(pedida) ? pedida : 'datos'
@@ -81,9 +84,13 @@ function Ficha({ propiedad }: { propiedad: Propiedad }) {
     contenido = (
       <PestanaAvaluos propiedad={propiedad.id} puedeEscribir={puedeEscribir} />
     )
-  } else {
+  } else if (abierta === 'documentos') {
     contenido = (
       <PestanaDocumentos propiedad={propiedad.id} puedeEscribir={puedeEscribir} />
+    )
+  } else {
+    contenido = (
+      <PestanaImagenes propiedad={propiedad.id} puedeEscribir={puedeEscribir} />
     )
   }
 
