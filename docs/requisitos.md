@@ -134,17 +134,4 @@ Documento entregable al final del proyecto.
   únicamente por los estudiantes. **No se permite el vibecoding.**
 - Los sistemas de inventario simple y punto de venta están bloqueados. Nuestro
   dominio no cae en esa categoría.
-- El dominio debe ser distinto al de los demás equipos. **Confirmar con el
-  catedrático que ningún otro equipo tomó agencia inmobiliaria.**
-
----
-
-## Puntos a confirmar con el catedrático
-
-1. Que el dominio de agencia inmobiliaria no esté tomado por otro equipo.
-2. Fecha de entrega y fecha de la defensa oral.
-3. Formato esperado del manual técnico.
-4. **Si el frontend puede usar TypeScript.** La restricción del enunciado
-   ("limitando el uso de Node con Javascript") aplica a la API, que será Django,
-   pero conviene dejarlo confirmado por escrito antes de avanzar.
-5. Si se requiere un informe de avance intermedio.
+- El dominio debe ser distinto al de los demás equipos.
