@@ -10,16 +10,18 @@ choca con algo escrito aquí, gana lo escrito aquí.
 
 | Criterio | Puntos | Estado |
 |---|---:|---|
-| Sistema base: CRUD, arquitectura, código limpio y uso de GitHub | 5 | Pendiente |
-| Agente de inteligencia artificial | 2 | Pendiente |
-| Flujo asíncrono con RabbitMQ o Kafka | 2 | Pendiente |
-| Logs y auditoría en base de datos | 2 | Pendiente |
-| Reportería y Power BI | 2 | Pendiente |
-| Despliegue en producción | 1 | Pendiente |
-| Defensa oral del proyecto | 1 | Pendiente |
+| Sistema base: CRUD, arquitectura, código limpio y uso de GitHub | 5 | Hecho: una app de Django por dominio, con capas; specs 001 a 023 y revisión por PR |
+| Agente de inteligencia artificial | 2 | Hecho: asistente público con RAG y citas (specs 005 y 018) |
+| Flujo asíncrono con RabbitMQ o Kafka | 2 | Hecho: ingesta de documentos del asistente (spec 020); falta verificarla en producción |
+| Logs y auditoría en base de datos | 2 | Hecho: bitácora del sistema y del agente (specs 001 y 015) |
+| Reportería y Power BI | 2 | Hecho: 15 reportes con Excel y PDF, vistas `bi` y tablero `.pbix` (specs 016 y 021) |
+| Despliegue en producción | 1 | Hecho: Render, Neon, CloudAMQP, Vercel y Supabase (spec 002) |
+| Defensa oral del proyecto | 1 | Pendiente: ensayo del equipo |
 | **Total** | **15** | |
 
-Actualizar la columna de estado conforme avance el proyecto.
+Estado al 2026-11-03. Lo que quedó fuera del plan original, para responderlo en
+la defensa: el modo interno del agente y las notificaciones por correo (la
+rúbrica pide un solo flujo asíncrono).
 
 ---
 

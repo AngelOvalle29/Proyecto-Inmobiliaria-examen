@@ -46,11 +46,10 @@ un incremento posterior y no forma parte de la spec 016.
 **Filtros comunes a casi todos:** rango de fechas, país, ciudad, moneda de
 presentación (con conversión por tipo de cambio) y agente.
 
-### Primer incremento aprobado (spec 016, PR #61)
+### Primer incremento (spec 016)
 
 La [spec 016](../specs/016-capa-generica-reportes.md), aprobada en el PR #61
-por AngelOvalle29 sobre `dc258e5`, tiene implementación local pendiente de revisión
-en `feature/016-capa-generica-reportes` y
+por AngelOvalle29 e implementada en el PR #77,
 cubre R05, R16 y R17, con exportaciones síncronas de hasta 5,000 filas. Si se
 supera el límite, se rechaza la descarga antes de cargar detalles y se pide
 acotar filtros; no se encola ni se trunca el archivo.
@@ -68,7 +67,9 @@ Excel/PDF usan otro flujo: comprobar el conteo, seleccionar todo el detalle
 dentro del límite y construir un `Reporte` completo para los mismos exportadores.
 
 R05/R16 están disponibles para todos los roles autenticados; R17 solo para
-administrador. Son tres reportes iniciales: el mínimo de 15 sigue pendiente.
+administrador. Fueron los tres primeros: los otros doce llegaron con la
+[spec 021](../specs/021-reportes-restantes-power-bi.md) (PR #80, #83, #87 y
+#91), y con ellos se completan los 15.
 
 Uso, validaciones y explicación para la defensa:
 [`016-implementacion-reportes.md`](016-implementacion-reportes.md).
