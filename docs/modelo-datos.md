@@ -83,6 +83,18 @@ versión nueva es otro documento y el anterior se desactiva. Los documentos con
 el RAG; y se quitan `contrato_venta` y `contrato_compra` porque la relación va
 al revés, desde el contrato.
 
+### ImagenPropiedad
+Galería de fotos de una propiedad (spec 019).
+`id` · `propiedad` (FK) · `archivo` (FileField) · `nombre_original` ·
+`tipo_contenido` · `tamano_bytes` · `descripcion` (texto alternativo) · `orden` ·
+`es_portada` (bool) · `activo`
+
+*Reglas:* JPG o PNG de hasta 5 MB, comprobados por el contenido, en
+`imagenes/<código de propiedad>/<uuid>.<extensión>` del mismo bucket privado.
+Hasta 10 activas por propiedad. Una propiedad con imágenes tiene exactamente una
+portada activa, garantizada por un constraint único condicional; la primera
+imagen que se sube es la portada.
+
 ### EventoPropiedad ★
 Línea de tiempo de cada propiedad. Es el "historial" que pide el enunciado.
 `id` · `propiedad` (FK) · `tipo` (enum: ADQUISICION, INICIO_CONSTRUCCION,

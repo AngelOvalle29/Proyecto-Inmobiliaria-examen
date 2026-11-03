@@ -10,6 +10,9 @@ from .views import (
     DocumentoDescargaView,
     DocumentoDetalleView,
     DocumentosDePropiedadView,
+    ImagenDetalleView,
+    ImagenesDePropiedadView,
+    MarcarPortadaView,
     PropiedadDetalleView,
     PropiedadesView,
     TipoPropiedadDetalleView,
@@ -60,4 +63,15 @@ urlpatterns = [
         name="documento-descarga",
     ),
     path("documentos/<int:pk>/", DocumentoDetalleView.as_view(), name="documento"),
+    path(
+        "propiedades/<int:pk>/imagenes/",
+        ImagenesDePropiedadView.as_view(),
+        name="propiedad-imagenes",
+    ),
+    path("imagenes/<int:pk>/", ImagenDetalleView.as_view(), name="imagen"),
+    path(
+        "imagenes/<int:pk>/marcar-portada/",
+        MarcarPortadaView.as_view(),
+        name="imagen-marcar-portada",
+    ),
 ]
