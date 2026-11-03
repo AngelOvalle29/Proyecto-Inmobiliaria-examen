@@ -65,9 +65,13 @@ contratos, proyectos y pagos, cuando la spec 017 esté implementada.
    Pagar y Anular solo en un pago `PROGRAMADO`. Finalizar se ofrece solo con
    avance 100.
 4. **Los formularios validan el formato con Zod y las reglas las valida la
-   API.** El NIT del proveedor es opcional en el esquema, porque solo el
-   propietario particular puede omitirlo; si falta en otro tipo, la API
-   responde `NIT_OBLIGATORIO` y se muestra junto al campo.
+   API.** El NIT del proveedor es opcional en el objeto, porque solo el
+   propietario particular puede omitirlo, y el `superRefine` lo exige para los
+   demás tipos, como `FormularioCliente` con la empresa (spec 012, regla 4):
+   ese aviso sale junto al campo antes de enviar. La regla de verdad sigue
+   siendo la de la API: su `NIT_OBLIGATORIO` es un error de dominio, y desde
+   #56 `FormularioDatos` los muestra arriba del formulario (spec 014,
+   regla 5).
 5. **Los errores de negocio se muestran con el mensaje de la API**: un 409
    (`PROVEEDOR_DUPLICADO`, `PROPIEDAD_NO_DISPONIBLE`, `PRESUPUESTO_EXCEDIDO`…)
    arriba de la tabla o del formulario, y un 400 de validación junto a su campo
@@ -179,13 +183,13 @@ endpoint que ya audita (specs 005, 006 y 017).
 - [ ] `CONSULTA` y `AGENTE` ven las listas de compras y construcción sin botones
       de crear ni acciones; `CONTABILIDAD` ve Pagar y Programar pago, pero no
       las acciones del proyecto.
-- [ ] Un proveedor particular se registra sin NIT; un banco sin NIT muestra el
+- [x] Un proveedor particular se registra sin NIT; un banco sin NIT muestra el
       error junto al campo; un NIT repetido muestra el 409 de la API.
-- [ ] La ciudad del proveedor se busca dentro del país elegido y se vacía al
+- [x] La ciudad del proveedor se busca dentro del país elegido y se vacía al
       cambiarlo.
-- [ ] Al editar un proveedor se ven su país y su ciudad actuales, y cambiarlos
+- [x] Al editar un proveedor se ven su país y su ciudad actuales, y cambiarlos
       se guarda.
-- [ ] Una constructora con calificación 6 muestra el error de validación.
+- [x] Una constructora con calificación 6 muestra el error de validación.
 - [ ] El formulario de compra solo ofrece propiedades en negociación; al
       completar el contrato, la propiedad aparece como adquirida en el catálogo.
 - [ ] Un proyecto se inicia, avanza, se suspende, se reanuda y se finaliza desde
@@ -286,3 +290,26 @@ compras y construcción:
 - Verificado en local: sin sesión, el aviso, el 503 sin llave, y, con
   respuestas simuladas en el navegador, las citas, el 429 y la respuesta sin
   información. En producción el agente ya respondió con citas por la API.
+
+**Paso 1, proveedores y constructoras, implementado por C el 2026-11-02**
+(Claude, rol C), en `feature/018-proveedores-constructoras`:
+- `api/compras/` y `api/construccion/` con las consultas y mutaciones de las
+  dos entidades; cada escritura invalida `['compras']` o `['construccion']`.
+- Listas con filtros y página en la URL, como `ListaClientes`: proveedores por
+  tipo, país y `?buscar=`; constructoras por país, calificación mínima y
+  `?buscar=`. Editar y Desactivar (con confirmación) solo para quien escribe.
+- Formularios de crear y editar. La ciudad del proveedor depende del país
+  (`dependeDe`) y al editar muestra la actual con `etiquetaInicial`.
+- `ESCRIBEN_COMPRAS` y `ESCRIBEN_CONSTRUCCION` en `menu.ts`, usadas por el
+  menú, las rutas y los botones (regla 2).
+- **Hallazgo:** la regla 4 decía que el `NIT_OBLIGATORIO` de la API se mostraba
+  junto al campo, pero desde #56 `FormularioDatos` solo pone junto a un campo
+  los errores `VALIDACION`. En vez de cambiar el componente compartido, el
+  esquema de Zod exige el NIT según el tipo, como el formulario de cliente, y
+  la regla 4 se actualizó.
+- Verificado en una réplica local (PostgreSQL 16 con pgvector, `seed_demo` y
+  un usuario por rol) con un recorrido automático en el navegador:
+  26 revisiones de los criterios 2 a 5 y de los permisos de CONSULTA, GERENTE
+  y CONTABILIDAD, más los 409 de desactivar un proveedor con contrato en
+  proceso y una constructora con proyecto activo. Prueba al revés: sin la
+  regla del NIT en Zod, la revisión del aviso junto al campo falla.
