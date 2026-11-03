@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 022 |
-| **Estado** | En revisión |
+| **Estado** | Implementada |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
-| **Revisor** | Por asignar |
+| **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-11-03 |
 | **Apps afectadas** | `frontend/` (estilos, componentes de `componentes/ui`, layouts y clases de color de las páginas). Sin cambios en el backend |
 | **Rama** | `feature/022-diseno-editorial` |
-| **Pull request** | — |
+| **Pull request** | [DouGMV/Proyecto-Inmobiliaria#98](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/98) |
 
 ---
 
@@ -52,7 +52,9 @@ formularios, sin cambiar ninguna pantalla ni regla de negocio.
      distinguirse sin depender del contexto.
 2. **Tipografía.** Los sustitutos gratuitos que propone el DESIGN.md, desde
    Google Fonts:
-   - Cormorant Garamond, peso 400, para títulos (`font-editorial`).
+   - Cormorant Garamond, peso 400, para títulos (`font-editorial`), con
+     cifras alineadas (`lining-nums`): sus cifras antiguas hacían que
+     `PC-00001` se leyera "PC-ooooı" (revisión de A).
    - Archivo para el texto (`font-sans`).
    - IBM Plex Mono para etiquetas, botones, menú y encabezados de tabla
      (`font-mono`), en mayúsculas y con tracking (`tracking-etiqueta`).

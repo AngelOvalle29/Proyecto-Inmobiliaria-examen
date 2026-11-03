@@ -31,3 +31,10 @@
 body {
   @apply bg-crema font-sans text-tinta antialiased;
 }
+
+/* Cormorant Garamond trae cifras antiguas: sin esto, PC-00001 se lee
+   "PC-ooooı" y 10 parece "IO". Los códigos y totales van con cifras
+   alineadas (spec 022, regla 2). */
+.font-editorial {
+  font-variant-numeric: lining-nums;
+}

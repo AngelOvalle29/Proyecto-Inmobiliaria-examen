@@ -14,12 +14,9 @@ export interface DatoModulo {
 }
 
 export const DATOS_POR_MODULO: DatoModulo[] = [
-  {
-    ruta: '/catalogo/propiedades',
-    etiqueta: 'Propiedades',
-    api: '/propiedades/',
-    detalle: { etiqueta: 'Disponibles', filtros: { estado: 'DISPONIBLE' } },
-  },
+  // Sin "Disponibles": casi siempre lo disponible son unidades, no edificios
+  // enteros, y daría 0 junto al panel óxido que cuenta las dos (spec 023, §10).
+  { ruta: '/catalogo/propiedades', etiqueta: 'Propiedades', api: '/propiedades/' },
   { ruta: '/crm/clientes', etiqueta: 'Clientes', api: '/clientes/' },
   {
     ruta: '/crm/cotizaciones',

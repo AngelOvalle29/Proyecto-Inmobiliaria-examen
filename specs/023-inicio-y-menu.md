@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 023 |
-| **Estado** | En revisión |
+| **Estado** | Implementada |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
-| **Revisor** | Por asignar |
+| **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-11-03 |
 | **Apps afectadas** | `frontend/` (`paginas/inicio`, `api/inicio` y `layouts/LayoutPrincipal.tsx`). Sin cambios en el backend |
 | **Rama** | `feature/022-diseno-editorial` |
-| **Pull request** | — |
+| **Pull request** | [DouGMV/Proyecto-Inmobiliaria#98](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/98) |
 
 ---
 
@@ -60,7 +60,7 @@ Sin cambios.
 
 ## 5. API
 
-Sin cambios. El tablero hace hasta 11 conteos, 7 segundos datos y 2 reportes, y
+Sin cambios. El tablero hace hasta 11 conteos, 6 segundos datos y 2 reportes, y
 cada uno se guarda en caché un minuto.
 
 ## 6. Componentes y archivos
@@ -102,6 +102,10 @@ No aplica: solo lecturas.
   editorial (spec 022).
 - **La preferencia del menú en `localStorage` y no en el servidor.** Es por
   navegador, como pide una preferencia de pantalla.
+- **Propiedades sin el segundo dato "Disponibles"** (revisión de A). En la demo
+  lo disponible son unidades, no edificios enteros: la tarjeta decía 0 junto al
+  panel óxido, que cuenta propiedades y unidades (R05). Los dos eran correctos,
+  pero parecían contradecirse.
 
 ## 11. Trabajo con agentes de IA
 
