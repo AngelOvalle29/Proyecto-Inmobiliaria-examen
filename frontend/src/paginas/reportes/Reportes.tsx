@@ -300,6 +300,11 @@ const ETIQUETAS_RESUMEN: Record<string, string> = {
   moneda: 'Moneda',
   vencidos: 'Vencidos',
   por_vencer: 'Por vencer',
+  recibido_por_moneda: 'Cobrado por moneda',
+  total_usd: 'Total cobrado (USD)',
+  recibido: 'Recibido',
+  monto_usd: 'Recibido (USD)',
+  origen: 'Origen del cobro',
   // R01, R02, R03, R04, R10 y R11 (spec 021, rol B).
   con_cotizacion: 'Con cotización',
   por_moneda: 'Por moneda',

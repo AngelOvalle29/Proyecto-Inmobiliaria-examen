@@ -27,6 +27,7 @@ from .estructuras import (
 from .selectors_catalogo import REPORTES_CATALOGO
 from .selectors_comerciales import REPORTES_COMERCIALES
 from .selectors_compras_obra import REPORTES_COMPRAS_OBRA
+from .selectors_ingresos import resumir_ingresos, seleccionar_ingresos
 
 GUATEMALA = ZoneInfo("America/Guatemala")
 
@@ -136,6 +137,8 @@ def resumir_reporte(
     Agrega todo el filtro en PostgreSQL sin cargar detalles. Los reportes
     comerciales necesitan al usuario para aplicar su cartera (spec 021, regla 6).
     """
+    if slug == "flujo-ingresos":
+        return resumir_ingresos(filtros=filtros, usuario=usuario)
     if slug in REPORTES_COMERCIALES:
         return REPORTES_COMERCIALES[slug][0](filtros=filtros, usuario=usuario)
     if slug in REPORTES_CATALOGO:
@@ -221,6 +224,10 @@ def seleccionar_filas_reporte(
     usuario: AbstractBaseUser | None = None,
 ) -> list[dict]:
     """LIMIT/OFFSET antes de list(); nunca pagina detalles en memoria."""
+    if slug == "flujo-ingresos":
+        return seleccionar_ingresos(
+            filtros=filtros, usuario=usuario, offset=offset, limite=limite
+        )
     if slug in REPORTES_COMERCIALES:
         return REPORTES_COMERCIALES[slug][1](
             filtros=filtros, usuario=usuario, offset=offset, limite=limite
