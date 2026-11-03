@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 011 |
-| **Estado** | Aprobada |
+| **Estado** | Implementada |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
 | **Revisor** | Marco (Lilfacce) |
 | **Fecha** | 2026-10-29 |
 | **Apps afectadas** | `catalogo`; configuración de almacenamiento en `config/settings` |
 | **Rama** | `feature/011-avaluos-documentos` |
-| **Pull request** | — |
+| **Pull request** | [DouGMV/Proyecto-Inmobiliaria#50](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/50) (spec aprobada en #42) |
 
 ---
 

@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 013 |
-| **Estado** | Implementada, en revisión |
+| **Estado** | Implementada |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-31 |
 | **Apps afectadas** | `usuarios` |
 | **Rama** | `feature/013-listado-usuarios` |
-| **Pull request** | — (spec aprobada en DouGMV/Proyecto-Inmobiliaria#54) |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#59 (spec aprobada en #54, correcciones en #69) |
 
 ---
 

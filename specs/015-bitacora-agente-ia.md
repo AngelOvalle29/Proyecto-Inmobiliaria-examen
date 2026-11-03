@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 015 |
-| **Estado** | Implementada en `auditoria`; integración con IA pendiente |
+| **Estado** | Implementada; el agente la usa desde #62 |
 | **Autor** | Nathaly Saraí Reyes Cifuentes (rol D), con apoyo de Codex |
 | **Revisor** | AngelOvalle29 (rol C), aprobación del PR #61 sobre `dc258e5` |
 | **Fecha** | 2026-10-31 |

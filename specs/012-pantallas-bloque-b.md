@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 012 |
-| **Estado** | En revisión |
+| **Estado** | Implementada |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
-| **Revisor** | Por asignar |
+| **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-30 |
 | **Apps afectadas** | `frontend/` (`paginas/crm`, `paginas/ventas`, `paginas/arrendamientos` y sus hooks en `api/`). Sin cambios en el backend: el listado de usuarios para Nuevo agente es la spec 013, de A |
 | **Rama** | `feature/012-pantallas-bloque-b` |
-| **Pull request** | — |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#56; Nuevo agente y menú en #60 |
 
 ---
 

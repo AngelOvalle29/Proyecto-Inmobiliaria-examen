@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 008 |
-| **Estado** | En revisión |
+| **Estado** | Implementada |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
-| **Revisor** | Por asignar |
+| **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `arrendamientos`; usa `catalogo`, `crm` y `core` |
 | **Rama** | `feature/008-arrendamientos` |
-| **Pull request** | DouGMV/Proyecto-Inmobiliaria#48 |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#48; corrección en #51 |
 | **Issue** | #19 |
 
 ---

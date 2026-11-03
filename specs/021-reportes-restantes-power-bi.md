@@ -2,14 +2,14 @@
 
 | Campo | Valor |
 |---|---|
-| **Número** | 021, propuesto; coordinar antes de abrir el PR |
-| **Estado** | Aprobada en #78; implementación por bloques, pendiente de evidencia final de Power BI |
+| **Número** | 021 |
+| **Estado** | Implementada: 15 reportes y tablero Power BI |
 | **Autor** | Propuesta para Nathaly Saraí Reyes Cifuentes (rol D), con apoyo de Codex |
 | **Revisor** | Por asignar: A para catálogo/BI, B para comercial y C para compras/construcción |
 | **Fecha** | 2026-11-01 |
 | **Apps afectadas** | `reportes`; lecturas de `catalogo`, `crm`, `ventas`, `arrendamientos`, `compras`, `construccion`, `core` y `auditoria` |
 | **Rama** | Propuesta: `feature/021-reportes-restantes-power-bi`, desde `develop` con la 016 integrada |
-| **Pull request** | [#78](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/78); avance de [#24](https://github.com/DouGMV/Proyecto-Inmobiliaria/issues/24) |
+| **Pull request** | [#78](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/78) (spec); bloques en #80, #83, #85, #87, #89 y #91 |
 
 ## 1. Problema
 
