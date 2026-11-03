@@ -13,6 +13,7 @@ from apps.catalogo.enums import TipoDocumento
 from apps.catalogo.models import (
     Avaluo,
     DocumentoOficial,
+    ImagenPropiedad,
     Propiedad,
     TipoPropiedad,
     Unidad,
@@ -91,3 +92,17 @@ class AvaluoFactory(factory.django.DjangoModelFactory):
     moneda = factory.SubFactory(MonedaFactory, codigo="USD")
     perito = factory.Sequence(lambda n: f"Perito demo {n}")
     metodologia = "Comparativo de mercado"
+
+
+class ImagenPropiedadFactory(factory.django.DjangoModelFactory):
+    """Una imagen ya registrada; la subida real la prueban test_imagenes.py."""
+
+    class Meta:
+        model = ImagenPropiedad
+
+    propiedad = factory.SubFactory(PropiedadFactory)
+    archivo = factory.Sequence(lambda n: f"imagenes/demo/{n}.jpg")
+    nombre_original = "foto.jpg"
+    tipo_contenido = "image/jpeg"
+    tamano_bytes = 2048
+    orden = factory.Sequence(lambda n: n + 1)

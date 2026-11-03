@@ -26,6 +26,7 @@ from .exceptions import (
     DocumentoDeOtraPropiedad,
     DocumentoEnUso,
     FechaAvaluoFutura,
+    LimiteImagenes,
     PropiedadConUnidades,
     PropiedadNoDisponible,
     TipoSinUnidades,
@@ -33,18 +34,25 @@ from .exceptions import (
 )
 from .models import (
     TAMANO_MAXIMO_DOCUMENTO,
+    TAMANO_MAXIMO_IMAGEN,
     Avaluo,
     DocumentoOficial,
+    ImagenPropiedad,
     Propiedad,
     TipoPropiedad,
     Unidad,
     ruta_documento,
+    ruta_imagen,
 )
 from .selectors import (
     avaluo_activo_usa_documento,
+    contar_imagenes_activas,
     contar_unidades_activas,
     existe_unidad,
     listar_tipos_propiedad,
+    obtener_portada,
+    primera_imagen_sin_portada,
+    siguiente_orden_imagen,
 )
 
 # Campos que se pueden editar. Quedan fuera codigo (lo genera el sistema),
@@ -117,6 +125,22 @@ FIRMAS_ARCHIVO = {
     "jpg": (b"\xff\xd8\xff", "image/jpeg"),
     "png": (b"\x89PNG\r\n\x1a\n", "image/png"),
 }
+# Spec 019, regla 1: una foto es JPG o PNG, con las mismas firmas.
+FIRMAS_IMAGEN = {extension: FIRMAS_ARCHIVO[extension] for extension in ("jpg", "png")}
+MAXIMO_IMAGENES = 10
+# Al subir, el archivo y lo que se audita se arman en el servicio; al editar
+# solo cambian estos dos campos (regla 4).
+CAMPOS_IMAGEN = [
+    "propiedad",
+    "archivo",
+    "nombre_original",
+    "tipo_contenido",
+    "tamano_bytes",
+    "descripcion",
+    "orden",
+    "es_portada",
+]
+CAMPOS_IMAGEN_EDITABLES = ["descripcion", "orden"]
 
 
 # --- Ayudantes comunes a los modelos de catálogo -----------------------------
@@ -532,23 +556,36 @@ def desactivar_avaluo(
 # --- Documentos oficiales ---------------------------------------------------
 
 
-def _validar_archivo(archivo: UploadedFile) -> tuple[str, str, int]:
+def _validar_archivo(
+    archivo: UploadedFile,
+    *,
+    firmas: dict[str, tuple[bytes, str]] = FIRMAS_ARCHIVO,
+    tamano_maximo: int = TAMANO_MAXIMO_DOCUMENTO,
+) -> tuple[str, str, int]:
     """
-    Regla 6: devuelve (tipo de contenido, extensión, tamaño) si el archivo es
-    PDF, JPG o PNG de hasta 10 MB. Mira los primeros bytes y vuelve a dejar el
+    Regla 6 de la spec 011: devuelve (tipo de contenido, extensión, tamaño) si
+    el archivo es de uno de los tipos de firmas y no pasa de tamano_maximo. Por
+    omisión, PDF, JPG o PNG de hasta 10 MB; las imágenes (spec 019, regla 1)
+    pasan solo JPG y PNG y 5 MB. Mira los primeros bytes y vuelve a dejar el
     puntero al inicio para poder guardarlo después.
     """
     tamano = archivo.size
-    if tamano <= 0 or tamano > TAMANO_MAXIMO_DOCUMENTO:
-        raise ArchivoNoPermitido(motivo="El archivo debe pesar entre 1 byte y 10 MB.")
+    if tamano <= 0 or tamano > tamano_maximo:
+        megas = tamano_maximo // (1024 * 1024)
+        raise ArchivoNoPermitido(
+            motivo=f"El archivo debe pesar entre 1 byte y {megas} MB."
+        )
 
     encabezado = archivo.read(16)
     archivo.seek(0)
-    for extension, (firma, tipo_contenido) in FIRMAS_ARCHIVO.items():
+    for extension, (firma, tipo_contenido) in firmas.items():
         if encabezado.startswith(firma):
             return tipo_contenido, extension, tamano
 
-    raise ArchivoNoPermitido(motivo="Solo se aceptan archivos PDF, JPG o PNG.")
+    # "PDF, JPG o PNG" o "JPG o PNG", según los tipos aceptados.
+    nombres = [extension.upper() for extension in firmas]
+    aceptados = ", ".join(nombres[:-1]) + f" o {nombres[-1]}"
+    raise ArchivoNoPermitido(motivo=f"Solo se aceptan archivos {aceptados}.")
 
 
 @transaction.atomic
@@ -635,6 +672,135 @@ def generar_url_descarga(*, documento: DocumentoOficial) -> str:
     almacenamiento es local y devuelve la ruta de media, sin firma.
     """
     return default_storage.url(documento.archivo.name)
+
+
+# --- Imágenes de las propiedades (spec 019) ---------------------------------
+
+
+def _bloquear_propiedad(propiedad: Propiedad) -> Propiedad:
+    """
+    Bloquea la fila de la propiedad hasta el fin de la transacción. Así dos
+    subidas al mismo tiempo no pasan juntas del límite de 10 (regla 2), y la
+    portada no se mueve en dos pasos cruzados (regla 6): la segunda petición
+    espera y lee lo que dejó la primera.
+    """
+    return Propiedad.objects.select_for_update().get(pk=propiedad.pk)
+
+
+@transaction.atomic
+def subir_imagen(
+    *,
+    propiedad: Propiedad,
+    archivo: UploadedFile,
+    descripcion: str,
+    autor: AbstractBaseUser,
+    ip: str | None,
+) -> ImagenPropiedad:
+    """
+    Sube una foto a la galería (reglas 1 a 3, 6 y 7).
+
+    La primera imagen de la propiedad queda como portada y cada imagen nueva va
+    al final de la galería. Como en los documentos, el archivo se sube antes
+    de crear el registro y se intenta borrar si el registro falla.
+    """
+    tipo_contenido, extension, tamano = _validar_archivo(
+        archivo, firmas=FIRMAS_IMAGEN, tamano_maximo=TAMANO_MAXIMO_IMAGEN
+    )
+    _bloquear_propiedad(propiedad)
+    activas = contar_imagenes_activas(propiedad=propiedad)
+    if activas >= MAXIMO_IMAGENES:
+        raise LimiteImagenes(propiedad=propiedad.codigo, maximo=MAXIMO_IMAGENES)
+
+    nombre_original = Path(archivo.name).name
+    archivo.name = f"imagen.{extension}"
+    ruta = ruta_imagen(ImagenPropiedad(propiedad=propiedad), archivo.name)
+    guardado = default_storage.save(ruta, archivo)
+
+    try:
+        return _crear(
+            ImagenPropiedad,
+            datos={
+                "propiedad": propiedad,
+                "archivo": guardado,
+                "nombre_original": nombre_original,
+                "tipo_contenido": tipo_contenido,
+                "tamano_bytes": tamano,
+                "descripcion": descripcion,
+                "orden": siguiente_orden_imagen(propiedad=propiedad),
+                "es_portada": activas == 0,
+            },
+            campos=CAMPOS_IMAGEN,
+            autor=autor,
+            ip=ip,
+        )
+    except Exception:
+        with suppress(Exception):
+            default_storage.delete(guardado)
+        raise
+
+
+@transaction.atomic
+def actualizar_imagen(
+    *,
+    imagen: ImagenPropiedad,
+    datos: dict,
+    autor: AbstractBaseUser,
+    ip: str | None,
+) -> ImagenPropiedad:
+    """Edita la descripción y el orden; el archivo no se reemplaza (regla 4)."""
+    return _actualizar(
+        imagen, datos=datos, campos=CAMPOS_IMAGEN_EDITABLES, autor=autor, ip=ip
+    )
+
+
+@transaction.atomic
+def marcar_portada(
+    *, imagen: ImagenPropiedad, autor: AbstractBaseUser, ip: str | None
+) -> ImagenPropiedad:
+    """
+    Regla 6: la elegida pasa a ser la portada y la anterior deja de serlo, en
+    la misma transacción. Primero se quita la marca de la anterior: si se
+    pusiera antes la nueva, el constraint de una sola portada lo rechazaría.
+    """
+    _bloquear_propiedad(imagen.propiedad)
+    anterior = obtener_portada(propiedad=imagen.propiedad)
+    if anterior is not None and anterior.pk == imagen.pk:
+        return imagen
+    if anterior is not None:
+        _actualizar(
+            anterior,
+            datos={"es_portada": False},
+            campos=["es_portada"],
+            autor=autor,
+            ip=ip,
+        )
+    return _actualizar(
+        imagen, datos={"es_portada": True}, campos=["es_portada"], autor=autor, ip=ip
+    )
+
+
+@transaction.atomic
+def desactivar_imagen(
+    *, imagen: ImagenPropiedad, autor: AbstractBaseUser, ip: str | None
+) -> None:
+    """
+    Borrado lógico; el archivo no se borra (regla 5). Si era la portada, la
+    marca pasa a la primera de la galería según el orden; si no queda
+    ninguna, la propiedad se queda sin portada (regla 6).
+    """
+    _bloquear_propiedad(imagen.propiedad)
+    _desactivar(imagen, autor=autor, ip=ip)
+    if not imagen.es_portada:
+        return
+    siguiente = primera_imagen_sin_portada(propiedad=imagen.propiedad)
+    if siguiente is not None:
+        _actualizar(
+            siguiente,
+            datos={"es_portada": True},
+            campos=["es_portada"],
+            autor=autor,
+            ip=ip,
+        )
 
 
 # --- Datos de demostración --------------------------------------------------

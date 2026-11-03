@@ -109,7 +109,10 @@ class DocumentoDeOtraPropiedad(ErrorDominio):
 
 
 class ArchivoNoPermitido(ErrorDominio):
-    """Regla 6 de la spec 011: solo PDF, JPG o PNG de hasta 10 MB."""
+    """
+    Regla 6 de la spec 011 (PDF, JPG o PNG de hasta 10 MB) y regla 1 de la 019
+    (JPG o PNG de hasta 5 MB): el archivo no es de un tipo aceptado o pesa más.
+    """
 
     codigo = "ARCHIVO_NO_PERMITIDO"
     estado_http = 400
@@ -129,4 +132,18 @@ class DocumentoEnUso(ErrorDominio):
             f"El documento {documento} respalda un avalúo activo: "
             "desactive el avalúo primero.",
             detalles={"documento": documento},
+        )
+
+
+class LimiteImagenes(ErrorDominio):
+    """Regla 2 de la spec 019: hasta 10 imágenes activas por propiedad."""
+
+    codigo = "LIMITE_IMAGENES"
+    estado_http = 409
+
+    def __init__(self, *, propiedad: str, maximo: int) -> None:
+        super().__init__(
+            f"La propiedad {propiedad} ya tiene {maximo} imágenes: "
+            "desactive una para subir otra.",
+            detalles={"propiedad": propiedad, "maximo": maximo},
         )
