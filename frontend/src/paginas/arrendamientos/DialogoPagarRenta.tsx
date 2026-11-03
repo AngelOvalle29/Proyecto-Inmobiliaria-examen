@@ -79,7 +79,7 @@ function Contenido({
 
   return (
     <>
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-tenue">
         Renta: {formatearMoneda(pago.monto, contrato.moneda.codigo)}
       </p>
       {pagar.isError && (
@@ -104,7 +104,7 @@ function Contenido({
           value={monto}
           onChange={(evento) => setMonto(evento.target.value)}
         />
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-tenue">
           Propuesto con la renta y el recargo de esa fecha. Confírmelo.
         </p>
       </div>

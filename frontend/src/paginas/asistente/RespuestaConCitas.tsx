@@ -29,7 +29,7 @@ export function RespuestaConCitas({ respuesta, citas, prefijo }: Props) {
         <a
           key={marca.index}
           href={`#${prefijo}-cita-${numero}`}
-          className="font-medium text-sky-700 hover:underline"
+          className="font-medium text-oxido hover:underline"
         >
           [{numero}]
         </a>
@@ -45,14 +45,14 @@ export function RespuestaConCitas({ respuesta, citas, prefijo }: Props) {
     <div className="flex flex-col gap-3">
       <p className="text-sm whitespace-pre-line">{partes}</p>
       {citas.length > 0 && (
-        <ol className="flex flex-col gap-2 border-t border-slate-200 pt-3">
+        <ol className="flex flex-col gap-2 border-t border-ceniza pt-3">
           {citas.map((cita) => (
             <li
               key={cita.numero}
               id={`${prefijo}-cita-${cita.numero}`}
-              className="text-xs text-slate-600"
+              className="text-xs text-tenue"
             >
-              <span className="font-medium text-slate-800">
+              <span className="font-medium text-tinta">
                 [{cita.numero}] {cita.documento} · {cita.seccion}
               </span>
               <span className="block italic">«{cita.extracto}…»</span>

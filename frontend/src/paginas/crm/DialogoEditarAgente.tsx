@@ -53,7 +53,7 @@ export function DialogoEditarAgente({ agente, alCerrar }: Props) {
     >
       {agente && (
         <>
-          <p className="text-sm text-slate-600">{agente.usuario.nombre_completo}</p>
+          <p className="text-sm text-tenue">{agente.usuario.nombre_completo}</p>
           <FormularioDatos
             key={agente.id}
             campos={CAMPOS}

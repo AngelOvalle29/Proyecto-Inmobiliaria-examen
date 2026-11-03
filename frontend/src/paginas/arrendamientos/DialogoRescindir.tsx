@@ -52,7 +52,7 @@ export function DialogoRescindir({ contrato, abierto, alCerrar }: Props) {
     >
       {abierto && (
         <>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-tenue">
             Se cancelarán los pagos pendientes posteriores a esa fecha y la propiedad o
             unidad volverá a estar disponible.
           </p>

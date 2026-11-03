@@ -22,7 +22,7 @@ export function RutaProtegida({ roles, children }: Props) {
   const ubicacion = useLocation()
 
   if (estado === 'cargando') {
-    return <p className="p-6 text-sm text-slate-500">Cargando la sesión…</p>
+    return <p className="p-6 text-sm text-tenue">Cargando la sesión…</p>
   }
   if (estado === 'sin-conexion') {
     return (

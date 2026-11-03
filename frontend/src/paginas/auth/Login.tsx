@@ -44,57 +44,75 @@ export function Login() {
 
   const errores = formulario.formState.errors
 
+  // Spec 022: díptico editorial. El panel óxido presenta el sistema y la
+  // tarjeta blanca lleva el formulario; en el teléfono quedan uno sobre otro.
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Sistema de Gestión Inmobiliaria</CardTitle>
-        <p className="text-sm text-slate-500">Inicie sesión para continuar.</p>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
-          {iniciar.isError && (
-            <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
-              {leerErrorApi(iniciar.error).mensaje}
-            </p>
-          )}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email">Correo</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="username"
-              aria-invalid={errores.email ? true : undefined}
-              {...formulario.register('email')}
-            />
-            {errores.email && (
-              <p className="text-xs text-red-600">{errores.email.message}</p>
+    <div className="grid w-full max-w-4xl overflow-hidden rounded-2xl md:grid-cols-2">
+      <section className="flex flex-col justify-between gap-10 bg-oxido p-8 text-crema md:p-10">
+        <p className="font-mono text-xs tracking-etiqueta uppercase">Inmobiliaria</p>
+        <div className="flex flex-col gap-4">
+          <h1 className="font-editorial text-5xl leading-none md:text-6xl">
+            Sistema de Gestión Inmobiliaria
+          </h1>
+          <p className="text-lg leading-snug text-crema/85">
+            Propiedades, clientes, contratos y reportes de la agencia en un solo lugar.
+          </p>
+        </div>
+      </section>
+      <Card className="rounded-none border-0">
+        <CardHeader>
+          <CardTitle>Iniciar sesión</CardTitle>
+          <p className="text-sm text-tenue">Inicie sesión para continuar.</p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
+            {iniciar.isError && (
+              <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+                {leerErrorApi(iniciar.error).mensaje}
+              </p>
             )}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              aria-invalid={errores.password ? true : undefined}
-              {...formulario.register('password')}
-            />
-            {errores.password && (
-              <p className="text-xs text-red-600">{errores.password.message}</p>
-            )}
-          </div>
-          <Button type="submit" disabled={iniciar.isPending}>
-            {iniciar.isPending ? 'Entrando…' : 'Entrar'}
-          </Button>
-        </form>
-        {/* Spec 018, §5: un visitante sin cuenta encuentra el asistente. */}
-        <p className="mt-4 text-center text-sm text-slate-500">
-          ¿Tiene una pregunta sobre nuestras propiedades?{' '}
-          <Link className="text-sky-700 hover:underline" to="/asistente">
-            Consulte al asistente
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="email">Correo</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="username"
+                aria-invalid={errores.email ? true : undefined}
+                {...formulario.register('email')}
+              />
+              {errores.email && (
+                <p className="text-xs text-red-600">{errores.email.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                aria-invalid={errores.password ? true : undefined}
+                {...formulario.register('password')}
+              />
+              {errores.password && (
+                <p className="text-xs text-red-600">{errores.password.message}</p>
+              )}
+            </div>
+            <Button type="submit" disabled={iniciar.isPending}>
+              {iniciar.isPending ? 'Entrando…' : 'Entrar'}
+            </Button>
+          </form>
+          {/* Spec 018, §5: un visitante sin cuenta encuentra el asistente. */}
+          <p className="mt-4 text-center text-sm text-tenue">
+            ¿Tiene una pregunta sobre nuestras propiedades?{' '}
+            <Link
+              className="text-oxido underline-offset-4 hover:underline"
+              to="/asistente"
+            >
+              Consulte al asistente
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

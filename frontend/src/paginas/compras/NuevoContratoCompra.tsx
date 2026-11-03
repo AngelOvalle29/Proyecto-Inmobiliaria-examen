@@ -104,7 +104,7 @@ export function NuevoContratoCompra() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Nuevo contrato de compra</h1>
+      <h1 className="font-editorial text-4xl leading-none">Nuevo contrato de compra</h1>
       <FormularioDatos
         campos={campos}
         esquema={esquema}

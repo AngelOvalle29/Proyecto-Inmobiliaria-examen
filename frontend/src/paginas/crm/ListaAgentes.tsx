@@ -80,7 +80,7 @@ export function ListaAgentes() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Agentes</h1>
+        <h1 className="font-editorial text-4xl leading-none">Agentes</h1>
         {puedeAdministrar && (
           <Button onClick={() => navegar('/crm/agentes/nuevo')}>Nuevo agente</Button>
         )}

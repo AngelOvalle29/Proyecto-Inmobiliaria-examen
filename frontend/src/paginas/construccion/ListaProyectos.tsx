@@ -72,7 +72,9 @@ export function ListaProyectos() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Proyectos de construcción</h1>
+        <h1 className="font-editorial text-4xl leading-none">
+          Proyectos de construcción
+        </h1>
         {rolPermitido(usuario?.rol ?? '', ESCRIBEN_CONSTRUCCION) && (
           <Button onClick={() => navegar('/construccion/proyectos/nuevo')}>
             Nuevo proyecto

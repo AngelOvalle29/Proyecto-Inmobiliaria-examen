@@ -17,7 +17,7 @@ export function EditarPropiedad() {
   const consulta = usePropiedad(Number(id))
 
   if (consulta.isPending) {
-    return <p className="text-sm text-slate-500">Cargando la propiedad…</p>
+    return <p className="text-sm text-tenue">Cargando la propiedad…</p>
   }
   if (consulta.isError) {
     return (
@@ -55,7 +55,7 @@ function Formulario({ propiedad }: { propiedad: Propiedad }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">
+      <h1 className="font-editorial text-4xl leading-none">
         Editar {propiedad.codigo} · {propiedad.nombre}
       </h1>
       <FormularioDatos

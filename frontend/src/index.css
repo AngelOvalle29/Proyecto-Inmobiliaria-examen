@@ -1,9 +1,33 @@
 @import 'tailwindcss';
 
 /*
- * Estilos base. Todo lo demás se escribe con clases de Tailwind en cada
- * componente (spec 010, docs/frontend.md §1).
+ * Tokens del diseño editorial (spec 022). Tailwind v4 genera una clase por
+ * cada token: --color-crema da bg-crema, text-crema, border-crema...
+ * Todo lo demás se escribe con clases de Tailwind en cada componente
+ * (spec 010, docs/frontend.md §1).
  */
+@theme {
+  /* Colores del DESIGN.md, con nombre en español. */
+  --color-negro: #000000; /* menú lateral y franjas oscuras */
+  --color-crema: #fbfaf6; /* lienzo principal y texto sobre negro u óxido */
+  --color-tinta: #222222; /* texto principal y botones */
+  --color-niebla: #e3e3e9; /* fondos suaves: hover y controles utilitarios */
+  --color-ceniza: #dadbdd; /* líneas: bordes y separadores */
+  --color-blanco: #ffffff; /* tarjetas sobre el lienzo crema */
+  --color-oxido: #813413; /* paneles editoriales de la marca */
+  /* No está en el DESIGN.md: texto secundario. La tinta al 64 % sobre crema
+     cumple el contraste AA (4.5:1) para texto pequeño. */
+  --color-tenue: #5c5b57;
+
+  /* Sustitutos gratuitos que propone el DESIGN.md (se cargan en index.html). */
+  --font-editorial: 'Cormorant Garamond', Georgia, serif; /* PP Editorial Old */
+  --font-sans: 'Archivo', ui-sans-serif, system-ui, sans-serif; /* Saans */
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace; /* Favorit Mono */
+
+  /* Tracking de las etiquetas mono: 0.42px a 14px, 0.36px a 12px. */
+  --tracking-etiqueta: 0.03em;
+}
+
 body {
-  @apply bg-slate-50 text-slate-800 antialiased;
+  @apply bg-crema font-sans text-tinta antialiased;
 }

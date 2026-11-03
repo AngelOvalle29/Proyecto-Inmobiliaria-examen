@@ -81,7 +81,7 @@ function crearColumnas(moneda: string) {
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <div>
-      <dt className="text-xs text-slate-500">{etiqueta}</dt>
+      <dt className="text-xs text-tenue">{etiqueta}</dt>
       <dd className="text-sm">{valor}</dd>
     </div>
   )
@@ -90,7 +90,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 function DatosDelContrato({ contrato }: { contrato: ArrendamientoDetalle }) {
   const moneda = contrato.moneda.codigo
   return (
-    <dl className="grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-4">
+    <dl className="grid grid-cols-2 gap-3 rounded-2xl border border-ceniza bg-blanco p-4 md:grid-cols-4">
       <Dato etiqueta="Cliente" valor={contrato.cliente.nombre} />
       <Dato
         etiqueta="Bien"
@@ -144,7 +144,7 @@ export function DetalleArrendamiento() {
         {leerErrorApi(consulta.error).mensaje}
       </p>
     ) : (
-      <p className="text-sm text-slate-500">Cargando…</p>
+      <p className="text-sm text-tenue">Cargando…</p>
     )
   }
 
@@ -167,7 +167,9 @@ export function DetalleArrendamiento() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Contrato {contrato.codigo}</h1>
+        <h1 className="font-editorial text-4xl leading-none">
+          Contrato {contrato.codigo}
+        </h1>
         <div className="flex gap-2">
           {vigente && rolPermitido(rol, ESCRIBEN_CRM) && (
             <Button variant="outline" onClick={() => setDialogo('renovar')}>
@@ -194,7 +196,7 @@ export function DetalleArrendamiento() {
       )}
 
       {contrato.contrato_anterior && (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-tenue">
           Renueva{' '}
           <Link
             className="underline"
@@ -215,7 +217,7 @@ export function DetalleArrendamiento() {
         alVincular={(documento) => vincular.mutateAsync({ id: contrato.id, documento })}
       />
 
-      <h2 className="text-lg font-semibold">Calendario de pagos</h2>
+      <h2 className="font-editorial text-2xl">Calendario de pagos</h2>
       <TablaDatos
         columnas={crearColumnas(contrato.moneda.codigo)}
         datos={contrato.pagos}
@@ -243,7 +245,7 @@ export function DetalleArrendamiento() {
         titulo="Finalizar contrato"
         alCerrar={cerrar}
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-tenue">
           ¿Finalizar {contrato.codigo}? La propiedad o unidad volverá a estar disponible
           y los pagos pendientes se seguirán debiendo.
         </p>

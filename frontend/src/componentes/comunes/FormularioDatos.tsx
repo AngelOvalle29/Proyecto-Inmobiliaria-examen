@@ -259,7 +259,7 @@ export function FormularioDatos<V extends FieldValues>({
               rows={3}
               aria-invalid={invalido}
               className={cn(
-                'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400',
+                'w-full rounded-md border border-ceniza bg-blanco px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tenue',
                 error && 'border-red-500',
               )}
               {...formulario.register(campo.nombre)}
@@ -282,7 +282,7 @@ export function FormularioDatos<V extends FieldValues>({
             <Label htmlFor={id}>{campo.etiqueta}</Label>
             {control}
             {campo.ayuda && !error && (
-              <p className="text-xs text-slate-500">{campo.ayuda}</p>
+              <p className="text-xs text-tenue">{campo.ayuda}</p>
             )}
             {error && <p className="text-xs text-red-600">{String(error)}</p>}
           </div>

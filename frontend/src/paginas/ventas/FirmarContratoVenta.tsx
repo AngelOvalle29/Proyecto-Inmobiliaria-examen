@@ -246,10 +246,10 @@ export function FirmarContratoVenta() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Firmar contrato de venta</h1>
+      <h1 className="font-editorial text-4xl leading-none">Firmar contrato de venta</h1>
       {!idCotizacion && <Formulario />}
       {idCotizacion && consulta.isPending && (
-        <p className="text-sm text-slate-500">Cargando…</p>
+        <p className="text-sm text-tenue">Cargando…</p>
       )}
       {consulta.isError && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
@@ -258,7 +258,7 @@ export function FirmarContratoVenta() {
       )}
       {cotizacion && (
         <>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-tenue">
             Desde {cotizacion.codigo}: {cotizacion.cliente.nombre} ·{' '}
             {cotizacion.unidad?.codigo ?? cotizacion.propiedad?.codigo} ·{' '}
             {formatearMoneda(cotizacion.total, cotizacion.moneda.codigo)}

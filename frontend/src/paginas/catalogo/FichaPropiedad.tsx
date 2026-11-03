@@ -39,7 +39,7 @@ export function FichaPropiedad() {
   const consulta = usePropiedad(Number(id))
 
   if (consulta.isPending) {
-    return <p className="text-sm text-slate-500">Cargando la propiedad…</p>
+    return <p className="text-sm text-tenue">Cargando la propiedad…</p>
   }
   if (consulta.isError) {
     return (
@@ -91,9 +91,9 @@ function Ficha({ propiedad }: { propiedad: Propiedad }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-500">{propiedad.codigo}</p>
-          <h1 className="text-2xl font-semibold">{propiedad.nombre}</h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-tenue">{propiedad.codigo}</p>
+          <h1 className="font-editorial text-4xl leading-none">{propiedad.nombre}</h1>
+          <p className="text-sm text-tenue">
             {propiedad.tipo.nombre} · {ETIQUETAS_ESTADO[propiedad.estado]}
           </p>
         </div>
@@ -111,7 +111,7 @@ function Ficha({ propiedad }: { propiedad: Propiedad }) {
         )}
       </div>
 
-      <div role="tablist" className="flex gap-1 border-b border-slate-200">
+      <div role="tablist" className="flex gap-1 border-b border-ceniza">
         {pestanas.map((pestana) => (
           <button
             key={pestana}
@@ -120,8 +120,8 @@ function Ficha({ propiedad }: { propiedad: Propiedad }) {
             className={cn(
               '-mb-px border-b-2 px-4 py-2 text-sm',
               pestana === abierta
-                ? 'border-slate-900 font-medium'
-                : 'border-transparent text-slate-500 hover:text-slate-800',
+                ? 'border-tinta font-medium'
+                : 'border-transparent text-tenue hover:text-tinta',
             )}
             onClick={() => setParametros({ pestana })}
           >
