@@ -56,9 +56,9 @@ export function DocumentoDelContrato({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white p-4">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-ceniza bg-blanco p-4">
       <div>
-        <p className="text-xs text-slate-500">Documento del contrato</p>
+        <p className="text-xs text-tenue">Documento del contrato</p>
         <p className="text-sm">{documento?.nombre ?? 'Sin documento'}</p>
         {descargar.isError && (
           <p role="alert" className="text-sm text-red-700">
@@ -90,7 +90,7 @@ export function DocumentoDelContrato({
       >
         {abierto && (
           <>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-tenue">
               Se elige entre los documentos de tipo Contrato de la propiedad. Si aún no
               está,{' '}
               <Link

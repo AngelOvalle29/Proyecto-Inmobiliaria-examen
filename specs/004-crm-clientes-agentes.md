@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 004 |
-| **Estado** | Aprobada |
+| **Estado** | Implementada |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
 | **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-21 |

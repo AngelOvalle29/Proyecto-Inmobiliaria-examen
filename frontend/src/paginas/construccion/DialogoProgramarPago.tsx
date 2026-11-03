@@ -116,7 +116,7 @@ export function DialogoProgramarPago({ proyecto, abierto, alCerrar }: Props) {
     <Dialogo abierto={abierto} titulo="Programar pago" alCerrar={alCerrar}>
       {abierto && (
         <>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-tenue">
             Disponible: {formatearMoneda(proyecto.disponible, moneda)}
           </p>
           <FormularioDatos

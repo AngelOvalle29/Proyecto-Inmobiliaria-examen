@@ -76,7 +76,7 @@ function crearColumnas(moneda: string) {
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <div>
-      <dt className="text-xs text-slate-500">{etiqueta}</dt>
+      <dt className="text-xs text-tenue">{etiqueta}</dt>
       <dd className="text-sm">{valor}</dd>
     </div>
   )
@@ -85,7 +85,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 function DatosDelContrato({ contrato }: { contrato: ContratoVentaDetalle }) {
   const moneda = contrato.moneda.codigo
   return (
-    <dl className="grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-4">
+    <dl className="grid grid-cols-2 gap-3 rounded-2xl border border-ceniza bg-blanco p-4 md:grid-cols-4">
       <Dato etiqueta="Cliente" valor={contrato.cliente.nombre} />
       <Dato
         etiqueta="Bien"
@@ -144,7 +144,7 @@ export function DetalleContratoVenta() {
         {leerErrorApi(consulta.error).mensaje}
       </p>
     ) : (
-      <p className="text-sm text-slate-500">Cargando…</p>
+      <p className="text-sm text-tenue">Cargando…</p>
     )
   }
 
@@ -168,7 +168,9 @@ export function DetalleContratoVenta() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Contrato {contrato.codigo}</h1>
+        <h1 className="font-editorial text-4xl leading-none">
+          Contrato {contrato.codigo}
+        </h1>
         {vigente && rolPermitido(rol, ADMINISTRAN_CRM) && (
           <Button variant="destructive" onClick={() => setConfirmando(true)}>
             Anular
@@ -193,7 +195,7 @@ export function DetalleContratoVenta() {
 
       {contrato.modalidad === 'FINANCIADO' && (
         <>
-          <h2 className="text-lg font-semibold">Cuotas</h2>
+          <h2 className="font-editorial text-2xl">Cuotas</h2>
           <TablaDatos
             columnas={crearColumnas(contrato.moneda.codigo)}
             datos={contrato.cuotas}
@@ -213,7 +215,7 @@ export function DetalleContratoVenta() {
         titulo="Anular contrato"
         alCerrar={() => setConfirmando(false)}
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-tenue">
           ¿Anular {contrato.codigo}? La propiedad o unidad volverá a estar disponible.
         </p>
         <div className="flex justify-end gap-2">

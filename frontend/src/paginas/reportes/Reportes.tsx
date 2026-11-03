@@ -26,8 +26,8 @@ export function Reportes() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Reportes</h1>
-        <p className="text-slate-600">
+        <h1 className="font-editorial text-4xl leading-none">Reportes</h1>
+        <p className="text-tenue">
           Consulte los resultados y descargue el reporte completo en Excel o PDF.
         </p>
       </div>
@@ -76,7 +76,7 @@ function ConsultaReporte({ definicion }: { definicion: DefinicionReporte }) {
           e.preventDefault()
           aplicar(borrador)
         }}
-        className="space-y-4 rounded-lg border p-4"
+        className="space-y-4 rounded-2xl border p-4"
       >
         <div className="grid gap-4 md:grid-cols-3">
           {definicion.filtros.map((filtro) => (
@@ -153,7 +153,7 @@ function ConsultaReporte({ definicion }: { definicion: DefinicionReporte }) {
       />
       {consulta.data && (
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Totales del resultado filtrado</h2>
+          <h2 className="font-editorial text-2xl">Totales del resultado filtrado</h2>
           <Resumen valores={consulta.data.totales} />
           {consulta.data.agrupamientos.map((g, i) => (
             <details key={i} className="rounded border p-3">
@@ -379,7 +379,7 @@ function Resumen({ valores }: { valores: Record<string, unknown> }) {
     <dl className="grid gap-2 py-2 sm:grid-cols-2">
       {Object.entries(valores).map(([clave, valor]) => (
         <div key={clave}>
-          <dt className="text-sm text-slate-600">
+          <dt className="text-sm text-tenue">
             {ETIQUETAS_RESUMEN[clave] ?? clave.replaceAll('_', ' ')}
           </dt>
           <dd>

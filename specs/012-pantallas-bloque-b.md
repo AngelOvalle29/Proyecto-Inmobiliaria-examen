@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 012 |
-| **Estado** | En revisión |
+| **Estado** | Implementada |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
-| **Revisor** | Por asignar |
+| **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-30 |
 | **Apps afectadas** | `frontend/` (`paginas/crm`, `paginas/ventas`, `paginas/arrendamientos` y sus hooks en `api/`). Sin cambios en el backend: el listado de usuarios para Nuevo agente es la spec 013, de A |
 | **Rama** | `feature/012-pantallas-bloque-b` |
-| **Pull request** | — |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#56; Nuevo agente y menú en #60 |
 
 ---
 
@@ -193,8 +193,33 @@ endpoint que ya audita (specs 004, 007 y 008).
 | Nivel | Caso |
 |---|---|
 | Manual, local | Cada criterio de §8 con `seed_demo` y un usuario por rol |
-| Manual, producción | Un recorrido completo en Vercel: cotizar, aprobar, firmar y pagar. **Pendiente** hasta desplegar |
+| Manual, producción | Un recorrido completo en Vercel: cotizar, aprobar, firmar y pagar. **Hecho el 2026-11-03** (abajo) |
 | Estático | `typecheck` con los tipos generados |
+
+**Recorrido en producción (2026-11-03).** Con una cuenta de administrador, en
+`proyecto-inmobiliaria-chi.vercel.app`, sobre la unidad `A-203` de la demo. Todo
+lleva la nota o la referencia de prueba de esta spec.
+
+| Paso | Resultado |
+|---|---|
+| Cotizar y enviar | COT-00006, Cliente Demo Cinco, Q 820,000 |
+| Aprobar | `A-203` pasa a `RESERVADA` |
+| Firmar | CV-00004, financiado: enganche Q 164,000, 12 cuotas de Q 57,216.18 al 8.5 % y comisión de Q 20,500 (Agente Demo Dos, 2.5 %) |
+| Pagar | Cuota 1, Q 57,216.18, referencia `PRUEBA-SPEC-012`: queda `PAGADA` y el contrato sigue `VIGENTE` |
+
+- La cuota, el interés de la primera (Q 4,646.67) y la comisión se recalcularon
+  a mano y coinciden con la pantalla. La última cuota ajusta los centavos
+  (Q 57,216.15).
+- Los reportes reflejan la venta: R01 pasa a 4 ventas y R03 vincula COT-00006
+  con CV-00004. R12 separa el enganche y el abono, cada uno con su tasa. R10
+  muestra las 12 cuotas y R05 deja solo `A-103` disponible.
+- Antes, sin escribir: las pantallas de CRM, ventas y arrendamientos cargan con
+  la demo, los 15 reportes cargan, y Excel y PDF responden 200.
+- **Observación:** en la lista de cotizaciones, Enviar no pide confirmación y
+  Aprobar sí. Enviar no cambia el estado del bien, pero conviene recordarlo en
+  la demostración.
+- **Sin probar en producción:** los roles agente, `CONTABILIDAD` y `CONSULTA`.
+  Están cubiertos en local (§8) y en las pruebas de API.
 
 ## 10. Decisiones y alternativas descartadas
 

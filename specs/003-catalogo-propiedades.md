@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 003 |
-| **Estado** | Implementada, en revisión |
+| **Estado** | Implementada |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-28 |

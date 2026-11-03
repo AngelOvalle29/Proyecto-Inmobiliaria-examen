@@ -6,7 +6,8 @@ import { cn } from '../../lib/utils'
 export function Card({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
-      className={cn('rounded-lg border border-slate-200 bg-white shadow-sm', className)}
+      // Spec 022: 16px de radio y sin sombra.
+      className={cn('rounded-2xl border border-ceniza bg-blanco', className)}
       {...props}
     />
   )
@@ -17,7 +18,9 @@ export function CardHeader({ className, ...props }: ComponentProps<'div'>) {
 }
 
 export function CardTitle({ className, ...props }: ComponentProps<'h2'>) {
-  return <h2 className={cn('text-lg font-semibold', className)} {...props} />
+  return (
+    <h2 className={cn('font-editorial text-3xl leading-none', className)} {...props} />
+  )
 }
 
 export function CardContent({ className, ...props }: ComponentProps<'div'>) {

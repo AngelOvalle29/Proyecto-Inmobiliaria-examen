@@ -10,7 +10,8 @@ export function Select({ className, ...props }: ComponentProps<'select'>) {
   return (
     <select
       className={cn(
-        'h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 aria-invalid:border-red-500',
+        // Spec 022: campo subrayado, sin caja. El foco engrosa la línea en tinta.
+        'h-9 w-full rounded-none border-0 border-b border-ceniza bg-transparent px-0 text-sm focus-visible:border-b-2 focus-visible:border-tinta focus-visible:outline-none disabled:opacity-50 aria-invalid:border-red-600',
         className,
       )}
       {...props}

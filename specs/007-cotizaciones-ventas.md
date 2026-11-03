@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 007 |
-| **Estado** | En revisión |
+| **Estado** | Implementada |
 | **Autor** | Marco André Bolaños Rojas (rol B) |
-| **Revisor** | Por asignar |
+| **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-28 |
 | **Apps afectadas** | `crm` (cotizaciones), `ventas`; pide a `catalogo` un servicio para el estado de las unidades (§6) |
 | **Rama** | `feature/007-cotizaciones-ventas` |
-| **Pull request** | DouGMV/Proyecto-Inmobiliaria#44 |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#44; correcciones en #47, #70, #71 y #79 |
 | **Issues** | #17, #18 |
 
 ---

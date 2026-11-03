@@ -84,7 +84,7 @@ const CONFIRMACIONES: Record<AccionSinDatos, { titulo: string; texto: string }> 
 function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
   return (
     <div>
-      <dt className="text-xs text-slate-500">{etiqueta}</dt>
+      <dt className="text-xs text-tenue">{etiqueta}</dt>
       <dd className="text-sm">{valor}</dd>
     </div>
   )
@@ -94,7 +94,7 @@ function DatosDelProyecto({ proyecto }: { proyecto: ProyectoDetalle }) {
   const moneda = proyecto.moneda.codigo
   const avance = proyecto.porcentaje_avance ?? 0
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4">
+    <div className="flex flex-col gap-4 rounded-2xl border border-ceniza bg-blanco p-4">
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Dato
           etiqueta="Propiedad"
@@ -124,7 +124,7 @@ function DatosDelProyecto({ proyecto }: { proyecto: ProyectoDetalle }) {
 
       <div className="flex flex-col gap-1">
         <div className="flex justify-between text-sm">
-          <span className="text-slate-500">Avance</span>
+          <span className="text-tenue">Avance</span>
           <span className="font-medium">{avance} %</span>
         </div>
         <div
@@ -133,14 +133,14 @@ function DatosDelProyecto({ proyecto }: { proyecto: ProyectoDetalle }) {
           aria-valuenow={avance}
           aria-valuemin={0}
           aria-valuemax={100}
-          className="h-2 overflow-hidden rounded-full bg-slate-100"
+          className="h-2 overflow-hidden rounded-full bg-niebla"
         >
-          <div className="h-full bg-slate-700" style={{ width: `${avance}%` }} />
+          <div className="h-full bg-tinta" style={{ width: `${avance}%` }} />
         </div>
       </div>
 
       {/* Los tres montos los calcula la API (spec 018, §4 y regla 6). */}
-      <dl className="grid grid-cols-3 gap-3 border-t border-slate-100 pt-3">
+      <dl className="grid grid-cols-3 gap-3 border-t border-niebla pt-3">
         <Dato
           etiqueta="Presupuesto"
           valor={formatearMoneda(proyecto.presupuesto_total, moneda)}
@@ -194,7 +194,7 @@ export function DetalleProyecto() {
         {leerErrorApi(consulta.error).mensaje}
       </p>
     ) : (
-      <p className="text-sm text-slate-500">Cargando…</p>
+      <p className="text-sm text-tenue">Cargando…</p>
     )
   }
 
@@ -237,13 +237,10 @@ export function DetalleProyecto() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">
+          <h1 className="font-editorial text-4xl leading-none">
             {proyecto.codigo} · {proyecto.nombre}
           </h1>
-          <Link
-            to="/construccion/proyectos"
-            className="text-sm text-slate-500 underline"
-          >
+          <Link to="/construccion/proyectos" className="text-sm text-tenue underline">
             Volver a proyectos
           </Link>
         </div>
@@ -290,7 +287,7 @@ export function DetalleProyecto() {
       <DatosDelProyecto proyecto={proyecto} />
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Pagos a la constructora</h2>
+        <h2 className="font-editorial text-2xl">Pagos a la constructora</h2>
         {/* Un proyecto cancelado ya no admite pagos (spec 017, regla 20). */}
         {paga && estado !== 'CANCELADO' && (
           <Button onClick={() => setProgramando(true)}>Programar pago</Button>
@@ -315,7 +312,7 @@ export function DetalleProyecto() {
         titulo={confirmando ? CONFIRMACIONES[confirmando].titulo : ''}
         alCerrar={() => setConfirmando(null)}
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-tenue">
           {confirmando && CONFIRMACIONES[confirmando].texto}
         </p>
         <div className="flex justify-end gap-2">

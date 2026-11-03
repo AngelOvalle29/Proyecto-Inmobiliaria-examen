@@ -38,7 +38,7 @@ function Contenido({ cliente, alCerrar }: { cliente: Cliente; alCerrar: () => vo
 
   return (
     <>
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-tenue">
         {nombreCliente(cliente)} · agente actual:{' '}
         {cliente.agente_asignado.nombre_completo}
       </p>

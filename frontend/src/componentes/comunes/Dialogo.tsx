@@ -30,10 +30,10 @@ export function Dialogo({ abierto, titulo, alCerrar, children }: Props) {
     <dialog
       ref={referencia}
       onClose={alCerrar}
-      className="m-auto w-full max-w-md rounded-lg border border-slate-200 p-0 shadow-lg backdrop:bg-slate-900/40"
+      className="m-auto w-full max-w-md rounded-2xl border border-ceniza p-0 backdrop:bg-tinta/40"
     >
       <div className="flex flex-col gap-4 p-6">
-        <h2 className="text-lg font-semibold">{titulo}</h2>
+        <h2 className="font-editorial text-2xl">{titulo}</h2>
         {children}
       </div>
     </dialog>

@@ -58,7 +58,7 @@ export function NuevoAgente() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Nuevo agente</h1>
+      <h1 className="font-editorial text-4xl leading-none">Nuevo agente</h1>
       <FormularioDatos
         campos={CAMPOS}
         esquema={esquema}

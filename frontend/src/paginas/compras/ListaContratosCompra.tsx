@@ -103,7 +103,7 @@ export function ListaContratosCompra() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Contratos de compra</h1>
+        <h1 className="font-editorial text-4xl leading-none">Contratos de compra</h1>
         {puedeEscribir && (
           <Button onClick={() => navegar('/compras/contratos/nuevo')}>
             Nuevo contrato
