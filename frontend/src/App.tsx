@@ -7,6 +7,8 @@ import {
   ADMINISTRAN_ASISTENTE,
   ADMINISTRAN_CRM,
   ESCRIBEN_CATALOGO,
+  ESCRIBEN_COMPRAS,
+  ESCRIBEN_CONSTRUCCION,
   ESCRIBEN_CRM,
 } from './menu'
 import { DetalleArrendamiento } from './paginas/arrendamientos/DetalleArrendamiento'
@@ -20,6 +22,13 @@ import { FichaPropiedad } from './paginas/catalogo/FichaPropiedad'
 import { ListaPropiedades } from './paginas/catalogo/ListaPropiedades'
 import { ListaTiposPropiedad } from './paginas/catalogo/ListaTiposPropiedad'
 import { NuevaPropiedad } from './paginas/catalogo/NuevaPropiedad'
+import { EditarProveedor, NuevoProveedor } from './paginas/compras/FormularioProveedor'
+import { ListaProveedores } from './paginas/compras/ListaProveedores'
+import {
+  EditarConstructora,
+  NuevaConstructora,
+} from './paginas/construccion/FormularioConstructora'
+import { ListaConstructoras } from './paginas/construccion/ListaConstructoras'
 import { EditarCliente, NuevoCliente } from './paginas/crm/FormularioCliente'
 import { ListaAgentes } from './paginas/crm/ListaAgentes'
 import { ListaClientes } from './paginas/crm/ListaClientes'
@@ -133,6 +142,42 @@ const enrutador = createBrowserRouter([
         ),
       },
       { path: '/arrendamientos/contratos/:id', element: <DetalleArrendamiento /> },
+      // Compras y construcción (spec 018): todos ven las listas; los
+      // formularios, solo quien escribe (regla 2).
+      { path: '/compras/proveedores', element: <ListaProveedores /> },
+      {
+        path: '/compras/proveedores/nuevo',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_COMPRAS}>
+            <NuevoProveedor />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: '/compras/proveedores/:id/editar',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_COMPRAS}>
+            <EditarProveedor />
+          </RutaProtegida>
+        ),
+      },
+      { path: '/construccion/constructoras', element: <ListaConstructoras /> },
+      {
+        path: '/construccion/constructoras/nueva',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CONSTRUCCION}>
+            <NuevaConstructora />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: '/construccion/constructoras/:id/editar',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CONSTRUCCION}>
+            <EditarConstructora />
+          </RutaProtegida>
+        ),
+      },
       {
         path: '/asistente/documentos',
         element: (
