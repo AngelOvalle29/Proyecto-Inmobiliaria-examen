@@ -44,7 +44,7 @@ const COLUMNAS = [
  */
 function Vencimiento({ fecha }: { fecha: string | null | undefined }) {
   if (!fecha) {
-    return <span className="text-slate-400">No vence</span>
+    return <span className="text-tenue">No vence</span>
   }
   const estado = estadoVencimiento(fecha)
   return (

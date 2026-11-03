@@ -57,7 +57,7 @@ export function DialogoPagarCuota({ cuota, moneda, alCerrar }: Props) {
     >
       {cuota && (
         <>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-tenue">
             Falta pagar {formatearMoneda(cuota.saldo, moneda)}
           </p>
           <FormularioDatos

@@ -57,7 +57,7 @@ export function DialogoCambiarEstado({ recurso, elemento, alCerrar }: Props) {
       titulo={`Cambiar el estado de ${elemento?.codigo ?? ''}`}
       alCerrar={cerrar}
     >
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-tenue">
         Estado actual: {elemento && ETIQUETAS_ESTADO[elemento.estado]}
       </p>
       {cambiar.isError && (

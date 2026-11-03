@@ -125,7 +125,7 @@ export function TablaDatos<T>({
         </p>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white">
+      <div className="rounded-2xl border border-ceniza bg-blanco">
         <Table>
           <TableHeader>
             {tabla.getHeaderGroups().map((grupo) => (
@@ -177,7 +177,7 @@ export function TablaDatos<T>({
               <TableRow>
                 <TableCell
                   colSpan={columnasVisibles}
-                  className="py-8 text-center text-slate-500"
+                  className="py-8 text-center text-tenue"
                 >
                   {cargando ? 'Cargando…' : mensajeVacio}
                 </TableCell>
@@ -223,7 +223,7 @@ export function TablaDatos<T>({
 function ControlesPaginacion({ pagina, total, alCambiarPagina }: Paginacion) {
   const ultima = totalPaginas(total)
   return (
-    <div className="flex items-center justify-between text-sm text-slate-600">
+    <div className="flex items-center justify-between text-sm text-tenue">
       <span>
         {total} {total === 1 ? 'registro' : 'registros'} · página {pagina} de {ultima}
       </span>

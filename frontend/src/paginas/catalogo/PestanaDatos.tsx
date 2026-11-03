@@ -44,14 +44,14 @@ export function PestanaDatos({ propiedad }: { propiedad: Propiedad }) {
       <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
         {filas.map(([etiqueta, valor]) => (
           <div key={etiqueta}>
-            <dt className="text-slate-500">{etiqueta}</dt>
+            <dt className="text-tenue">{etiqueta}</dt>
             <dd className="font-medium">{valor}</dd>
           </div>
         ))}
       </dl>
       {propiedad.descripcion && (
         <div className="text-sm">
-          <p className="text-slate-500">Descripción</p>
+          <p className="text-tenue">Descripción</p>
           <p>{propiedad.descripcion}</p>
         </div>
       )}

@@ -52,7 +52,7 @@ export function DialogoAvance({ proyecto, abierto, alCerrar }: Props) {
     <Dialogo abierto={abierto} titulo="Registrar avance" alCerrar={alCerrar}>
       {abierto && (
         <>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-tenue">
             Avance actual: {actual} %. El nuevo no puede ser menor.
           </p>
           <FormularioDatos

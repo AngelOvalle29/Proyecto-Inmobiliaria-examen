@@ -6,7 +6,9 @@
 export function FaltaConfiguracion() {
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-3 p-6 text-sm">
-      <h1 className="text-xl font-semibold">Falta configurar la dirección de la API</h1>
+      <h1 className="font-editorial text-4xl leading-none">
+        Falta configurar la dirección de la API
+      </h1>
       <p>
         La variable <code>VITE_API_URL</code> está vacía, así que el frontend no sabe a
         qué API conectarse.

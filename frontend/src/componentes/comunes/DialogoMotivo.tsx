@@ -56,7 +56,7 @@ export function DialogoMotivo({
       {/* Se crea al abrir: así cada vez empieza vacío, sin el motivo anterior. */}
       {abierto && (
         <>
-          <p className="text-sm text-slate-600">{descripcion}</p>
+          <p className="text-sm text-tenue">{descripcion}</p>
           <FormularioDatos
             campos={CAMPOS}
             esquema={esquema}

@@ -91,18 +91,18 @@ export function CampoRelacion({
       {abierto && !deshabilitado && (
         <ul
           role="listbox"
-          className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-slate-200 bg-white py-1 text-sm shadow-md"
+          className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-ceniza bg-blanco py-1 text-sm"
         >
-          {cargando && <li className="px-3 py-2 text-slate-500">Buscando…</li>}
+          {cargando && <li className="px-3 py-2 text-tenue">Buscando…</li>}
           {!cargando && opciones.length === 0 && (
-            <li className="px-3 py-2 text-slate-500">Sin coincidencias.</li>
+            <li className="px-3 py-2 text-tenue">Sin coincidencias.</li>
           )}
           {opciones.map((opcion) => (
             <li
               key={opcion.valor}
               role="option"
               aria-selected={opcion.valor === valor}
-              className="cursor-pointer px-3 py-2 hover:bg-slate-100"
+              className="cursor-pointer px-3 py-2 hover:bg-niebla"
               onMouseDown={(evento) => evento.preventDefault()}
               onClick={() => elegir(opcion)}
             >

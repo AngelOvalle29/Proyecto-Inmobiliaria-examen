@@ -56,7 +56,7 @@ export function DialogoPagar({ pago, alCerrar }: Props) {
     >
       {pago && (
         <>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-tenue">
             {formatearMoneda(pago.monto, pago.moneda.codigo)} a{' '}
             {pago.proyecto.constructora.nombre}
           </p>

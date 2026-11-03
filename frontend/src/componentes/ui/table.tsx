@@ -13,7 +13,7 @@ export function Table({ className, ...props }: ComponentProps<'table'>) {
 }
 
 export function TableHeader(props: ComponentProps<'thead'>) {
-  return <thead className="border-b border-slate-200" {...props} />
+  return <thead className="border-b border-tinta" {...props} />
 }
 
 export function TableBody(props: ComponentProps<'tbody'>) {
@@ -22,17 +22,18 @@ export function TableBody(props: ComponentProps<'tbody'>) {
 
 export function TableRow({ className, ...props }: ComponentProps<'tr'>) {
   return (
-    <tr
-      className={cn('border-b border-slate-100 hover:bg-slate-50', className)}
-      {...props}
-    />
+    <tr className={cn('border-b border-ceniza hover:bg-crema', className)} {...props} />
   )
 }
 
 export function TableHead({ className, ...props }: ComponentProps<'th'>) {
   return (
     <th
-      className={cn('h-10 px-3 text-left font-medium text-slate-500', className)}
+      // Spec 022: encabezados mono en mayúsculas.
+      className={cn(
+        'h-10 px-3 text-left font-mono text-xs font-normal tracking-etiqueta text-tenue uppercase',
+        className,
+      )}
       {...props}
     />
   )

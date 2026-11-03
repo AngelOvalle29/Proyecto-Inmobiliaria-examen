@@ -117,7 +117,7 @@ function Formulario({ constructora }: PropsFormulario) {
 export function NuevaConstructora() {
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Nueva constructora</h1>
+      <h1 className="font-editorial text-4xl leading-none">Nueva constructora</h1>
       <Formulario />
     </div>
   )
@@ -130,10 +130,10 @@ export function EditarConstructora() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">
+      <h1 className="font-editorial text-4xl leading-none">
         Editar constructora {consulta.data?.codigo ?? ''}
       </h1>
-      {consulta.isPending && <p className="text-sm text-slate-500">Cargando…</p>}
+      {consulta.isPending && <p className="text-sm text-tenue">Cargando…</p>}
       {consulta.isError && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
           {leerErrorApi(consulta.error).mensaje}

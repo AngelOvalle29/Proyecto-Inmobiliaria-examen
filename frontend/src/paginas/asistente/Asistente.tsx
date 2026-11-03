@@ -71,12 +71,14 @@ export function Asistente() {
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-4 p-4">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Asistente de la agencia</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="font-editorial text-4xl leading-none">
+            Asistente de la agencia
+          </h1>
+          <p className="text-sm text-tenue">
             Responde con los documentos de la agencia y cita de dónde sale cada dato.
           </p>
         </div>
-        <Link className="text-sm text-sky-700 hover:underline" to="/">
+        <Link className="text-sm text-oxido hover:underline" to="/">
           {estado === 'con-sesion' ? 'Volver al sistema' : 'Iniciar sesión'}
         </Link>
       </header>
@@ -96,10 +98,10 @@ export function Asistente() {
           value={pregunta}
           onChange={(evento) => setPregunta(evento.target.value)}
           placeholder="Por ejemplo: ¿qué documentos necesito para comprar en Guatemala?"
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none"
+          className="w-full rounded-md border border-ceniza bg-blanco px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-tenue focus-visible:outline-none"
         />
         <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-tenue">
             {texto.length}/{MAXIMO}
           </span>
           <Button type="submit" disabled={!valida || consultar.isPending}>
@@ -125,7 +127,7 @@ export function Asistente() {
               )}
               {turno.respuesta &&
                 (turno.respuesta.sin_informacion ? (
-                  <p className="text-sm text-slate-600">{turno.respuesta.respuesta}</p>
+                  <p className="text-sm text-tenue">{turno.respuesta.respuesta}</p>
                 ) : (
                   <RespuestaConCitas
                     respuesta={turno.respuesta.respuesta}
