@@ -1,0 +1,63 @@
+table 'bi dim_geografia'
+	lineageTag: 0e21e426-3718-43f3-a23b-a2519efd4dda
+
+	column ciudad_id
+		dataType: int64
+		formatString: 0
+		lineageTag: c9198ed0-93c4-47d5-9b63-346218dab7e7
+		summarizeBy: none
+		sourceColumn: ciudad_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column ciudad
+		dataType: string
+		lineageTag: a32e18d6-b071-49c5-97d5-1ac9600fa2d5
+		summarizeBy: none
+		sourceColumn: ciudad
+
+		annotation SummarizationSetBy = Automatic
+
+	column region
+		dataType: string
+		lineageTag: ba672ec4-f94b-4968-8ed2-9f64d577a7ca
+		summarizeBy: none
+		sourceColumn: region
+
+		annotation SummarizationSetBy = Automatic
+
+	column pais_id
+		dataType: int64
+		formatString: 0
+		lineageTag: e7cf940e-e250-4c2f-9d10-c42fab517247
+		summarizeBy: none
+		sourceColumn: pais_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column pais
+		dataType: string
+		lineageTag: a8b49749-2981-4d24-ad49-31648bf2b448
+		summarizeBy: none
+		sourceColumn: pais
+
+		annotation SummarizationSetBy = Automatic
+
+	column pais_codigo
+		dataType: string
+		lineageTag: ffb5a4f8-3220-40b6-8153-6fb6aa9b0bd0
+		summarizeBy: none
+		sourceColumn: pais_codigo
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'bi dim_geografia' = m
+		mode: import
+		source =
+				let
+				    Origen = PostgreSQL.Database("ep-purple-waterfall-b5e2fdhj.c-7.us-east-2.aws.neon.tech", "neondb"),
+				    bi_dim_geografia = Origen{[Schema="bi",Item="dim_geografia"]}[Data]
+				in
+				    bi_dim_geografia
+
+	annotation PBI_ResultType = Table

@@ -57,6 +57,7 @@ PARAMETROS = [
         ("agente", int, "R01/R02/R03/R10/R11: ID del agente"),
         ("cliente", int, "R10: ID del cliente"),
         ("modalidad", str, "R01: CONTADO o FINANCIADO"),
+        ("origen", str, "R12: CONTADO, ENGANCHE, CUOTA o RENTA"),
         ("estado", str, "R03/R10: estado"),
         *[
             (n, str, "R03/R11: decimal inclusivo; exige moneda")

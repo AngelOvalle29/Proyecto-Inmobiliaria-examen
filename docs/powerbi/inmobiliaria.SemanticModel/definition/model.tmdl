@@ -1,0 +1,24 @@
+model Model
+	culture: es-GT
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: es-GT
+	valueFilterBehavior: independent
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 1
+
+annotation PBI_QueryOrder = ["bi hechos_ventas","bi dim_tiempo","bi dim_propiedad","bi dim_geografia"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table 'bi hechos_ventas'
+ref table DateTableTemplate_775503d7-b38c-474f-bc09-2a7d420b23bc
+ref table LocalDateTable_fc6986d8-e7b8-402a-b8d7-42b9a1af1822
+ref table 'bi dim_tiempo'
+ref table LocalDateTable_fd2756ce-e94f-46a3-8163-b9b9b0a2e1de
+ref table 'bi dim_propiedad'
+ref table 'bi dim_geografia'
+
+ref cultureInfo es-GT

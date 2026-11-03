@@ -46,6 +46,15 @@ export const ESCRIBEN_CRM: Rol[] = [...ADMINISTRAN_CRM, ROLES.AGENTE]
 // (reglas 20 y 21 de la spec 007).
 export const REGISTRAN_PAGOS: Rol[] = [...ADMINISTRAN_CRM, ROLES.CONTABILIDAD]
 
+// Quiénes escriben en compras y en construcción: proveedores, constructoras,
+// contratos de compra y proyectos (spec 006, regla 10, y spec 017, regla 24).
+// Leen todos los roles.
+export const ESCRIBEN_COMPRAS: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
+export const ESCRIBEN_CONSTRUCCION: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
+// Los pagos a constructoras los registra también contabilidad, como los de
+// ventas (spec 017, regla 24).
+export const PAGAN_CONSTRUCCION: Rol[] = [...ESCRIBEN_CONSTRUCCION, ROLES.CONTABILIDAD]
+
 // Quiénes administran los documentos del asistente: también los leen solo
 // ellos (regla 14 de la spec 020).
 export const ADMINISTRAN_ASISTENTE: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
@@ -65,6 +74,15 @@ export const MENU: EntradaMenu[] = [
     etiqueta: 'Contratos de arrendamiento',
     grupo: 'Arrendamientos',
   },
+  // Las entradas de "Nuevo…" son botones de cada lista (spec 018, §5).
+  { ruta: '/compras/proveedores', etiqueta: 'Proveedores', grupo: 'Compras' },
+  { ruta: '/compras/contratos', etiqueta: 'Contratos de compra', grupo: 'Compras' },
+  {
+    ruta: '/construccion/constructoras',
+    etiqueta: 'Constructoras',
+    grupo: 'Construcción',
+  },
+  { ruta: '/construccion/proyectos', etiqueta: 'Proyectos', grupo: 'Construcción' },
   // El asistente es público (spec 018, regla 8): aquí aparece para quien ya
   // inició sesión; la página no pide sesión.
   { ruta: '/asistente', etiqueta: 'Asistente', grupo: 'Asistente' },

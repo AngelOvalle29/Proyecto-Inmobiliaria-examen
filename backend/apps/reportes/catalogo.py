@@ -410,6 +410,42 @@ CATALOGO.update(
 )
 
 
+CATALOGO["flujo-ingresos"] = {
+    "codigo": "R12",
+    "titulo": "Flujo de ingresos",
+    "roles": FINANZAS,
+    "columnas": [
+        Columna("origen", "Origen"),
+        Columna("id_fuente", "ID fuente", "entero"),
+        Columna("contrato", "Contrato"),
+        Columna("fecha", "Fecha de cobro", "fecha", "dd/mm/yyyy"),
+        Columna("pais", "País del bien"),
+        Columna("moneda", "Moneda"),
+        Columna("recibido", "Recibido", "decimal", "#,##0.00", "right"),
+        Columna("tasa_a_usd", "Tasa a USD", "decimal", "0.000000", "right"),
+        Columna("monto_usd", "Recibido USD", "decimal", "#,##0.00", "right"),
+    ],
+    "filtros": [
+        *filtros_periodo("Cobro"),
+        PAIS,
+        MONEDA,
+        filtro(
+            "origen",
+            "Origen",
+            opciones=[
+                {"valor": v, "etiqueta": e}
+                for v, e in (
+                    ("CONTADO", "Venta al contado"),
+                    ("ENGANCHE", "Enganche de venta"),
+                    ("CUOTA", "Abono a cuota"),
+                    ("RENTA", "Pago de renta"),
+                )
+            ],
+        ),
+    ],
+}
+
+
 def definicion_reporte(slug: str) -> dict:
     """Un slug desconocido siempre es 404."""
     if slug not in CATALOGO:

@@ -65,6 +65,9 @@ docker-compose.override.yml
 
 # Power BI (los .pbix sí se versionan, los temporales no)
 *.pbix.tmp
+# Caché y configuración personal de los proyectos editables de Power BI.
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
 ~$*
 
 # Agentes de IA

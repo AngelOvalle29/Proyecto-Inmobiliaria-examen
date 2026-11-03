@@ -17,6 +17,7 @@ from .estructuras import (
     FiltrosCotizaciones,
     FiltrosEstadoCuenta,
     FiltrosEstadoPropiedades,
+    FiltrosIngresos,
     FiltrosInventario,
     FiltrosMorosidad,
     FiltrosObras,
@@ -220,6 +221,20 @@ class FiltrosComprasSerializer(FiltrosPeriodoSerializer):
     moneda = serializers.RegexField(r"^[A-Z]{3}$", required=False)
 
 
+ORIGENES_COBRO = [
+    ("CONTADO", "Venta al contado"),
+    ("ENGANCHE", "Enganche de venta"),
+    ("CUOTA", "Abono a cuota"),
+    ("RENTA", "Pago de renta"),
+]
+
+
+class FiltrosIngresosSerializer(FiltrosPeriodoSerializer):
+    pais = serializers.IntegerField(min_value=1, required=False)
+    origen = serializers.ChoiceField(choices=ORIGENES_COBRO, required=False)
+    moneda = serializers.RegexField(r"^[A-Z]{3}$", required=False)
+
+
 class FiltrosObrasSerializer(FiltrosPeriodoSerializer):
     constructora = serializers.IntegerField(min_value=1, required=False)
     estado = serializers.ChoiceField(choices=EstadoProyecto.choices, required=False)
@@ -228,6 +243,7 @@ class FiltrosObrasSerializer(FiltrosPeriodoSerializer):
 
 
 FILTROS = {
+    "flujo-ingresos": (FiltrosIngresosSerializer, FiltrosIngresos),
     "inventario-disponible": (FiltrosInventarioSerializer, FiltrosInventario),
     "documentos-por-vencer": (FiltrosVencimientosSerializer, FiltrosVencimientos),
     "bitacora-auditoria": (FiltrosBitacoraSerializer, FiltrosBitacora),

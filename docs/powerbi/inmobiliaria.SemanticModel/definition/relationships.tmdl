@@ -1,0 +1,21 @@
+relationship da896150-a2a0-4b3f-a5a2-5f5b753085b9
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'bi hechos_ventas'.fecha_firma
+	toColumn: LocalDateTable_fc6986d8-e7b8-402a-b8d7-42b9a1af1822.Date
+
+relationship a83be932-d5c2-47e1-88d0-89b63b2aeb31
+	joinOnDateBehavior: datePartOnly
+	fromColumn: 'bi dim_tiempo'.fecha
+	toColumn: LocalDateTable_fd2756ce-e94f-46a3-8163-b9b9b0a2e1de.Date
+
+relationship ventas_fecha_id
+	fromColumn: 'bi hechos_ventas'.fecha_id
+	toColumn: 'bi dim_tiempo'.fecha_id
+
+relationship ventas_bien_clave
+	fromColumn: 'bi hechos_ventas'.bien_clave
+	toColumn: 'bi dim_propiedad'.bien_clave
+
+relationship ventas_ciudad_id
+	fromColumn: 'bi hechos_ventas'.ciudad_id
+	toColumn: 'bi dim_geografia'.ciudad_id

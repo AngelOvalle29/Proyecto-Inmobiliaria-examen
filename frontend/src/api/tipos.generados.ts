@@ -5460,6 +5460,8 @@ export interface operations {
                 monto_max?: string;
                 /** @description R03/R11: decimal inclusivo; exige moneda */
                 monto_min?: string;
+                /** @description R12: CONTADO, ENGANCHE, CUOTA o RENTA */
+                origen?: string;
                 page?: number;
                 /** @description R05/R16: ID del país */
                 pais?: number;
@@ -5527,6 +5529,8 @@ export interface operations {
                 monto_max?: string;
                 /** @description R03/R11: decimal inclusivo; exige moneda */
                 monto_min?: string;
+                /** @description R12: CONTADO, ENGANCHE, CUOTA o RENTA */
+                origen?: string;
                 /** @description R05/R16: ID del país */
                 pais?: number;
                 /** @description R05: decimal inclusivo */
@@ -5593,6 +5597,8 @@ export interface operations {
                 monto_max?: string;
                 /** @description R03/R11: decimal inclusivo; exige moneda */
                 monto_min?: string;
+                /** @description R12: CONTADO, ENGANCHE, CUOTA o RENTA */
+                origen?: string;
                 /** @description R05/R16: ID del país */
                 pais?: number;
                 /** @description R05: decimal inclusivo */

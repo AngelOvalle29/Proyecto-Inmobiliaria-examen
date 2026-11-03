@@ -15,7 +15,17 @@ documentación, avalúos, cotizaciones, venta y arrendamiento. Incluye un agente
 de IA con recuperación de documentos, mensajería asíncrona, reportes exportables
 y bitácoras de auditoría.
 
-*Pendiente: el equipo completa el resumen de funcionalidades.*
+El frontend React consume una API Django REST con PostgreSQL. Los roles
+controlan las operaciones y, para agentes comerciales, la cartera del cliente
+limita tanto los detalles como los totales. Los contratos conservan sus tasas
+de cambio para que una nueva tasa no modifique las cifras históricas.
+
+La entrega se verifica por bloques: catálogo y flujo comercial, compras y
+construcción, asistente con documentos, procesamiento asíncrono con RabbitMQ,
+dos bitácoras, quince reportes con Excel/PDF e integración analítica mediante
+cuatro vistas `bi`. Este manual distingue funcionalidades implementadas de
+evidencia aún pendiente: la existencia de las vistas no certifica por sí sola
+que el tablero Power BI esté conectado y actualizado.
 
 ## 2. Arquitectura
 
@@ -247,13 +257,226 @@ fechas relativas a hoy, para que siempre haya cuotas pagadas, parciales y en
 mora. Las unidades `A-103` y `A-203` quedan libres para mostrar una venta en
 vivo. Los comandos no duplican datos.
 
-## 6. Compras y construcción
+## 6. Compras y construcción (rol C)
 
-*Pendiente: rol C.*
+### 6.1 Entidades
 
-## 7. Agente de IA y RAG
+| App | Entidad | Qué es |
+|---|---|---|
+| `compras` | `Proveedor` (`PRV-0001`) | Quien le vende una propiedad a la agencia: propietario particular, inmobiliaria, banco, gobierno u otro |
+| `compras` | `ContratoCompra` (`CC-00001`) | La compra de una propiedad a un proveedor, con monto, gastos legales, impuestos y costo total |
+| `construccion` | `Constructora` (`CST-0001`) | Empresa que construye; calificación opcional de 1 a 5 |
+| `construccion` | `ProyectoConstruccion` (`PC-00001`) | La obra sobre una propiedad: presupuesto, fechas, estado y avance |
+| `construccion` | `PagoConstructora` (`PG-00001`) | Un pago a la constructora de un proyecto: anticipo, avance, finiquito o extra |
 
-*Pendiente: rol C.*
+Reglas completas: `specs/006-proveedores-constructoras.md` y
+`specs/017-compras-construccion-contratos.md`. Pantallas:
+`specs/018-pantallas-bloque-c.md`.
+
+### 6.2 El ciclo de una propiedad que se compra y se construye
+
+```
+EN_NEGOCIACION ──completar contrato──► ADQUIRIDA ──iniciar obra──► EN_CONSTRUCCION ──finalizar──► DISPONIBLE
+                                           ▲                              │
+                                           └────── cancelar obra ─────────┘
+```
+
+| Paso | Servicio | Efecto en la propiedad |
+|---|---|---|
+| Registrar contrato | `crear_contrato_compra` | Ninguno: el contrato nace `EN_PROCESO` |
+| Completar contrato | `completar_contrato_compra` | De `EN_NEGOCIACION` a `ADQUIRIDA` |
+| Anular contrato | `anular_contrato_compra` | Ninguno: sigue en negociación y admite otro contrato |
+| Registrar proyecto | `crear_proyecto` | Ninguno: el proyecto nace `PLANIFICADO` |
+| Iniciar | `iniciar_proyecto` | De `ADQUIRIDA` a `EN_CONSTRUCCION` |
+| Finalizar (avance 100) | `finalizar_proyecto` | A `DISPONIBLE`, y sus unidades `EN_NEGOCIACION` o `EN_CONSTRUCCION` también |
+| Cancelar | `cancelar_proyecto` | De `EN_CONSTRUCCION` a `ADQUIRIDA`; anula los pagos programados |
+
+Estados de un proyecto: `PLANIFICADO` → `EN_EJECUCION` ⇄ `SUSPENDIDO` →
+`FINALIZADO`, o `CANCELADO` desde cualquiera de los activos. Todos los cambios
+de la propiedad pasan por `cambiar_estado_propiedad` del catálogo, con
+`estado_requerido`.
+
+### 6.3 Reglas que más se preguntan
+
+- **El costo total lo calcula el sistema:** monto + gastos legales + impuestos.
+  El usuario nunca lo envía.
+- **Una propiedad tiene como máximo un contrato no anulado y un proyecto
+  activo.** Lo garantizan `UniqueConstraint` con condición en la base, no solo
+  el código: dos peticiones al mismo tiempo no pasan las dos.
+- **El presupuesto no se supera; se sube.** Lo programado y lo pagado no puede
+  pasar del presupuesto (409 `PRESUPUESTO_EXCEDIDO`). La salida es editar el
+  presupuesto, que queda en la bitácora con el valor anterior y el nuevo: esa
+  es la "autorización explícita".
+- **El avance nunca baja** y va de 0 a 100. Cada avance queda en la bitácora
+  con su descripción.
+- **El finiquito se programa solo con la obra finalizada.** El anticipo es el
+  único pago que se puede pagar antes del inicio de la obra.
+- **Editar un proyecto:** uno activo cambia nombre, fecha de fin estimada y
+  presupuesto; uno finalizado, solo el presupuesto (para un finiquito que no
+  cabía); uno cancelado, nada.
+- **Contratos y pagos no se editan ni se borran.** Un error se anula, con
+  motivo, y se registra de nuevo.
+- **Un proveedor con un contrato en proceso, o una constructora con un
+  proyecto activo, no se desactiva** (409).
+- **NIT:** obligatorio para constructoras y para todo proveedor menos el
+  propietario particular. Se guarda normalizado y no se repite en un país.
+
+### 6.4 Permisos
+
+| Rol | Proveedores, constructoras, contratos y proyectos | Pagos a constructoras |
+|---|---|---|
+| `ADMINISTRADOR`, `GERENTE` | Escriben | Programan, pagan y anulan |
+| `CONTABILIDAD` | Lectura | Programan, pagan y anulan |
+| `AGENTE`, `CONSULTA` | Lectura | Lectura |
+
+Contabilidad registra pagos, pero no decide compras ni obras: mismo criterio
+que las cuotas de ventas.
+
+### 6.5 Decisiones de diseño
+
+- **Cada contrato, proyecto y pago guarda su tasa al dólar** (`tasa_a_usd`) y
+  el monto convertido. El contrato, con la tasa de su fecha de compra; el pago,
+  con la del día en que se paga. Así un reporte en dólares no cambia el pasado.
+- **`total_comprometido` y `disponible` los calcula la API**, con el mismo
+  selector que valida el presupuesto. La pantalla nunca suma los pagos, para
+  que la validación y lo que se ve no den números distintos.
+- **`select_for_update` en cada acción:** dos pagos simultáneos no pasan juntos
+  el presupuesto, y dos peticiones no completan el mismo contrato.
+- **El pago no guarda la constructora:** la toma del proyecto, para que un pago
+  nunca vaya a otra constructora que la de su obra.
+- **Sin entidad `AvanceObra`:** el historial de avances vive en la bitácora.
+- **Las apps no dependen entre sí:** `obtener_dolar` tiene su copia en cada
+  app, y lo común lo da el catálogo.
+
+### 6.6 API y pantallas
+
+| Recurso | Ruta |
+|---|---|
+| Proveedores | `/api/v1/proveedores/` (filtros por tipo, país, ciudad y `?buscar=`) |
+| Contratos de compra | `/api/v1/contratos-compra/`, con `/completar/` y `/anular/` |
+| Constructoras | `/api/v1/constructoras/` (filtros por país, `?calificacion_min=` y `?buscar=`) |
+| Proyectos | `/api/v1/proyectos-construccion/`; el detalle trae `total_comprometido` y `disponible` |
+| Acciones del proyecto | `.../{id}/iniciar/`, `avance/`, `suspender/`, `reanudar/`, `finalizar/` y `cancelar/` |
+| Pagos de un proyecto | `/api/v1/proyectos-construccion/{id}/pagos/` |
+| Pagos | `/api/v1/pagos-constructora/`, con `/{id}/pagar/` y `/{id}/anular/` |
+
+En el frontend, compras (`/compras/proveedores`, `/compras/contratos`) y
+construcción (`/construccion/constructoras`, `/construccion/proyectos`) siguen
+el patrón de B: listas con filtros en la URL y formularios con
+`FormularioDatos`. El **detalle del proyecto** (`/construccion/proyectos/{id}`)
+reúne los datos, la barra de avance, presupuesto / comprometido / disponible,
+los pagos y las acciones. Cada acción aparece solo en el estado que la admite y
+para el rol que la puede hacer. Los formularios de compra y de obra ofrecen solo
+las propiedades en negociación o adquiridas.
+
+### 6.7 Datos de demostración
+
+`cargar_demo_compras` y `cargar_demo_construccion` (dentro de `seed_demo`,
+después del catálogo) dejan:
+
+- seis proveedores y cuatro constructoras;
+- el terreno Las Lomas con un contrato en proceso, listo para completarlo en
+  vivo;
+- la gasolinera adquirida, con un proyecto planificado, para iniciarlo;
+- el hotel en obra al 60 %, con sus pagos, para registrar avance y finalizarlo.
+
+Se guardan como una foto del estado que ya tiene cada propiedad en la demo del
+catálogo, sin auditoría, igual que el resto de la demo.
+
+## 7. Agente de IA y RAG (rol C)
+
+### 7.1 Qué hace
+
+Un visitante, sin iniciar sesión, le pregunta al asistente (`/asistente`) por la
+agencia: servicios, requisitos, horarios. El agente responde **solo** con los
+documentos de la agencia, cita de dónde salió cada dato y, si no encuentra nada,
+lo dice sin inventar. Reglas completas: `specs/005-agente-ia-rag.md`; bitácora:
+`specs/015-bitacora-agente-ia.md`; pantalla: `specs/018-pantallas-bloque-c.md`;
+carga asíncrona de documentos: §8 de este manual.
+
+### 7.2 Entidades
+
+| Entidad | Qué es |
+|---|---|
+| `DocumentoRAG` | Un documento en Markdown: título único, versión, estado de indexación y fecha |
+| `FragmentoRAG` | Un trozo del documento con su sección y su vector (`vector(768)`, índice HNSW por distancia coseno) |
+
+Los vectores viven en la misma PostgreSQL, con pgvector: no hay otra base de
+datos que administrar.
+
+### 7.3 Cómo se responde una pregunta
+
+```
+pregunta ──► vector (Gemini, 768 valores) ──► 5 fragmentos más cercanos con distancia ≤ 0.42
+                                                   │
+                     ┌──────── ninguno ────────────┴──────── alguno ─────────┐
+                     ▼                                                       ▼
+        "No encontré información…"                   fragmentos numerados + instrucciones ──► Gemini
+        (sin llamar al modelo)                                                │
+                                                     respuesta con [n] ──► solo las citas usadas
+```
+
+1. **Indexar** (`indexar_documento`): el Markdown se parte por sus encabezados
+   `##`, en trozos de hasta 1,500 caracteres, y cada trozo se convierte en
+   vector, de 100 en 100. Los vectores se piden **fuera** de la transacción; si
+   el documento cambió mientras tanto, se descarta el resultado
+   (`DocumentoModificadoDuranteIndexacion`).
+2. **Buscar:** se buscan los 5 fragmentos más cercanos con distancia coseno de
+   hasta 0.42 (`IA_DISTANCIA_MAXIMA`).
+3. **Sin fragmentos, no se llama al modelo:** responde `sin_informacion` con
+   0 tokens. No gasta cuota ni le da ocasión de inventar.
+4. **Con fragmentos,** el modelo recibe las instrucciones de
+   `apps/ia/instrucciones.py` (responder solo con los fragmentos, citar `[n]`,
+   no inventar, no cambiar de tema) y los fragmentos numerados.
+5. **Citas:** se devuelven solo los fragmentos que el modelo citó, con
+   documento, sección y extracto. En la pantalla, cada `[n]` enlaza a su cita.
+
+### 7.4 El proveedor de IA
+
+- **Gemini en su capa gratuita,** para el chat (`IA_MODELO`, hoy
+  `gemini-3.5-flash-lite`) y los embeddings (`gemini-embedding-001` con
+  `output_dimensionality=768`).
+- **El SDK `google-genai` solo se importa en `apps/ia/proveedores/gemini.py`.**
+  El resto del sistema conoce la interfaz de `proveedores/base.py`, y
+  `fabrica.py` elige la implementación: cambiar de proveedor es escribir otra
+  clase, no tocar los servicios.
+- **Reintentos:** tres intentos ante 429, 500, 503, 504 o un error de red, con
+  esperas de 1 y 2 segundos y un límite de 30 segundos por petición. Un 400 o
+  un 401 no se reintenta, porque no se arregla solo.
+- **Sin llave** (`IA_API_KEY` vacía), el proveedor lanza
+  `ProveedorIANoDisponible` y la API responde 503 `AGENTE_NO_DISPONIBLE`: el
+  sistema arranca igual y la pantalla avisa que el asistente no está
+  disponible.
+- **Datos personales:** la capa gratuita usa lo que recibe para mejorar los
+  productos de Google. Por eso la pantalla pide no escribir nombres, teléfonos
+  ni documentos, y los documentos de la demo no tienen datos reales.
+
+### 7.5 Bitácora del agente
+
+Cada consulta, correcta o fallida, queda en la bitácora con
+`registrar_consulta_agente` (spec 015): pregunta, respuesta, fragmentos
+recuperados (documento, sección y distancia), tokens de entrada y de salida, y
+tiempo.
+
+- Tokens **0/0** cuando no se llamó al modelo.
+- Tokens **vacíos** (`None`) si Gemini falló: no se sabe cuánto consumió.
+- Si falla, `exito=False` con el diagnóstico, antes de responder 503. El
+  diagnóstico lo arma el proveedor y nunca lleva la llave.
+
+### 7.6 Seguridad y límites
+
+- `POST /api/v1/agente/consultas/` es **público**, con un límite de
+  **10 consultas por minuto** por visitante (`ScopedRateThrottle`). Al pasarlo
+  responde 429 con `espera_segundos`, y la pantalla dice cuánto esperar.
+- Las instrucciones del modelo le prohíben salirse de los documentos aunque se
+  lo pidan.
+
+### 7.7 Datos de demostración
+
+`cargar_demo_ia` (dentro de `seed_demo`) carga cuatro documentos de la agencia
+desde `apps/ia/documentos_demo/` y los indexa. Es idempotente. Sin llave, los
+carga sin indexar, y la indexación se puede repetir desde *Documentos del
+asistente* cuando haya llave.
 
 ## 8. Mensajería (rol A, spec 020)
 
@@ -298,11 +521,66 @@ entrega.
 
 ## 9. Auditoría
 
-*Pendiente: rol D.*
+Hay dos registros separados e inmutables en la aplicación:
+
+- `LogAuditoria` (`auditoria_log_sistema`): usuario, entidad e ID, acción,
+  valores anteriores/nuevos, IP, user-agent y fecha. Los servicios registran
+  escrituras de negocio junto con su transacción. Un fallo no debe dejar una
+  escritura de negocio parcial.
+- `LogAgenteIA` (`auditoria_log_agente`): pregunta, respuesta, modo, usuario,
+  herramientas, documentos recuperados, tokens, duración y resultado. `null`
+  en tokens significa desconocido; cero significa consumo conocido de cero.
+
+Los modelos rechazan edición/borrado y el admin permite consulta. No se usan
+`QuerySet.update/delete` sobre estas bitácoras en la aplicación. R17 permite
+a administración consultar/exportar fecha, usuario, entidad y acción, sin
+exponer IP, user-agent ni los JSON completos.
+
+Cada abono de cuota deja un evento con su monto, fecha efectiva y tasa. R12
+lee esos campos y concilia su suma con `CuotaPago.monto_pagado`. Esto permite
+separar pagos de meses diferentes sin atribuir todo al último pago.
 
 ## 10. Reportes
 
-Capa genérica: *pendiente, rol D.*
+Una sola pantalla `/reportes` construye filtros y columnas a partir del
+catálogo. Los serializers validan parámetros; los selectores consultan y
+agregan en PostgreSQL; los servicios comprueban permisos y eligen página o
+exportación; los exportadores solo reciben el objeto `Reporte`.
+
+JSON devuelve 25 filas por página y totales de todo el conjunto filtrado.
+Excel y PDF incluyen todas las filas del filtro aplicado, con límite de
+5,000: si se supera, se rechaza antes de cargar detalle. El formulario conserva
+por separado lo escrito y el filtro aplicado; las descargas usan este último.
+Los importes JSON son texto decimal exacto. No se suman monedas originales
+distintas; donde se consolida en USD se usa la tasa histórica correspondiente.
+
+R05 muestra inventario disponible sin contar dos veces edificios y unidades;
+R16 muestra documentos vencidos o próximos a vencer, y R17 la auditoría solo
+para administración. La 021 completa el conjunto hasta quince con los reportes
+de las secciones siguientes y R12.
+
+### 10.0 Flujo de ingresos R12 (rol D)
+
+`GET /api/v1/reportes/flujo-ingresos/`, más `/excel/` y `/pdf/`, para
+administración, gerencia y contabilidad. Filtros: fecha efectiva desde/hasta
+inclusive, país del bien, moneda y origen (`CONTADO`, `ENGANCHE`, `CUOTA`,
+`RENTA`). Cada fila identifica origen e ID fuente, contrato, fecha, país,
+moneda, recibido, tasa y recibido USD. Agrupa por mes/origen/moneda y presenta
+el total USD, redondeado por cobro antes de sumar.
+
+- Contado y enganche usan fecha de firma y tasa del contrato. Anulados no
+  aportan cobros. No se agrega nuevamente el precio de una venta financiada.
+- Cada abono usa el ID de su log, su fecha y su tasa, incluso si la cuota
+  recibió otro abono en otro mes. La pareja origen/ID evita colisiones.
+- Una renta pagada aporta `monto_pagado`, que ya incluye el recargo. No se
+  suma otra vez el recargo ni se trata el depósito como ingreso.
+- Si falta evidencia, hay una fecha/tasa inválida o los abonos no concilian,
+  responde 409 `DATOS_INCOMPLETOS` en JSON y archivos. La conciliación usa
+  toda la historia de las cuotas del país/moneda seleccionados: no se conoce
+  a qué mes pertenece un log ausente, por lo que acotar fechas no lo oculta.
+
+Ejemplo: dos abonos de GTQ 100 y GTQ 200, con tasas USD 0.10 y 0.20, aportan
+USD 10 y USD 40 en sus respectivas fechas: total USD 50, no USD 60.
 
 ### 10.1 Reportes comerciales (rol B)
 
@@ -352,7 +630,31 @@ contraseña nunca va al repositorio. Las relaciones y la conexión están en
 
 ### 11.2 Tablero
 
-*Pendiente: rol D.*
+Se entrega `docs/powerbi/inmobiliaria.pbix` y su fuente editable
+`inmobiliaria.pbip`. La página **Comercial** contiene tarjetas de ventas USD,
+contratos y ticket promedio, gráficos por mes/país/tipo y filtros de
+año/país/ciudad. Solo usa el USD guardado al firmar para sumar entre monedas.
+
+Las medidas son `SUM('bi hechos_ventas'[neto_usd])`,
+`COUNTROWS('bi hechos_ventas')` y `DIVIDE([Ventas USD], [Contratos])`.
+Las tres relaciones son muchos-a-uno desde hechos a dimensiones, activas y
+con filtro desde dimensión. No se mantiene una relación adicional entre
+geografía y propiedad que cree rutas ambiguas.
+
+Nathaly conectó Desktop a Neon con el lector, cargó las vistas, ejecutó
+Actualizar, seleccionó meses, comprobó las respuestas cruzadas y guardó el
+PBIX final. Las capturas muestran tres contratos sin selección y uno al
+seleccionar julio, septiembre o noviembre. Los permisos negativos en
+producción los confirmó Douglas por separado.
+
+![Tablero comercial con tres contratos](powerbi/capturas/comercial-general.png)
+
+La evidencia y sus límites están en [powerbi/evidencia.md](powerbi/evidencia.md).
+Queda para revisión la conciliación SQL de importes exactos en producción:
+las tarjetas abrevian importes en miles. El procedimiento reproducible está
+en `docs/powerbi/conciliacion.sql`; no se afirma haber ejecutado esas consultas
+contra producción desde Codex. No se requiere publicar el tablero en la nube
+para abrir el PBIX local de la entrega.
 
 ## 12. Despliegue (rol A, spec 002)
 
@@ -431,4 +733,21 @@ navegador la ve.
 
 ## 13. Uso de agentes de IA
 
-*Pendiente: el equipo acuerda cómo declararlo. Cada spec tiene su §11.*
+Se usaron agentes de IA como apoyo para especificaciones, implementación,
+pruebas, revisión de cambios y documentación. Las decisiones se registran en
+el §11 de cada spec y se revisan mediante PR; no se presenta código generado
+como una aprobación del estudiante ni de sus compañeros.
+
+En el bloque D, Codex contrastó la rúbrica y los modelos, preparó las specs
+015/016/021 y apoyó la bitácora de IA, la capa genérica, exportadores y R12.
+Nathaly trasladó las observaciones de B/C/A y autorizó al agente a ejecutar
+commit, push y apertura de PR con su configuración Git. Los compañeros
+revisaron y aprobaron en GitHub los cambios correspondientes; la aprobación
+no se infiere de que las pruebas pasen.
+
+Correcciones relevantes para explicar en defensa: separación de monedas,
+doble conteo de propiedades/unidades, totales completos frente a página de
+25 filas, límite previo a exportación y cada abono con su tasa histórica.
+El equipo debe poder explicar cualquier módulo. Cada integrante completa
+su evidencia personal en las specs y confirma su comprensión; este resumen
+no afirma una defensa oral o una revisión personal que todavía no ocurrió.

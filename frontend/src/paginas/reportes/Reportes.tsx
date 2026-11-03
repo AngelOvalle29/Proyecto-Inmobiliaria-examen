@@ -61,7 +61,7 @@ function ConsultaReporte({ definicion }: { definicion: DefinicionReporte }) {
       const opcion = definicion.filtros
         .find((f) => f.nombre === c.nombre)
         ?.opciones.find((o) => o.valor === String(valor))
-      return opcion?.etiqueta ?? mostrar(valor, c.tipo)
+      return opcion?.etiqueta ?? mostrar(valor, c.tipo, c.formato)
     },
   }))
   const aplicar = (valores: ValoresFiltros) => {
@@ -275,14 +275,16 @@ function SelectorRemoto({
   )
 }
 
-function mostrar(valor: unknown, tipo: string): string {
+function mostrar(valor: unknown, tipo: string, formato = '#,##0.00'): string {
   if (valor === null || valor === undefined) return 'Sin dato'
   if (tipo === 'fecha') return formatearFecha(String(valor))
-  if (tipo === 'decimal')
+  if (tipo === 'decimal') {
+    const decimales = formato.split('.')[1]?.length ?? 0
     return Number(valor).toLocaleString('es-GT', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: decimales,
+      maximumFractionDigits: decimales,
     })
+  }
   if (tipo === 'fecha_hora')
     return new Date(String(valor)).toLocaleString('es-GT', {
       timeZone: 'America/Guatemala',
@@ -300,6 +302,11 @@ const ETIQUETAS_RESUMEN: Record<string, string> = {
   moneda: 'Moneda',
   vencidos: 'Vencidos',
   por_vencer: 'Por vencer',
+  recibido_por_moneda: 'Cobrado por moneda',
+  total_usd: 'Total cobrado (USD)',
+  recibido: 'Recibido',
+  monto_usd: 'Recibido (USD)',
+  origen: 'Origen del cobro',
   // R01, R02, R03, R04, R10 y R11 (spec 021, rol B).
   con_cotizacion: 'Con cotización',
   por_moneda: 'Por moneda',
