@@ -257,13 +257,226 @@ fechas relativas a hoy, para que siempre haya cuotas pagadas, parciales y en
 mora. Las unidades `A-103` y `A-203` quedan libres para mostrar una venta en
 vivo. Los comandos no duplican datos.
 
-## 6. Compras y construcción
+## 6. Compras y construcción (rol C)
 
-*Pendiente: rol C.*
+### 6.1 Entidades
 
-## 7. Agente de IA y RAG
+| App | Entidad | Qué es |
+|---|---|---|
+| `compras` | `Proveedor` (`PRV-0001`) | Quien le vende una propiedad a la agencia: propietario particular, inmobiliaria, banco, gobierno u otro |
+| `compras` | `ContratoCompra` (`CC-00001`) | La compra de una propiedad a un proveedor, con monto, gastos legales, impuestos y costo total |
+| `construccion` | `Constructora` (`CST-0001`) | Empresa que construye; calificación opcional de 1 a 5 |
+| `construccion` | `ProyectoConstruccion` (`PC-00001`) | La obra sobre una propiedad: presupuesto, fechas, estado y avance |
+| `construccion` | `PagoConstructora` (`PG-00001`) | Un pago a la constructora de un proyecto: anticipo, avance, finiquito o extra |
 
-*Pendiente: rol C.*
+Reglas completas: `specs/006-proveedores-constructoras.md` y
+`specs/017-compras-construccion-contratos.md`. Pantallas:
+`specs/018-pantallas-bloque-c.md`.
+
+### 6.2 El ciclo de una propiedad que se compra y se construye
+
+```
+EN_NEGOCIACION ──completar contrato──► ADQUIRIDA ──iniciar obra──► EN_CONSTRUCCION ──finalizar──► DISPONIBLE
+                                           ▲                              │
+                                           └────── cancelar obra ─────────┘
+```
+
+| Paso | Servicio | Efecto en la propiedad |
+|---|---|---|
+| Registrar contrato | `crear_contrato_compra` | Ninguno: el contrato nace `EN_PROCESO` |
+| Completar contrato | `completar_contrato_compra` | De `EN_NEGOCIACION` a `ADQUIRIDA` |
+| Anular contrato | `anular_contrato_compra` | Ninguno: sigue en negociación y admite otro contrato |
+| Registrar proyecto | `crear_proyecto` | Ninguno: el proyecto nace `PLANIFICADO` |
+| Iniciar | `iniciar_proyecto` | De `ADQUIRIDA` a `EN_CONSTRUCCION` |
+| Finalizar (avance 100) | `finalizar_proyecto` | A `DISPONIBLE`, y sus unidades `EN_NEGOCIACION` o `EN_CONSTRUCCION` también |
+| Cancelar | `cancelar_proyecto` | De `EN_CONSTRUCCION` a `ADQUIRIDA`; anula los pagos programados |
+
+Estados de un proyecto: `PLANIFICADO` → `EN_EJECUCION` ⇄ `SUSPENDIDO` →
+`FINALIZADO`, o `CANCELADO` desde cualquiera de los activos. Todos los cambios
+de la propiedad pasan por `cambiar_estado_propiedad` del catálogo, con
+`estado_requerido`.
+
+### 6.3 Reglas que más se preguntan
+
+- **El costo total lo calcula el sistema:** monto + gastos legales + impuestos.
+  El usuario nunca lo envía.
+- **Una propiedad tiene como máximo un contrato no anulado y un proyecto
+  activo.** Lo garantizan `UniqueConstraint` con condición en la base, no solo
+  el código: dos peticiones al mismo tiempo no pasan las dos.
+- **El presupuesto no se supera; se sube.** Lo programado y lo pagado no puede
+  pasar del presupuesto (409 `PRESUPUESTO_EXCEDIDO`). La salida es editar el
+  presupuesto, que queda en la bitácora con el valor anterior y el nuevo: esa
+  es la "autorización explícita".
+- **El avance nunca baja** y va de 0 a 100. Cada avance queda en la bitácora
+  con su descripción.
+- **El finiquito se programa solo con la obra finalizada.** El anticipo es el
+  único pago que se puede pagar antes del inicio de la obra.
+- **Editar un proyecto:** uno activo cambia nombre, fecha de fin estimada y
+  presupuesto; uno finalizado, solo el presupuesto (para un finiquito que no
+  cabía); uno cancelado, nada.
+- **Contratos y pagos no se editan ni se borran.** Un error se anula, con
+  motivo, y se registra de nuevo.
+- **Un proveedor con un contrato en proceso, o una constructora con un
+  proyecto activo, no se desactiva** (409).
+- **NIT:** obligatorio para constructoras y para todo proveedor menos el
+  propietario particular. Se guarda normalizado y no se repite en un país.
+
+### 6.4 Permisos
+
+| Rol | Proveedores, constructoras, contratos y proyectos | Pagos a constructoras |
+|---|---|---|
+| `ADMINISTRADOR`, `GERENTE` | Escriben | Programan, pagan y anulan |
+| `CONTABILIDAD` | Lectura | Programan, pagan y anulan |
+| `AGENTE`, `CONSULTA` | Lectura | Lectura |
+
+Contabilidad registra pagos, pero no decide compras ni obras: mismo criterio
+que las cuotas de ventas.
+
+### 6.5 Decisiones de diseño
+
+- **Cada contrato, proyecto y pago guarda su tasa al dólar** (`tasa_a_usd`) y
+  el monto convertido. El contrato, con la tasa de su fecha de compra; el pago,
+  con la del día en que se paga. Así un reporte en dólares no cambia el pasado.
+- **`total_comprometido` y `disponible` los calcula la API**, con el mismo
+  selector que valida el presupuesto. La pantalla nunca suma los pagos, para
+  que la validación y lo que se ve no den números distintos.
+- **`select_for_update` en cada acción:** dos pagos simultáneos no pasan juntos
+  el presupuesto, y dos peticiones no completan el mismo contrato.
+- **El pago no guarda la constructora:** la toma del proyecto, para que un pago
+  nunca vaya a otra constructora que la de su obra.
+- **Sin entidad `AvanceObra`:** el historial de avances vive en la bitácora.
+- **Las apps no dependen entre sí:** `obtener_dolar` tiene su copia en cada
+  app, y lo común lo da el catálogo.
+
+### 6.6 API y pantallas
+
+| Recurso | Ruta |
+|---|---|
+| Proveedores | `/api/v1/proveedores/` (filtros por tipo, país, ciudad y `?buscar=`) |
+| Contratos de compra | `/api/v1/contratos-compra/`, con `/completar/` y `/anular/` |
+| Constructoras | `/api/v1/constructoras/` (filtros por país, `?calificacion_min=` y `?buscar=`) |
+| Proyectos | `/api/v1/proyectos-construccion/`; el detalle trae `total_comprometido` y `disponible` |
+| Acciones del proyecto | `.../{id}/iniciar/`, `avance/`, `suspender/`, `reanudar/`, `finalizar/` y `cancelar/` |
+| Pagos de un proyecto | `/api/v1/proyectos-construccion/{id}/pagos/` |
+| Pagos | `/api/v1/pagos-constructora/`, con `/{id}/pagar/` y `/{id}/anular/` |
+
+En el frontend, compras (`/compras/proveedores`, `/compras/contratos`) y
+construcción (`/construccion/constructoras`, `/construccion/proyectos`) siguen
+el patrón de B: listas con filtros en la URL y formularios con
+`FormularioDatos`. El **detalle del proyecto** (`/construccion/proyectos/{id}`)
+reúne los datos, la barra de avance, presupuesto / comprometido / disponible,
+los pagos y las acciones. Cada acción aparece solo en el estado que la admite y
+para el rol que la puede hacer. Los formularios de compra y de obra ofrecen solo
+las propiedades en negociación o adquiridas.
+
+### 6.7 Datos de demostración
+
+`cargar_demo_compras` y `cargar_demo_construccion` (dentro de `seed_demo`,
+después del catálogo) dejan:
+
+- seis proveedores y cuatro constructoras;
+- el terreno Las Lomas con un contrato en proceso, listo para completarlo en
+  vivo;
+- la gasolinera adquirida, con un proyecto planificado, para iniciarlo;
+- el hotel en obra al 60 %, con sus pagos, para registrar avance y finalizarlo.
+
+Se guardan como una foto del estado que ya tiene cada propiedad en la demo del
+catálogo, sin auditoría, igual que el resto de la demo.
+
+## 7. Agente de IA y RAG (rol C)
+
+### 7.1 Qué hace
+
+Un visitante, sin iniciar sesión, le pregunta al asistente (`/asistente`) por la
+agencia: servicios, requisitos, horarios. El agente responde **solo** con los
+documentos de la agencia, cita de dónde salió cada dato y, si no encuentra nada,
+lo dice sin inventar. Reglas completas: `specs/005-agente-ia-rag.md`; bitácora:
+`specs/015-bitacora-agente-ia.md`; pantalla: `specs/018-pantallas-bloque-c.md`;
+carga asíncrona de documentos: §8 de este manual.
+
+### 7.2 Entidades
+
+| Entidad | Qué es |
+|---|---|
+| `DocumentoRAG` | Un documento en Markdown: título único, versión, estado de indexación y fecha |
+| `FragmentoRAG` | Un trozo del documento con su sección y su vector (`vector(768)`, índice HNSW por distancia coseno) |
+
+Los vectores viven en la misma PostgreSQL, con pgvector: no hay otra base de
+datos que administrar.
+
+### 7.3 Cómo se responde una pregunta
+
+```
+pregunta ──► vector (Gemini, 768 valores) ──► 5 fragmentos más cercanos con distancia ≤ 0.42
+                                                   │
+                     ┌──────── ninguno ────────────┴──────── alguno ─────────┐
+                     ▼                                                       ▼
+        "No encontré información…"                   fragmentos numerados + instrucciones ──► Gemini
+        (sin llamar al modelo)                                                │
+                                                     respuesta con [n] ──► solo las citas usadas
+```
+
+1. **Indexar** (`indexar_documento`): el Markdown se parte por sus encabezados
+   `##`, en trozos de hasta 1,500 caracteres, y cada trozo se convierte en
+   vector, de 100 en 100. Los vectores se piden **fuera** de la transacción; si
+   el documento cambió mientras tanto, se descarta el resultado
+   (`DocumentoModificadoDuranteIndexacion`).
+2. **Buscar:** se buscan los 5 fragmentos más cercanos con distancia coseno de
+   hasta 0.42 (`IA_DISTANCIA_MAXIMA`).
+3. **Sin fragmentos, no se llama al modelo:** responde `sin_informacion` con
+   0 tokens. No gasta cuota ni le da ocasión de inventar.
+4. **Con fragmentos,** el modelo recibe las instrucciones de
+   `apps/ia/instrucciones.py` (responder solo con los fragmentos, citar `[n]`,
+   no inventar, no cambiar de tema) y los fragmentos numerados.
+5. **Citas:** se devuelven solo los fragmentos que el modelo citó, con
+   documento, sección y extracto. En la pantalla, cada `[n]` enlaza a su cita.
+
+### 7.4 El proveedor de IA
+
+- **Gemini en su capa gratuita,** para el chat (`IA_MODELO`, hoy
+  `gemini-3.5-flash-lite`) y los embeddings (`gemini-embedding-001` con
+  `output_dimensionality=768`).
+- **El SDK `google-genai` solo se importa en `apps/ia/proveedores/gemini.py`.**
+  El resto del sistema conoce la interfaz de `proveedores/base.py`, y
+  `fabrica.py` elige la implementación: cambiar de proveedor es escribir otra
+  clase, no tocar los servicios.
+- **Reintentos:** tres intentos ante 429, 500, 503, 504 o un error de red, con
+  esperas de 1 y 2 segundos y un límite de 30 segundos por petición. Un 400 o
+  un 401 no se reintenta, porque no se arregla solo.
+- **Sin llave** (`IA_API_KEY` vacía), el proveedor lanza
+  `ProveedorIANoDisponible` y la API responde 503 `AGENTE_NO_DISPONIBLE`: el
+  sistema arranca igual y la pantalla avisa que el asistente no está
+  disponible.
+- **Datos personales:** la capa gratuita usa lo que recibe para mejorar los
+  productos de Google. Por eso la pantalla pide no escribir nombres, teléfonos
+  ni documentos, y los documentos de la demo no tienen datos reales.
+
+### 7.5 Bitácora del agente
+
+Cada consulta, correcta o fallida, queda en la bitácora con
+`registrar_consulta_agente` (spec 015): pregunta, respuesta, fragmentos
+recuperados (documento, sección y distancia), tokens de entrada y de salida, y
+tiempo.
+
+- Tokens **0/0** cuando no se llamó al modelo.
+- Tokens **vacíos** (`None`) si Gemini falló: no se sabe cuánto consumió.
+- Si falla, `exito=False` con el diagnóstico, antes de responder 503. El
+  diagnóstico lo arma el proveedor y nunca lleva la llave.
+
+### 7.6 Seguridad y límites
+
+- `POST /api/v1/agente/consultas/` es **público**, con un límite de
+  **10 consultas por minuto** por visitante (`ScopedRateThrottle`). Al pasarlo
+  responde 429 con `espera_segundos`, y la pantalla dice cuánto esperar.
+- Las instrucciones del modelo le prohíben salirse de los documentos aunque se
+  lo pidan.
+
+### 7.7 Datos de demostración
+
+`cargar_demo_ia` (dentro de `seed_demo`) carga cuatro documentos de la agencia
+desde `apps/ia/documentos_demo/` y los indexa. Es idempotente. Sin llave, los
+carga sin indexar, y la indexación se puede repetir desde *Documentos del
+asistente* cuando haya llave.
 
 ## 8. Mensajería (rol A, spec 020)
 
