@@ -1,0 +1,74 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 334.17941566988617,
+            "y": 236.76878482938966
+          },
+          "nodeIndex": "bi dim_geografia",
+          "nodeLineageTag": "0e21e426-3718-43f3-a23b-a2519efd4dda",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 50,
+            "y": 344.08709676544549
+          },
+          "nodeIndex": "bi dim_propiedad",
+          "nodeLineageTag": "fae3ea0e-2369-453d-85de-f84d8559a3fd",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 902.57687716577971,
+            "y": -50
+          },
+          "nodeIndex": "bi dim_tiempo",
+          "nodeLineageTag": "a5655d3d-80a4-49fa-9c99-4b57e12fbd13",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 618.37645520037063,
+            "y": 50.871234307172472
+          },
+          "nodeIndex": "bi hechos_ventas",
+          "nodeLineageTag": "9ed99d0c-cf25-4228-8239-23b64189fe2b",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "Todas las tablas",
+      "zoomValue": 70.95554390096882,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "Todas las tablas",
+  "defaultDiagram": "Todas las tablas"
+}

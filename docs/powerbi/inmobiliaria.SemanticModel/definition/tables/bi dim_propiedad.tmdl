@@ -1,0 +1,105 @@
+table 'bi dim_propiedad'
+	lineageTag: fae3ea0e-2369-453d-85de-f84d8559a3fd
+
+	column bien_clave
+		dataType: string
+		lineageTag: 6c380063-143b-4484-91e6-175a35ded2c8
+		summarizeBy: none
+		sourceColumn: bien_clave
+
+		annotation SummarizationSetBy = Automatic
+
+	column origen
+		dataType: string
+		lineageTag: 8c124057-26db-48b1-9d8e-f8708b430e9e
+		summarizeBy: none
+		sourceColumn: origen
+
+		annotation SummarizationSetBy = Automatic
+
+	column bien_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 3159a57e-0752-494a-864b-031263b93886
+		summarizeBy: none
+		sourceColumn: bien_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column codigo
+		dataType: string
+		lineageTag: dbb48c0c-737c-4294-8f5b-c8b24f7d3a93
+		summarizeBy: none
+		sourceColumn: codigo
+
+		annotation SummarizationSetBy = Automatic
+
+	column nombre
+		dataType: string
+		lineageTag: 13262486-bcfc-4563-9669-a28b9a454d08
+		summarizeBy: none
+		sourceColumn: nombre
+
+		annotation SummarizationSetBy = Automatic
+
+	column propiedad_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 0d9fdc02-72b7-4740-9bed-dcc8c2709f1d
+		summarizeBy: none
+		sourceColumn: propiedad_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column propiedad_codigo
+		dataType: string
+		lineageTag: fbf70701-a790-4b8d-9c48-a676f83c3496
+		summarizeBy: none
+		sourceColumn: propiedad_codigo
+
+		annotation SummarizationSetBy = Automatic
+
+	column tipo
+		dataType: string
+		lineageTag: c02086e4-13ed-484b-874a-cc6065a7524e
+		summarizeBy: none
+		sourceColumn: tipo
+
+		annotation SummarizationSetBy = Automatic
+
+	column ciudad_id
+		dataType: int64
+		formatString: 0
+		lineageTag: f8f2e1c7-d853-4539-a8e4-f8e1d2eeeb9f
+		summarizeBy: none
+		sourceColumn: ciudad_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column estado_actual
+		dataType: string
+		lineageTag: 1bc9544f-44b6-40c8-b490-1c0501ac8422
+		summarizeBy: none
+		sourceColumn: estado_actual
+
+		annotation SummarizationSetBy = Automatic
+
+	column activo
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 3483e0bf-272c-47ea-aecf-b985796b23ff
+		summarizeBy: none
+		sourceColumn: activo
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'bi dim_propiedad' = m
+		mode: import
+		source =
+				let
+				    Origen = PostgreSQL.Database("ep-purple-waterfall-b5e2fdhj.c-7.us-east-2.aws.neon.tech", "neondb"),
+				    bi_dim_propiedad = Origen{[Schema="bi",Item="dim_propiedad"]}[Data]
+				in
+				    bi_dim_propiedad
+
+	annotation PBI_ResultType = Table

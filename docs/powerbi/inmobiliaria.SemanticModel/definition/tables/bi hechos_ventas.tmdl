@@ -1,0 +1,145 @@
+table 'bi hechos_ventas'
+	lineageTag: 9ed99d0c-cf25-4228-8239-23b64189fe2b
+
+	/// Venta neta en dólares, con la tasa guardada al firmar.
+	measure 'Ventas USD' = SUM('bi hechos_ventas'[neto_usd])
+		formatString: "US$" #,0.00
+		displayFolder: Indicadores comerciales
+		lineageTag: 84a7eea4-ace5-4088-ab00-32a00c1df6e8
+
+	/// Cantidad de contratos no anulados dentro del filtro.
+	measure Contratos = COUNTROWS('bi hechos_ventas')
+		formatString: #,0
+		displayFolder: Indicadores comerciales
+		lineageTag: 3b8eeed7-01b2-4b49-9e31-a6d2b338e268
+
+	/// Venta media por contrato dentro del filtro; vacío si no hay contratos.
+	measure 'Ticket promedio USD' = DIVIDE([Ventas USD], [Contratos])
+		formatString: "US$" #,0.00
+		displayFolder: Indicadores comerciales
+		lineageTag: 4259e3f2-066e-4f89-96ce-f61d162a8d16
+
+	column contrato_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 48153c3f-d2cb-42d8-b0db-8310f809dac7
+		summarizeBy: none
+		sourceColumn: contrato_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column codigo
+		dataType: string
+		lineageTag: 8c2ab903-34cb-4dd0-802e-91b4cbf690d3
+		summarizeBy: none
+		sourceColumn: codigo
+
+		annotation SummarizationSetBy = Automatic
+
+	column fecha_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 269328f0-31a3-4d21-b9fb-bc5c0fb8d871
+		summarizeBy: none
+		sourceColumn: fecha_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column fecha_firma
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 143ea5f3-1be8-47de-ab5c-9e203b9e9a0a
+		summarizeBy: none
+		sourceColumn: fecha_firma
+
+		variation Variation
+			isDefault
+			relationship: da896150-a2a0-4b3f-a5a2-5f5b753085b9
+			defaultHierarchy: LocalDateTable_fc6986d8-e7b8-402a-b8d7-42b9a1af1822.'Jerarquía de fechas'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column bien_clave
+		dataType: string
+		lineageTag: ab171165-56ef-4cb0-9e2f-67625d7d761b
+		summarizeBy: none
+		sourceColumn: bien_clave
+
+		annotation SummarizationSetBy = Automatic
+
+	column ciudad_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 17aed8b1-26c4-451b-9a73-ece7da960fca
+		summarizeBy: none
+		sourceColumn: ciudad_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column moneda
+		dataType: string
+		lineageTag: aaa201c1-adc7-45c0-81e4-50a9c43032b8
+		summarizeBy: none
+		sourceColumn: moneda
+
+		annotation SummarizationSetBy = Automatic
+
+	column modalidad
+		dataType: string
+		lineageTag: 6f8a3fef-f726-4ef2-9bd7-110b6e945685
+		summarizeBy: none
+		sourceColumn: modalidad
+
+		annotation SummarizationSetBy = Automatic
+
+	column estado
+		dataType: string
+		lineageTag: de47df68-be1f-4a75-a149-90ff53af93de
+		summarizeBy: none
+		sourceColumn: estado
+
+		annotation SummarizationSetBy = Automatic
+
+	column neto
+		dataType: double
+		lineageTag: 1a6370a4-97b2-46eb-8f59-0a700ce006c0
+		summarizeBy: sum
+		sourceColumn: neto
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tasa_a_usd
+		dataType: double
+		lineageTag: f5d84a86-6117-4d1d-9747-bdc53c09e6be
+		summarizeBy: none
+		sourceColumn: tasa_a_usd
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column neto_usd
+		dataType: double
+		formatString: "US$" #,0.00
+		lineageTag: 22cb3348-2fab-48e9-817b-63e8a7b4d223
+		summarizeBy: sum
+		sourceColumn: neto_usd
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'bi hechos_ventas' = m
+		mode: import
+		source =
+				let
+				    Origen = PostgreSQL.Database("ep-purple-waterfall-b5e2fdhj.c-7.us-east-2.aws.neon.tech", "neondb"),
+				    bi_hechos_ventas = Origen{[Schema="bi",Item="hechos_ventas"]}[Data]
+				in
+				    bi_hechos_ventas
+
+	annotation PBI_ResultType = Exception

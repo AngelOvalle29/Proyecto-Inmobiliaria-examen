@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "inmobiliaria"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "cd2c6763-57d4-4025-9b12-1ea4020684e1"
+  }
+}

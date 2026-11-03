@@ -1,0 +1,178 @@
+cultureInfo es-GT
+
+	linguisticMetadata =
+			{
+			  "Version": "2.0.0",
+			  "Language": "en-US",
+			  "Entities": {
+			    "bi_hechos_ventas.contratos": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "bi hechos_ventas",
+			          "ConceptualProperty": "Contratos"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Contratos": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "bi_hechos_ventas.ticket_promedio_usd": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "bi hechos_ventas",
+			          "ConceptualProperty": "Ticket promedio USD"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Ticket promedio USD": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "bi_hechos_ventas.ventas_usd": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "bi hechos_ventas",
+			          "ConceptualProperty": "Ventas USD"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Ventas USD": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "bi_dim_tiempo.anio": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "bi dim_tiempo",
+			          "ConceptualProperty": "anio"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "AÑO": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "bi_dim_tiempo.anio_mes": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "bi dim_tiempo",
+			          "ConceptualProperty": "anio_mes"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Mes": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "bi_dim_geografia.ciudad": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "bi dim_geografia",
+			          "ConceptualProperty": "ciudad"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "CIUDAD": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "bi_dim_geografia.pais": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "bi dim_geografia",
+			          "ConceptualProperty": "pais"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "PAÍS": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    },
+			    "bi_dim_propiedad.tipo": {
+			      "Definition": {
+			        "Binding": {
+			          "ConceptualEntity": "bi dim_propiedad",
+			          "ConceptualProperty": "tipo"
+			        }
+			      },
+			      "State": "Generated",
+			      "Terms": [
+			        {
+			          "Tipo de propiedad": {
+			            "State": "Suggested",
+			            "Source": {
+			              "Type": "External",
+			              "Agent": "PowerBI.VisualColumnRename"
+			            },
+			            "Weight": 0.9
+			          }
+			        }
+			      ]
+			    }
+			  }
+			}
+		contentType: json

@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 021, propuesto; coordinar antes de abrir el PR |
-| **Estado** | Borrador para revisión del equipo; no autoriza implementación |
+| **Estado** | Aprobada en #78; implementación por bloques, pendiente de evidencia final de Power BI |
 | **Autor** | Propuesta para Nathaly Saraí Reyes Cifuentes (rol D), con apoyo de Codex |
 | **Revisor** | Por asignar: A para catálogo/BI, B para comercial y C para compras/construcción |
 | **Fecha** | 2026-11-01 |
@@ -487,3 +487,40 @@ D.
 
 Quedan sin marcar la conexión real a Neon y el `.pbix`, que se hacen en Power
 BI Desktop.
+
+### Implementación de D: R12 y cierre de los quince reportes (2026-11-02)
+
+Se retoma `develop` en `39a1ec8`, con los PR #77/#78 fusionados y catorce
+reportes implementados por el equipo. R15 y las cuatro vistas ya estaban
+integrados: R12 es el reporte que completa los quince del alcance aprobado.
+
+Se añade `selectors_ingresos.py` con SQL parametrizado: contado y enganche por
+fecha de firma, abonos desde los eventos inmutables con su tasa histórica y
+rentas con el recibido que ya incluye el recargo. Se concilian los abonos con
+el acumulado de cada cuota y se validan fecha, monto y tasa en PostgreSQL 16
+antes de convertir JSON. La paginación usa SQL y ambos archivos reutilizan
+el mismo resultado. No se crean tablas, migraciones ni dependencias nuevas.
+
+Codex preparó la implementación y catorce casos de prueba de pagos reales,
+permisos de cinco roles, datos incompletos, filtros, paginación y archivos.
+Se verificó la suite completa: **1,082 pruebas pasaron en 101.83 s**; también
+ruff, formato, migraciones, OpenAPI sin avisos y lint/typecheck/build. La
+evidencia visual y la integración de Power BI se documentan separadamente;
+no se consideran terminadas por compilar la aplicación o existir las vistas.
+
+### Tablero comercial y evidencia de D
+
+Nathaly recibió el lector por privado de Douglas, conectó Desktop a Neon,
+cargó las vistas y guardó PBIX/PBIP. Codex corrigió las relaciones y preparó
+las tres medidas y la página Comercial en los archivos editables del modelo
+y del informe. Se validaron con la biblioteca oficial TMDL y los esquemas
+PBIR disponibles, sin modificar las consultas para incluir contraseñas.
+
+Nathaly abrió el proyecto, ejecutó Actualizar y comprobó selección/resaltado
+por julio, septiembre y noviembre. Las capturas muestran tres contratos en
+total y uno en cada selección; guardó el `.pbix` final y cerró Desktop.
+Se entrega el informe, su fuente, cinco capturas y `docs/powerbi/evidencia.md`.
+Douglas confirmó por separado los permisos de lectura en producción.
+No se da por realizada la conciliación SQL exacta contra producción ni
+la prueba de los quince reportes desde navegador: se dejan para revisión
+con su procedimiento, diferenciándolas de las 1,082 pruebas automáticas.
