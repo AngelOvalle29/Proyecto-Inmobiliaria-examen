@@ -23,12 +23,17 @@ import { ListaPropiedades } from './paginas/catalogo/ListaPropiedades'
 import { ListaTiposPropiedad } from './paginas/catalogo/ListaTiposPropiedad'
 import { NuevaPropiedad } from './paginas/catalogo/NuevaPropiedad'
 import { EditarProveedor, NuevoProveedor } from './paginas/compras/FormularioProveedor'
+import { ListaContratosCompra } from './paginas/compras/ListaContratosCompra'
 import { ListaProveedores } from './paginas/compras/ListaProveedores'
+import { NuevoContratoCompra } from './paginas/compras/NuevoContratoCompra'
+import { DetalleProyecto } from './paginas/construccion/DetalleProyecto'
 import {
   EditarConstructora,
   NuevaConstructora,
 } from './paginas/construccion/FormularioConstructora'
 import { ListaConstructoras } from './paginas/construccion/ListaConstructoras'
+import { ListaProyectos } from './paginas/construccion/ListaProyectos'
+import { NuevoProyecto } from './paginas/construccion/NuevoProyecto'
 import { EditarCliente, NuevoCliente } from './paginas/crm/FormularioCliente'
 import { ListaAgentes } from './paginas/crm/ListaAgentes'
 import { ListaClientes } from './paginas/crm/ListaClientes'
@@ -161,6 +166,15 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
+      { path: '/compras/contratos', element: <ListaContratosCompra /> },
+      {
+        path: '/compras/contratos/nuevo',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_COMPRAS}>
+            <NuevoContratoCompra />
+          </RutaProtegida>
+        ),
+      },
       { path: '/construccion/constructoras', element: <ListaConstructoras /> },
       {
         path: '/construccion/constructoras/nueva',
@@ -178,6 +192,17 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
+      { path: '/construccion/proyectos', element: <ListaProyectos /> },
+      {
+        path: '/construccion/proyectos/nuevo',
+        element: (
+          <RutaProtegida roles={ESCRIBEN_CONSTRUCCION}>
+            <NuevoProyecto />
+          </RutaProtegida>
+        ),
+      },
+      // Todos lo ven; cada botón según el rol (spec 018, §5).
+      { path: '/construccion/proyectos/:id', element: <DetalleProyecto /> },
       {
         path: '/asistente/documentos',
         element: (

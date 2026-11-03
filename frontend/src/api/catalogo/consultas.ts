@@ -108,12 +108,24 @@ export function useUnidadesDePropiedad(
 }
 
 /**
- * Propiedades para CampoRelacion. No se filtra por DISPONIBLE: un edificio con
- * unidades disponibles puede tener otro estado. El estado se muestra en la
- * opción, y si el bien no se puede cotizar o vender lo responde la API.
+ * Propiedades para CampoRelacion. Sin `estado` no se filtra por DISPONIBLE: un
+ * edificio con unidades disponibles puede tener otro estado. El estado se
+ * muestra en la opción, y si el bien no se puede cotizar o vender lo responde
+ * la API.
+ *
+ * `estado` (spec 018, regla 7) limita las opciones a las que la operación
+ * acepta: EN_NEGOCIACION para comprar, ADQUIRIDA para construir. Va en tercer
+ * lugar a propósito: FormularioDatos llama a cada `buscar` como
+ * buscar(texto, valores), así que en el segundo lugar llegarían los valores del
+ * formulario (en NuevaCotizacion, que usa este hook tal cual). Los formularios
+ * de compras y construcción lo envuelven en un hook propio que fija el estado.
  */
-export function useOpcionesPropiedad(texto: string) {
-  const consulta = usePropiedades({ buscar: texto || undefined })
+export function useOpcionesPropiedad(
+  texto: string,
+  _valores?: unknown,
+  estado?: EstadoPropiedad,
+) {
+  const consulta = usePropiedades({ buscar: texto || undefined, estado })
   return {
     opciones: (consulta.data?.results ?? []).map((propiedad) => ({
       valor: String(propiedad.id),
