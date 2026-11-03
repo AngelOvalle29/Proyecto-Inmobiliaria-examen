@@ -3,13 +3,13 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 014 |
-| **Estado** | En revisión |
+| **Estado** | Implementada |
 | **Autor** | Douglas Gerardo Morales Velásquez (rol A) |
-| **Revisor** | Por asignar |
+| **Revisor** | Marco André Bolaños Rojas (Lilfacce) |
 | **Fecha** | 2026-10-31 |
 | **Apps afectadas** | `frontend/` (`paginas/catalogo` y `api/catalogo`); en el backend, solo la búsqueda de unidades en `catalogo` |
 | **Rama** | `feature/014-pantallas-catalogo` |
-| **Pull request** | — |
+| **Pull request** | DouGMV/Proyecto-Inmobiliaria#67 (spec aprobada en #57) |
 
 ---
 
