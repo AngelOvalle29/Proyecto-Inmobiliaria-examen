@@ -524,3 +524,20 @@ Douglas confirmó por separado los permisos de lectura en producción.
 No se da por realizada la conciliación SQL exacta contra producción ni
 la prueba de los quince reportes desde navegador: se dejan para revisión
 con su procedimiento, diferenciándolas de las 1,082 pruebas automáticas.
+
+### Recorrido local posterior de D
+
+El 2026-11-02 Codex ejecutó el recorrido de las quince entradas y treinta
+descargas con Edge automatizado y datos ficticios locales. Se comprobaron
+los filtros de origen de R12, un rango vacío, el error de fechas inválidas
+y la página 2 de R10 con totales estables y exportación de sus 63 filas.
+La evidencia y los límites están en
+`docs/reportes/evidencia-navegador-021.md`.
+
+La revisión detectó que una tasa COP aparecía como `0.00` en pantalla y PDF.
+Se corrigió la presentación genérica para respetar el formato de columna:
+seis decimales de tasa y dos de dinero, como ya hacía Excel. La suite del
+módulo pasó 149 pruebas, incluida la regresión de precisión; también ruff,
+migraciones, OpenAPI y lint/typecheck/build. Se preparó una guía de defensa
+del bloque D. La conciliación SQL de producción y el repaso oral no se dan
+por realizados.

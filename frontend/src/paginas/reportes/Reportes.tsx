@@ -61,7 +61,7 @@ function ConsultaReporte({ definicion }: { definicion: DefinicionReporte }) {
       const opcion = definicion.filtros
         .find((f) => f.nombre === c.nombre)
         ?.opciones.find((o) => o.valor === String(valor))
-      return opcion?.etiqueta ?? mostrar(valor, c.tipo)
+      return opcion?.etiqueta ?? mostrar(valor, c.tipo, c.formato)
     },
   }))
   const aplicar = (valores: ValoresFiltros) => {
@@ -275,14 +275,16 @@ function SelectorRemoto({
   )
 }
 
-function mostrar(valor: unknown, tipo: string): string {
+function mostrar(valor: unknown, tipo: string, formato = '#,##0.00'): string {
   if (valor === null || valor === undefined) return 'Sin dato'
   if (tipo === 'fecha') return formatearFecha(String(valor))
-  if (tipo === 'decimal')
+  if (tipo === 'decimal') {
+    const decimales = formato.split('.')[1]?.length ?? 0
     return Number(valor).toLocaleString('es-GT', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: decimales,
+      maximumFractionDigits: decimales,
     })
+  }
   if (tipo === 'fecha_hora')
     return new Date(String(valor)).toLocaleString('es-GT', {
       timeZone: 'America/Guatemala',
