@@ -23,9 +23,8 @@ de cambio para que una nueva tasa no modifique las cifras históricas.
 La entrega se verifica por bloques: catálogo y flujo comercial, compras y
 construcción, asistente con documentos, procesamiento asíncrono con RabbitMQ,
 dos bitácoras, quince reportes con Excel/PDF e integración analítica mediante
-cuatro vistas `bi`. Este manual distingue funcionalidades implementadas de
-evidencia aún pendiente: la existencia de las vistas no certifica por sí sola
-que el tablero Power BI esté conectado y actualizado.
+cuatro vistas `bi`, que el tablero `docs/powerbi/inmobiliaria.pbix` lee con el
+usuario de solo lectura `powerbi_reader` (verificado en producción, §11).
 
 ## 2. Arquitectura
 
@@ -119,9 +118,11 @@ pasan.
 | `Unidad` | Un apartamento o local de una propiedad que requiere unidades |
 | `Avaluo` | Una valuación con fecha, valor, moneda, perito y metodología |
 | `DocumentoOficial` | Escritura, licencia, plano, certificación, avalúo, contrato u otro, con su archivo |
+| `ImagenPropiedad` | Una foto de la galería de la propiedad, con su orden y la marca de portada |
 
-Reglas completas: `specs/003-catalogo-propiedades.md` y
-`specs/011-avaluos-documentos.md`. Pantallas: `specs/014-pantallas-catalogo.md`.
+Reglas completas: `specs/003-catalogo-propiedades.md`,
+`specs/011-avaluos-documentos.md` y `specs/019-imagenes-propiedad.md`.
+Pantallas: `specs/014-pantallas-catalogo.md`.
 
 ### 4.2 Reglas que más se preguntan
 
@@ -146,6 +147,16 @@ Reglas completas: `specs/003-catalogo-propiedades.md` y
   - en producción van a un bucket privado de Supabase, y se descargan con una
     URL firmada que vence a los 5 minutos;
   - un documento que respalda un avalúo activo no se desactiva (409).
+- **Imágenes (spec 019):**
+  - JPG o PNG de hasta 5 MB, con la misma revisión por contenido que los
+    documentos (`_validar_archivo` recibe las firmas y el tamaño);
+  - hasta 10 activas por propiedad (409 `LIMITE_IMAGENES`);
+  - una sola portada activa, garantizada por un `UniqueConstraint` con
+    condición: la primera foto es la portada, y al desactivarla la marca pasa
+    a la siguiente según el orden;
+  - la API entrega cada foto con su URL firmada de 5 minutos. La lista de
+    propiedades trae `portada_url` con un `Prefetch`, sin una consulta por
+    fila.
 
 ### 4.3 Permisos
 
@@ -162,10 +173,12 @@ Escriben `ADMINISTRADOR` y `GERENTE`; los tipos de propiedad, solo
 | Unidades | `/api/v1/propiedades/{id}/unidades/` (`?buscar=` por código) |
 | Avalúos | `/api/v1/propiedades/{id}/avaluos/` |
 | Documentos | `/api/v1/propiedades/{id}/documentos/` (multipart) y `/api/v1/documentos/{id}/descarga/` |
+| Imágenes | `/api/v1/propiedades/{id}/imagenes/` (multipart), `/api/v1/imagenes/{id}/` y `/api/v1/imagenes/{id}/marcar-portada/` |
 
 En el frontend, la **ficha de la propiedad** (`/catalogo/propiedades/{id}`)
-reúne todo en pestañas: Datos (con el último avalúo), Unidades, Avalúos y
-Documentos. Los vencidos se ven en rojo y los que vencen en 30 días, en ámbar.
+reúne todo en pestañas: Datos (con el último avalúo), Unidades, Avalúos,
+Documentos e Imágenes. La lista de propiedades muestra la miniatura de la
+portada. Los vencidos se ven en rojo y los que vencen en 30 días, en ámbar.
 La pestaña va en la URL (`?pestana=documentos`), así se puede compartir.
 
 ## 5. CRM, ventas y arrendamientos (rol B)
@@ -737,6 +750,17 @@ Se usaron agentes de IA como apoyo para especificaciones, implementación,
 pruebas, revisión de cambios y documentación. Las decisiones se registran en
 el §11 de cada spec y se revisan mediante PR; no se presenta código generado
 como una aprobación del estudiante ni de sus compañeros.
+
+En el rol A, Douglas trabajó con Claude Code en la fundación y el despliegue
+(specs 001 y 002), el catálogo con avalúos, documentos e imágenes (003, 011,
+014 y 019), el listado de usuarios (013), el asistente público (018), la
+ingesta asíncrona (020), los reportes R06, R08, R13, R14 y R15 y las vistas
+`bi` (021). El agente redactó borradores de spec, implementó por incrementos,
+corrió las pruebas y revisó los PR del equipo; Douglas eligió el alcance de cada
+spec entre las opciones planteadas, decidió qué revisiones publicar y qué
+fusionar, y fue quien hizo los cambios que necesitaban credenciales
+(variables de Render, la llave de Gemini, el usuario `powerbi_reader`). El
+detalle de cada sesión está en el §11 de esas specs.
 
 En el bloque D, Codex contrastó la rúbrica y los modelos, preparó las specs
 015/016/021 y apoyó la bitácora de IA, la capa genérica, exportadores y R12.

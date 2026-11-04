@@ -151,7 +151,8 @@ propiedad que se compra para revender tal como está, sin obra, pasa de
 
 24. Contratos y proyectos: escriben `ADMINISTRADOR` y `GERENTE`. Pagos: escriben
     `ADMINISTRADOR`, `GERENTE` y `CONTABILIDAD`, como los pagos de ventas
-    (spec 007). Todos los roles autenticados leen.
+    (spec 007). Todos los roles autenticados leen. *(Reemplazado por la spec
+    024: leen solo `ADMINISTRADOR`, `GERENTE` y `CONTABILIDAD`.)*
 
 ## 4. Modelo de datos
 

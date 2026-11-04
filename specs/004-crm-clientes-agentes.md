@@ -93,7 +93,8 @@ las specs siguientes lo reutilizan.
     `AGENTE` que todavía no tiene perfil de agente no ve ningún cliente (lista
     vacía) y no puede crearlos.
 13. `CONTABILIDAD` y `CONSULTA` ven todos los clientes y agentes, sin
-    modificarlos.
+    modificarlos. *(Desde la spec 024, un `AGENTE` ve solo su propio perfil de
+    agente.)*
 14. Un agente que pide un cliente que no es de su cartera recibe 404, no 403:
     no debe poder averiguar qué clientes existen.
 

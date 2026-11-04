@@ -10,16 +10,18 @@ choca con algo escrito aquí, gana lo escrito aquí.
 
 | Criterio | Puntos | Estado |
 |---|---:|---|
-| Sistema base: CRUD, arquitectura, código limpio y uso de GitHub | 5 | Pendiente |
-| Agente de inteligencia artificial | 2 | Pendiente |
-| Flujo asíncrono con RabbitMQ o Kafka | 2 | Pendiente |
-| Logs y auditoría en base de datos | 2 | Pendiente |
-| Reportería y Power BI | 2 | Pendiente |
-| Despliegue en producción | 1 | Pendiente |
-| Defensa oral del proyecto | 1 | Pendiente |
+| Sistema base: CRUD, arquitectura, código limpio y uso de GitHub | 5 | Hecho: una app de Django por dominio, con capas; specs 001 a 023 y revisión por PR |
+| Agente de inteligencia artificial | 2 | Hecho: asistente público con RAG y citas (specs 005 y 018) |
+| Flujo asíncrono con RabbitMQ o Kafka | 2 | Hecho: ingesta de documentos del asistente (spec 020), verificada en producción |
+| Logs y auditoría en base de datos | 2 | Hecho: bitácora del sistema y del agente (specs 001 y 015) |
+| Reportería y Power BI | 2 | Hecho: 15 reportes con Excel y PDF, vistas `bi` y tablero `.pbix` (specs 016 y 021) |
+| Despliegue en producción | 1 | Hecho: Render, Neon, CloudAMQP, Vercel y Supabase (spec 002) |
+| Defensa oral del proyecto | 1 | Pendiente: ensayo del equipo |
 | **Total** | **15** | |
 
-Actualizar la columna de estado conforme avance el proyecto.
+Estado al 2026-11-03. Lo que quedó fuera del plan original, para responderlo en
+la defensa: el modo interno del agente y las notificaciones por correo (la
+rúbrica pide un solo flujo asíncrono).
 
 ---
 
@@ -132,17 +134,4 @@ Documento entregable al final del proyecto.
   únicamente por los estudiantes. **No se permite el vibecoding.**
 - Los sistemas de inventario simple y punto de venta están bloqueados. Nuestro
   dominio no cae en esa categoría.
-- El dominio debe ser distinto al de los demás equipos. **Confirmar con el
-  catedrático que ningún otro equipo tomó agencia inmobiliaria.**
-
----
-
-## Puntos a confirmar con el catedrático
-
-1. Que el dominio de agencia inmobiliaria no esté tomado por otro equipo.
-2. Fecha de entrega y fecha de la defensa oral.
-3. Formato esperado del manual técnico.
-4. **Si el frontend puede usar TypeScript.** La restricción del enunciado
-   ("limitando el uso de Node con Javascript") aplica a la API, que será Django,
-   pero conviene dejarlo confirmado por escrito antes de avanzar.
-5. Si se requiere un informe de avance intermedio.
+- El dominio debe ser distinto al de los demás equipos.

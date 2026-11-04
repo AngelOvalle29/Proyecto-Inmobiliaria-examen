@@ -6,6 +6,16 @@ quede completo.
 
 Las entidades marcadas con ★ son las que se presentan como núcleo en la defensa.
 
+> **Qué se construyó.** Este documento es el diseño inicial. No se
+> construyeron:
+> - `PlanPago`: sus datos (plazo, tasa, enganche) van en `ContratoVenta` (#18).
+> - `AvanceObra` y `EventoPropiedad`: esa historia queda en la bitácora de
+>   auditoría, con el valor anterior, el nuevo y el motivo (#21).
+> - `CotizacionDetalle`: el detalle va dentro de la cotización (#17).
+> - `Amenidad`: ningún flujo ni reporte la pide.
+>
+> Se agregó `ImagenPropiedad` (spec 019).
+
 ---
 
 ## 1. Catálogos base — app `core`

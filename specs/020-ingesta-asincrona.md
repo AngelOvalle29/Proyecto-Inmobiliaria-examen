@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 020 |
-| **Estado** | Implementada (falta la verificación en producción) |
+| **Estado** | Implementada y verificada en producción (2026-11-03) |
 | **Autor** | Douglas (rol A), con acuerdo de C y D |
 | **Revisor** | Angel (rol C, dueño de `ia`) y Nathaly (rol D, dueña de la mensajería) |
 | **Fecha** | 2026-11-01 |
@@ -249,7 +249,7 @@ del worker va al log de Render.
 
 ## 8. Criterios de aceptación
 
-- [ ] Subir un `.md` responde 201 en menos de un segundo, con el documento
+- [x] Subir un `.md` responde 201 en menos de un segundo, con el documento
       `PENDIENTE`; con el worker corriendo, pasa a `INDEXADO` y el agente
       responde con él
 - [ ] Con el worker detenido, el documento queda `PENDIENTE`; al arrancarlo, se
@@ -388,3 +388,10 @@ log de Render. El del worker detenido no se probó.
    pruebas.
 2. API y sus pruebas.
 3. Pantalla y menú; verificación de §8 en local y en producción.
+
+**Verificación en producción (2026-11-03, A).** Douglas subió
+`catalogo-publico-propiedades.md` en *Documentos del asistente*: pasó de
+`PENDIENTE` a `INDEXADO` por la cola de CloudAMQP, y el asistente respondió con
+él y con su cita. Un `.txt` se rechazó. El documento queda activo para la
+defensa. No se revisó el log de Render ni se probó con el worker detenido, así
+que esos dos criterios siguen sin marcar.

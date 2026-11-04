@@ -55,6 +55,14 @@ embeddings · Gmail SMTP con contraseña de aplicación para las notificaciones.
 Prohibido por el enunciado del curso: SQLite (y similares), FastAPI, Node con
 JavaScript para la API.
 
+> **Qué se usa de verdad.** Esta tabla es el plan inicial. No se usan: Gmail
+> SMTP (no hay código que envíe correo; las notificaciones salieron del
+> alcance), Redis (Celery no guarda resultados), Recharts (las gráficas están
+> en Power BI) ni las colas `notificaciones` y `reportes` (solo existe
+> `documentos`). El agente solo tiene modo público con RAG. Railway se
+> reemplazó por Render el 2026-10-21 (spec 002).
+
+
 ---
 
 ## Flujo obligatorio: especificación primero

@@ -77,6 +77,8 @@ propiedades**, para que el rol C avance mientras `Propiedad` (spec 003) llega a
    `CST-0001` para constructoras.
 9. No se borra nada físicamente: eliminar marca `activo` en falso.
 10. Escriben `ADMINISTRADOR` y `GERENTE`. Leen todos los roles autenticados.
+    *(Reemplazado por la spec 024: leen solo `ADMINISTRADOR`, `GERENTE` y
+    `CONTABILIDAD`.)*
 
 ## 4. Modelo de datos
 

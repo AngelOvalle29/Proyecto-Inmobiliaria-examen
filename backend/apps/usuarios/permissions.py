@@ -39,7 +39,11 @@ class TieneRol(BasePermission):
             return False
 
         roles_por_metodo = getattr(view, "roles_por_metodo", {})
-        roles = roles_por_metodo.get(request.method)
+        # HEAD es un GET sin cuerpo: si la vista restringe GET, HEAD sigue la
+        # misma regla en vez de quedar abierto como método seguro (spec 024,
+        # regla 4).
+        metodo = "GET" if request.method == "HEAD" else request.method
+        roles = roles_por_metodo.get(metodo)
         if roles is None:
             return request.method in SAFE_METHODS
         return usuario.rol.nombre in roles

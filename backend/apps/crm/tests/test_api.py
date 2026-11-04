@@ -391,3 +391,26 @@ def test_el_listado_de_agentes_incluye_sus_clientes_activos():
     agente = respuesta.json()["results"][0]
     assert agente["id"] == cliente.agente_asignado.pk
     assert agente["clientes_activos"] == 1
+
+
+def test_un_agente_solo_ve_su_propio_perfil():
+    """Spec 024, regla 2: ni la lista ni el detalle muestran a sus compañeros."""
+    propio = AgenteFactory()
+    otro = AgenteFactory()
+    http = cliente_http(propio.usuario)
+
+    ids = [agente["id"] for agente in http.get(AGENTES).json()["results"]]
+    assert ids == [propio.pk]
+    assert http.get(f"{AGENTES}{propio.pk}/").status_code == 200
+    assert http.get(f"{AGENTES}{otro.pk}/").status_code == 404
+
+
+@pytest.mark.parametrize(
+    "rol", [NombreRol.GERENTE, NombreRol.CONTABILIDAD, NombreRol.CONSULTA]
+)
+def test_los_demas_roles_ven_a_todos_los_agentes(rol):
+    AgenteFactory.create_batch(2)
+
+    respuesta = cliente_http(usuario_con_rol(rol)).get(AGENTES)
+
+    assert respuesta.json()["count"] == 2
