@@ -5,6 +5,7 @@ import { LayoutAuth } from './layouts/LayoutAuth'
 import { LayoutPrincipal } from './layouts/LayoutPrincipal'
 import {
   ADMINISTRAN_ASISTENTE,
+  ADMINISTRAN_USUARIOS,
   ADMINISTRAN_CRM,
   ESCRIBEN_CATALOGO,
   ESCRIBEN_COMPRAS,
@@ -49,6 +50,9 @@ import { FirmarContratoVenta } from './paginas/ventas/FirmarContratoVenta'
 import { ListaContratosVenta } from './paginas/ventas/ListaContratosVenta'
 import { Inicio } from './paginas/inicio/Inicio'
 import { Reportes } from './paginas/reportes/Reportes'
+import { CambiarContrasena } from './paginas/cuenta/CambiarContrasena'
+import { EditarUsuario, NuevoUsuario } from './paginas/usuarios/FormularioUsuario'
+import { ListaUsuarios } from './paginas/usuarios/ListaUsuarios'
 
 /**
  * Rutas del frontend (spec 010, §5). Para agregar una pantalla: una ruta aquí y
@@ -257,6 +261,33 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
+      // Gestión de usuarios (spec 026): solo administración.
+      {
+        path: '/usuarios',
+        element: (
+          <RutaProtegida roles={ADMINISTRAN_USUARIOS}>
+            <ListaUsuarios />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: '/usuarios/nuevo',
+        element: (
+          <RutaProtegida roles={ADMINISTRAN_USUARIOS}>
+            <NuevoUsuario />
+          </RutaProtegida>
+        ),
+      },
+      {
+        path: '/usuarios/:id/editar',
+        element: (
+          <RutaProtegida roles={ADMINISTRAN_USUARIOS}>
+            <EditarUsuario />
+          </RutaProtegida>
+        ),
+      },
+      // Cualquier usuario cambia su contraseña (spec 026, regla 9).
+      { path: '/cuenta/contrasena', element: <CambiarContrasena /> },
       { path: '*', element: <NoEncontrada /> },
     ],
   },

@@ -7,9 +7,11 @@ from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
+from apps.core.selectors import listar_paises
 from apps.core.serializers import PaisResumenSerializer
 
 from .models import Usuario
+from .selectors import listar_roles
 
 
 class LoginSerializer(serializers.Serializer):
@@ -50,10 +52,12 @@ class UsuarioListadoSerializer(serializers.ModelSerializer):
     rol = serializers.CharField(source="rol.nombre")
     # Nulo si el usuario no tiene país (por ejemplo, el administrador inicial).
     pais = PaisResumenSerializer(allow_null=True)
+    # Spec 026: la pantalla de Usuarios también lista los desactivados.
+    activo = serializers.BooleanField(source="is_active")
 
     class Meta:
         model = Usuario
-        fields = ["id", "email", "nombre_completo", "rol", "pais"]
+        fields = ["id", "email", "nombre_completo", "rol", "pais", "activo"]
 
 
 class UsuarioActualSerializer(serializers.ModelSerializer):
@@ -74,3 +78,56 @@ class UsuarioActualSerializer(serializers.ModelSerializer):
             "telefono",
             "ultimo_acceso",
         ]
+
+
+class UsuarioDetalleSerializer(serializers.ModelSerializer):
+    """Un usuario en la pantalla de gestión (spec 026), con su estado."""
+
+    rol = serializers.CharField(source="rol.nombre")
+    pais = PaisResumenSerializer(allow_null=True)
+    activo = serializers.BooleanField(source="is_active")
+    ultimo_acceso = serializers.DateTimeField(source="last_login", allow_null=True)
+
+    class Meta:
+        model = Usuario
+        fields = [
+            "id",
+            "email",
+            "nombre_completo",
+            "rol",
+            "pais",
+            "telefono",
+            "activo",
+            "ultimo_acceso",
+        ]
+
+
+class UsuarioEditarSerializer(serializers.Serializer):
+    """Lo que se edita de una cuenta. El correo no (spec 026, §10)."""
+
+    nombre_completo = serializers.CharField(max_length=150, required=False)
+    rol = serializers.SlugRelatedField(
+        slug_field="nombre", queryset=listar_roles(), required=False
+    )
+    pais_id = serializers.PrimaryKeyRelatedField(
+        source="pais", queryset=listar_paises(), allow_null=True, required=False
+    )
+    telefono = serializers.CharField(max_length=30, allow_blank=True, required=False)
+
+
+class UsuarioCrearSerializer(UsuarioEditarSerializer):
+    """Una cuenta nueva: correo, datos, rol y contraseña inicial."""
+
+    email = serializers.EmailField()
+    nombre_completo = serializers.CharField(max_length=150)
+    rol = serializers.SlugRelatedField(slug_field="nombre", queryset=listar_roles())
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class RestablecerContrasenaSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class CambiarContrasenaSerializer(serializers.Serializer):
+    actual = serializers.CharField(write_only=True, trim_whitespace=False)
+    nueva = serializers.CharField(write_only=True, trim_whitespace=False)

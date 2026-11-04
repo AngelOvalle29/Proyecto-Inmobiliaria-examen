@@ -80,6 +80,12 @@ export function LayoutPrincipal() {
                 {usuario?.rol}
               </p>
             </div>
+            <NavLink
+              to="/cuenta/contrasena"
+              className="font-mono text-[11px] tracking-etiqueta text-crema/70 uppercase hover:text-crema hover:underline"
+            >
+              Cambiar contraseña
+            </NavLink>
             <Button variant="inverse" size="sm" onClick={salir}>
               Cerrar sesión
             </Button>

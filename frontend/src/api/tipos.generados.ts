@@ -73,6 +73,26 @@ export interface paths {
         patch: operations["v1_agentes_partial_update"];
         trace?: never;
     };
+    "/api/v1/auth/cambiar-contrasena/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/v1/auth/cambiar-contrasena/ — cualquier usuario con sesión cambia
+         *     la suya dando la actual (spec 026, regla 9). Responde 204.
+         */
+        post: operations["v1_auth_cambiar_contrasena_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login/": {
         parameters: {
             query?: never;
@@ -1508,16 +1528,91 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description GET /api/v1/usuarios/?rol=&buscar= — usuarios activos, para elegir el de un
-         *     agente nuevo (spec 013).
+         * @description GET /api/v1/usuarios/?estado=&rol=&buscar= — sin estado, los activos, para
+         *     elegir el de un agente nuevo (spec 013). POST crea una cuenta (spec 026).
          *
-         *     Solo administración y gerencia: son quienes crean agentes, y el listado
-         *     tiene correos y nombres de todo el personal. Como GET queda declarado en
-         *     roles_por_metodo, TieneRol ya no lo deja abierto a cualquier autenticado.
+         *     Leen administración y gerencia: son quienes crean agentes, y el listado
+         *     tiene correos y nombres de todo el personal. Crea solo administración.
          */
         get: operations["v1_usuarios_list"];
         put?: never;
+        /**
+         * @description GET /api/v1/usuarios/?estado=&rol=&buscar= — sin estado, los activos, para
+         *     elegir el de un agente nuevo (spec 013). POST crea una cuenta (spec 026).
+         *
+         *     Leen administración y gerencia: son quienes crean agentes, y el listado
+         *     tiene correos y nombres de todo el personal. Crea solo administración.
+         */
+        post: operations["v1_usuarios_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/usuarios/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET y PATCH /api/v1/usuarios/{id}/ — nombre, rol, país y teléfono. */
+        get: operations["v1_usuarios_retrieve"];
+        put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description GET y PATCH /api/v1/usuarios/{id}/ — nombre, rol, país y teléfono. */
+        patch: operations["v1_usuarios_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/usuarios/{id}/desactivar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/usuarios/{id}/desactivar/ (spec 026, reglas 4, 5, 7 y 8). */
+        post: operations["v1_usuarios_desactivar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/usuarios/{id}/reactivar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/usuarios/{id}/reactivar/ */
+        post: operations["v1_usuarios_reactivar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/usuarios/{id}/restablecer-contrasena/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/usuarios/{id}/restablecer-contrasena/ — responde 204. */
+        post: operations["v1_usuarios_restablecer_contrasena_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1633,6 +1728,10 @@ export interface components {
         Avance: {
             porcentaje: number;
             descripcion: string;
+        };
+        CambiarContrasena: {
+            actual: string;
+            nueva: string;
         };
         /** @description Entrada de /propiedades/{id}/cambiar-estado/ y /unidades/{id}/cambiar-estado/. */
         CambiarEstado: {
@@ -2811,6 +2910,13 @@ export interface components {
             readonly moneda?: components["schemas"]["MonedaResumen"];
             moneda_id?: number;
         };
+        /** @description Lo que se edita de una cuenta. El correo no (spec 026, §10). */
+        PatchedUsuarioEditar: {
+            nombre_completo?: string;
+            rol?: components["schemas"]["RolEnum"];
+            pais_id?: number | null;
+            telefono?: string;
+        };
         /**
          * @description Entrada de POST /proyectos-construccion/{id}/pagos/. La moneda no se
          *     recibe: es la del proyecto (regla 20). El presupuesto, el finiquito y que
@@ -3027,6 +3133,18 @@ export interface components {
             sin_informacion: boolean;
             citas: components["schemas"]["Cita"][];
         };
+        RestablecerContrasena: {
+            password: string;
+        };
+        /**
+         * @description * `ADMINISTRADOR` - Administrador
+         *     * `GERENTE` - Gerente
+         *     * `AGENTE` - Agente de ventas
+         *     * `CONTABILIDAD` - Contabilidad
+         *     * `CONSULTA` - Consulta
+         * @enum {string}
+         */
+        RolEnum: "ADMINISTRADOR" | "GERENTE" | "AGENTE" | "CONTABILIDAD" | "CONSULTA";
         /**
          * @description Entrada de la subida: multipart con el .md y sus datos (regla 1). El
          *     contenido lo revisa el servicio.
@@ -3139,6 +3257,32 @@ export interface components {
             /** Format: date-time */
             ultimo_acceso: string | null;
         };
+        /** @description Una cuenta nueva: correo, datos, rol y contraseña inicial. */
+        UsuarioCrear: {
+            nombre_completo: string;
+            rol: components["schemas"]["RolEnum"];
+            pais_id?: number | null;
+            telefono?: string;
+            /** Format: email */
+            email: string;
+            password: string;
+        };
+        /** @description Un usuario en la pantalla de gestión (spec 026), con su estado. */
+        UsuarioDetalle: {
+            readonly id: number;
+            /**
+             * Correo electrónico
+             * Format: email
+             */
+            email: string;
+            nombre_completo: string;
+            rol: string;
+            pais: components["schemas"]["PaisResumen"] | null;
+            telefono?: string;
+            activo: boolean;
+            /** Format: date-time */
+            ultimo_acceso: string | null;
+        };
         /**
          * @description Un usuario en el listado de /usuarios/ (spec 013, regla 3). Solo lo mínimo
          *     para elegirlo: sin teléfono, último acceso ni permisos, porque es un
@@ -3154,6 +3298,7 @@ export interface components {
             nombre_completo: string;
             rol: string;
             pais: components["schemas"]["PaisResumen"] | null;
+            activo: boolean;
         };
         UsuarioResumen: {
             id: number;
@@ -3317,6 +3462,30 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Agente"];
                 };
+            };
+        };
+    };
+    v1_auth_cambiar_contrasena_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CambiarContrasena"];
+                "application/x-www-form-urlencoded": components["schemas"]["CambiarContrasena"];
+                "multipart/form-data": components["schemas"]["CambiarContrasena"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6136,6 +6305,12 @@ export interface operations {
         parameters: {
             query?: {
                 buscar?: string;
+                /**
+                 * @description * `ACTIVOS` - Activos
+                 *     * `INACTIVOS` - Inactivos
+                 *     * `TODOS` - Todos
+                 */
+                estado?: "ACTIVOS" | "INACTIVOS" | "TODOS";
                 /** @description Un número de página dentro del conjunto de resultados paginado. */
                 page?: number;
                 /**
@@ -6160,6 +6335,147 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PaginatedUsuarioListadoList"];
                 };
+            };
+        };
+    };
+    v1_usuarios_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsuarioCrear"];
+                "application/x-www-form-urlencoded": components["schemas"]["UsuarioCrear"];
+                "multipart/form-data": components["schemas"]["UsuarioCrear"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioDetalle"];
+                };
+            };
+        };
+    };
+    v1_usuarios_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioDetalle"];
+                };
+            };
+        };
+    };
+    v1_usuarios_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedUsuarioEditar"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedUsuarioEditar"];
+                "multipart/form-data": components["schemas"]["PatchedUsuarioEditar"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioDetalle"];
+                };
+            };
+        };
+    };
+    v1_usuarios_desactivar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioDetalle"];
+                };
+            };
+        };
+    };
+    v1_usuarios_reactivar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioDetalle"];
+                };
+            };
+        };
+    };
+    v1_usuarios_restablecer_contrasena_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestablecerContrasena"];
+                "application/x-www-form-urlencoded": components["schemas"]["RestablecerContrasena"];
+                "multipart/form-data": components["schemas"]["RestablecerContrasena"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

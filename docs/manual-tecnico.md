@@ -65,6 +65,23 @@ La API y el worker comparten un contenedor para caber en el plan gratuito de
 Render. El detalle y las alternativas descartadas están en
 `specs/002-despliegue.md`; la operación, en la §12.
 
+### 2.2 Usuarios, roles y contraseñas (specs 024 y 026)
+
+- **Cinco roles:** ADMINISTRADOR, GERENTE, AGENTE, CONTABILIDAD y CONSULTA.
+  Cada vista declara quién escribe con `TieneRol`; compras y construcción solo
+  las leen administración, gerencia y contabilidad, y un agente solo ve su
+  propio perfil de agente (spec 024).
+- **Pantalla Usuarios** (`/usuarios`, solo ADMINISTRADOR): crear cuentas,
+  cambiar nombre, rol, país y teléfono, desactivar, reactivar y restablecer la
+  contraseña. El correo no se edita. Así nadie más necesita el panel de Django.
+- **Reglas que protegen el sistema:** nadie se desactiva ni se cambia el rol a
+  sí mismo, siempre queda un administrador activo, un superusuario es siempre
+  administrador y un usuario con perfil de agente activo no cambia de rol ni se
+  desactiva. Desactivar invalida sus tokens desde la petición siguiente.
+- **Cambiar contraseña** (`/cuenta/contrasena`): cualquier usuario, dando la
+  actual. Las contraseñas pasan por los validadores de Django y nunca se
+  guardan en la bitácora.
+
 ## 3. Instalación
 
 ```bash

@@ -58,6 +58,8 @@ export const PAGAN_CONSTRUCCION: Rol[] = [...ESCRIBEN_CONSTRUCCION, ROLES.CONTAB
 // Quiénes administran los documentos del asistente: también los leen solo
 // ellos (regla 14 de la spec 020).
 export const ADMINISTRAN_ASISTENTE: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
+// Solo administración gestiona cuentas de usuario (spec 026, regla 1).
+export const ADMINISTRAN_USUARIOS: Rol[] = [ROLES.ADMINISTRADOR]
 // Quiénes leen compras y construcción: lo que pagó la agencia y el
 // presupuesto de las obras no es para agentes ni consulta (spec 024, regla 1).
 export const LEEN_COMPRAS: Rol[] = [...ESCRIBEN_COMPRAS, ROLES.CONTABILIDAD]
@@ -119,6 +121,12 @@ export const MENU: EntradaMenu[] = [
     etiqueta: 'Documentos del asistente',
     roles: ADMINISTRAN_ASISTENTE,
     grupo: 'Asistente',
+  },
+  {
+    ruta: '/usuarios',
+    etiqueta: 'Usuarios',
+    roles: ADMINISTRAN_USUARIOS,
+    grupo: 'Administración',
   },
 ]
 
