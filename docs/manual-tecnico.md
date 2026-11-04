@@ -3,9 +3,6 @@
 Sistema de gestión para una agencia inmobiliaria latinoamericana. Proyecto final
 del curso Programación Comercial, Universidad Mesoamericana, Quetzaltenango.
 
-> **Borrador.** La estructura es una propuesta para todo el equipo. Cada
-> integrante completa su sección. Las marcadas *Pendiente* no se han escrito.
-
 ---
 
 ## 1. Descripción general
