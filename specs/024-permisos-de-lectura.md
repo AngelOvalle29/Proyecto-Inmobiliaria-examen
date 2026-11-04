@@ -9,7 +9,7 @@
 | **Fecha** | 2026-11-03 |
 | **Apps afectadas** | `usuarios` (`TieneRol`), `compras`, `construccion`, `crm` y `frontend/` (`menu.ts`) |
 | **Rama** | `feature/024-permisos-de-lectura` |
-| **Pull request** | Enlace, una vez abierto |
+| **Pull request** | [DouGMV/Proyecto-Inmobiliaria#106](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/106) |
 
 ---
 
