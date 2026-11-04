@@ -15,9 +15,11 @@ from django.utils import timezone
 
 from apps.auditoria.enums import AccionAuditoria, ModoAgente
 from apps.auditoria.services import registrar_auditoria, registrar_consulta_agente
+from apps.catalogo.selectors import listar_propiedades_publicas, listar_unidades
 from apps.core.models import Pais
 
 from . import selectors
+from .catalogo_publico import TITULO_CATALOGO, armar_catalogo
 from .enums import EstadoIndexacion, TipoDocumentoRAG
 from .exceptions import (
     AgenteNoDisponible,
@@ -423,6 +425,51 @@ def marcar_error_indexacion(*, documento_id: int, motivo: str) -> None:
     )
 
 
+def sincronizar_catalogo_publico() -> bool:
+    """Deja el catálogo público del asistente igual al inventario (spec 025).
+
+    Devuelve True si lo creó o lo regeneró, y False si no hizo nada.
+
+    - Arma el texto con las propiedades públicas y sus unidades (regla 1).
+    - Si es igual al guardado, no escribe ni indexa (regla 3).
+    - Si cambió, sube la versión e indexa en este momento, sin la cola: la
+      pregunta que sigue a una venta ya debe verlo (regla 2).
+    - Un catálogo desactivado por un administrador se respeta (regla 5), y sin
+      propiedades públicas no se crea (regla 6).
+
+    Dos preguntas al mismo tiempo pueden intentar regenerarlo a la vez. La que
+    llega segunda encuentra el título ya creado o la versión ya cambiada; en
+    ese caso deja el trabajo a la primera y responde con lo que haya.
+    """
+    propiedades = list(listar_propiedades_publicas())
+    documento = selectors.obtener_documento_por_titulo(titulo=TITULO_CATALOGO)
+    if documento is not None and not documento.activo:
+        return False
+    if documento is None and not propiedades:
+        return False
+
+    unidades = listar_unidades().filter(propiedad__in=propiedades)
+    texto = armar_catalogo(propiedades, unidades)
+    try:
+        if documento is None:
+            documento = crear_documento_rag(
+                titulo=TITULO_CATALOGO,
+                tipo=TipoDocumentoRAG.FICHA_PROPIEDAD,
+                contenido_fuente=texto,
+            )
+        elif (
+            documento.contenido_fuente == texto
+            and documento.estado_indexacion == EstadoIndexacion.INDEXADO
+        ):
+            return False
+        else:
+            actualizar_contenido_documento(documento=documento, contenido_fuente=texto)
+        indexar_documento(documento_id=documento.id)
+    except (DocumentoRAGDuplicado, DocumentoModificadoDuranteIndexacion):
+        return False
+    return True
+
+
 def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
     """Responde la pregunta de un visitante con los documentos de la agencia.
 
@@ -439,7 +486,18 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
     """
     inicio = time.monotonic()
     fragmentos: list[FragmentoRAG] = []
+    herramientas: list[dict] = []
     try:
+        # Spec 025: el catálogo público se pone al día antes de buscar, así una
+        # venta recién hecha ya cambia la respuesta.
+        if sincronizar_catalogo_publico():
+            herramientas.append(
+                {
+                    "nombre": "sincronizar_catalogo_publico",
+                    "argumentos": {},
+                    "resultado": "regenerado",
+                }
+            )
         proveedor = obtener_proveedor()
         vector = proveedor.generar_embedding(
             texto=pregunta, tarea=TareaEmbedding.CONSULTA
@@ -500,6 +558,7 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
             tokens_salida=None,
             inicio=inicio,
             error=str(error),
+            herramientas=herramientas,
         )
         raise AgenteNoDisponible() from error
 
@@ -510,6 +569,7 @@ def responder_consulta_publica(*, pregunta: str) -> RespuestaAgente:
         tokens_entrada=tokens_entrada,
         tokens_salida=tokens_salida,
         inicio=inicio,
+        herramientas=herramientas,
     )
     return resultado
 
@@ -523,6 +583,7 @@ def _registrar_en_bitacora(
     tokens_salida: int | None,
     inicio: float,
     error: str = "",
+    herramientas: list[dict] | None = None,
 ) -> None:
     """
     Escribe la consulta en la bitácora del agente (spec 015), con el contrato
@@ -532,7 +593,8 @@ def _registrar_en_bitacora(
     - documentos_recuperados: cada fragmento que se le dio al modelo, con su
       documento y su distancia, aunque el modelo no lo citara. Así se puede
       revisar después por qué respondió lo que respondió.
-    - herramientas_invocadas: vacía hasta que el agente tenga herramientas.
+    - herramientas_invocadas: lo que el agente hizo antes de responder; hoy,
+      solo la regeneración del catálogo público (spec 025).
     - duracion_ms: desde el inicio de la consulta, con time.monotonic(), que no
       salta si cambia la hora del servidor.
 
@@ -544,7 +606,7 @@ def _registrar_en_bitacora(
         modo=ModoAgente.PUBLICO,
         pregunta=pregunta,
         respuesta=respuesta,
-        herramientas_invocadas=[],
+        herramientas_invocadas=herramientas or [],
         documentos_recuperados=[
             {
                 "fragmento_id": fragmento.pk,
