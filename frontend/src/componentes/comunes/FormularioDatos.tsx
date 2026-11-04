@@ -31,6 +31,8 @@ interface CampoBase<V> {
 /** Un campo del formulario, declarado por la pantalla (spec 010, §6). */
 export type CampoFormulario<V> =
   | (CampoBase<V> & { tipo: 'texto' | 'numero' | 'fecha' | 'area' })
+  // Spec 026: se escribe sin mostrarse y el navegador no la autocompleta.
+  | (CampoBase<V> & { tipo: 'contrasena' })
   | (CampoBase<V> & { tipo: 'booleano' })
   | (CampoBase<V> & { tipo: 'seleccion'; opciones: Opcion[] })
   | (CampoBase<V> & {
@@ -269,7 +271,14 @@ export function FormularioDatos<V extends FieldValues>({
           control = (
             <Input
               id={id}
-              type={campo.tipo === 'fecha' ? 'date' : undefined}
+              type={
+                campo.tipo === 'fecha'
+                  ? 'date'
+                  : campo.tipo === 'contrasena'
+                    ? 'password'
+                    : undefined
+              }
+              autoComplete={campo.tipo === 'contrasena' ? 'new-password' : undefined}
               inputMode={campo.tipo === 'numero' ? 'decimal' : undefined}
               aria-invalid={invalido}
               {...formulario.register(campo.nombre)}

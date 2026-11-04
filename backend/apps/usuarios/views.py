@@ -4,8 +4,8 @@ devuelven la respuesta.
 Sin reglas de negocio ni consultas directas a los modelos.
 """
 
-from drf_spectacular.utils import extend_schema
-from rest_framework.generics import ListAPIView
+from drf_spectacular.utils import extend_schema, extend_schema_view
+from rest_framework.generics import GenericAPIView, ListCreateAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,15 +18,31 @@ from apps.core.http import obtener_ip_cliente, obtener_user_agent
 from .enums import NombreRol
 from .filters import UsuarioFilter
 from .permissions import TieneRol
-from .selectors import listar_usuarios_activos
+from .selectors import listar_usuarios
 from .serializers import (
+    CambiarContrasenaSerializer,
     LoginSerializer,
     RenovarTokenSerializer,
+    RestablecerContrasenaSerializer,
     TokensSerializer,
     UsuarioActualSerializer,
+    UsuarioCrearSerializer,
+    UsuarioDetalleSerializer,
+    UsuarioEditarSerializer,
     UsuarioListadoSerializer,
 )
-from .services import iniciar_sesion
+from .services import (
+    actualizar_usuario,
+    cambiar_mi_contrasena,
+    crear_usuario,
+    desactivar_usuario,
+    iniciar_sesion,
+    reactivar_usuario,
+    restablecer_contrasena,
+)
+
+# Spec 026, regla 1: solo administración gestiona cuentas.
+SOLO_ADMINISTRADOR = [NombreRol.ADMINISTRADOR]
 
 
 class LoginView(APIView):
@@ -83,20 +99,146 @@ class UsuarioActualView(APIView):
         return Response(UsuarioActualSerializer(request.user).data)
 
 
-class ListarUsuariosView(ListAPIView):
+@extend_schema_view(
+    post=extend_schema(
+        request=UsuarioCrearSerializer, responses={201: UsuarioDetalleSerializer}
+    )
+)
+class ListarUsuariosView(ListCreateAPIView):
     """
-    GET /api/v1/usuarios/?rol=&buscar= — usuarios activos, para elegir el de un
-    agente nuevo (spec 013).
+    GET /api/v1/usuarios/?estado=&rol=&buscar= — sin estado, los activos, para
+    elegir el de un agente nuevo (spec 013). POST crea una cuenta (spec 026).
 
-    Solo administración y gerencia: son quienes crean agentes, y el listado
-    tiene correos y nombres de todo el personal. Como GET queda declarado en
-    roles_por_metodo, TieneRol ya no lo deja abierto a cualquier autenticado.
+    Leen administración y gerencia: son quienes crean agentes, y el listado
+    tiene correos y nombres de todo el personal. Crea solo administración.
     """
 
     serializer_class = UsuarioListadoSerializer
     filterset_class = UsuarioFilter
     permission_classes = [TieneRol]
-    roles_por_metodo = {"GET": [NombreRol.ADMINISTRADOR, NombreRol.GERENTE]}
+    roles_por_metodo = {
+        "GET": [NombreRol.ADMINISTRADOR, NombreRol.GERENTE],
+        "POST": SOLO_ADMINISTRADOR,
+    }
 
     def get_queryset(self):
-        return listar_usuarios_activos()
+        # El filtro estado decide activos, inactivos o todos.
+        return listar_usuarios(estado="TODOS")
+
+    def create(self, request: Request, *args, **kwargs) -> Response:
+        entrada = UsuarioCrearSerializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        datos = dict(entrada.validated_data)
+        password = datos.pop("password")
+        usuario = crear_usuario(
+            datos=datos,
+            password=password,
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(UsuarioDetalleSerializer(usuario).data, status=201)
+
+
+class UsuarioDetalleView(GenericAPIView):
+    """GET y PATCH /api/v1/usuarios/{id}/ — nombre, rol, país y teléfono."""
+
+    serializer_class = UsuarioDetalleSerializer
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"GET": SOLO_ADMINISTRADOR, "PATCH": SOLO_ADMINISTRADOR}
+
+    def get_queryset(self):
+        return listar_usuarios(estado="TODOS")
+
+    def get(self, request: Request, pk: int) -> Response:
+        return Response(self.get_serializer(self.get_object()).data)
+
+    @extend_schema(
+        request=UsuarioEditarSerializer, responses={200: UsuarioDetalleSerializer}
+    )
+    def patch(self, request: Request, pk: int) -> Response:
+        entrada = UsuarioEditarSerializer(data=request.data, partial=True)
+        entrada.is_valid(raise_exception=True)
+        usuario = actualizar_usuario(
+            usuario=self.get_object(),
+            datos=dict(entrada.validated_data),
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(self.get_serializer(usuario).data)
+
+
+class AccionUsuarioView(GenericAPIView):
+    """Base de /desactivar/ y /reactivar/: sin cuerpo, responde el usuario."""
+
+    serializer_class = UsuarioDetalleSerializer
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"POST": SOLO_ADMINISTRADOR}
+    servicio = None
+
+    def get_queryset(self):
+        return listar_usuarios(estado="TODOS")
+
+    @extend_schema(request=None, responses={200: UsuarioDetalleSerializer})
+    def post(self, request: Request, pk: int) -> Response:
+        usuario = type(self).servicio(
+            usuario=self.get_object(),
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(self.get_serializer(usuario).data)
+
+
+class DesactivarUsuarioView(AccionUsuarioView):
+    """POST /api/v1/usuarios/{id}/desactivar/ (spec 026, reglas 4, 5, 7 y 8)."""
+
+    servicio = staticmethod(desactivar_usuario)
+
+
+class ReactivarUsuarioView(AccionUsuarioView):
+    """POST /api/v1/usuarios/{id}/reactivar/"""
+
+    servicio = staticmethod(reactivar_usuario)
+
+
+class RestablecerContrasenaView(GenericAPIView):
+    """POST /api/v1/usuarios/{id}/restablecer-contrasena/ — responde 204."""
+
+    serializer_class = RestablecerContrasenaSerializer
+    permission_classes = [TieneRol]
+    roles_por_metodo = {"POST": SOLO_ADMINISTRADOR}
+
+    def get_queryset(self):
+        return listar_usuarios(estado="TODOS")
+
+    @extend_schema(responses={204: None})
+    def post(self, request: Request, pk: int) -> Response:
+        entrada = self.get_serializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        restablecer_contrasena(
+            usuario=self.get_object(),
+            password=entrada.validated_data["password"],
+            autor=request.user,
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(status=204)
+
+
+class CambiarContrasenaView(GenericAPIView):
+    """
+    POST /api/v1/auth/cambiar-contrasena/ — cualquier usuario con sesión cambia
+    la suya dando la actual (spec 026, regla 9). Responde 204.
+    """
+
+    serializer_class = CambiarContrasenaSerializer
+
+    @extend_schema(responses={204: None})
+    def post(self, request: Request) -> Response:
+        entrada = self.get_serializer(data=request.data)
+        entrada.is_valid(raise_exception=True)
+        cambiar_mi_contrasena(
+            usuario=request.user,
+            actual=entrada.validated_data["actual"],
+            nueva=entrada.validated_data["nueva"],
+            ip=obtener_ip_cliente(request),
+        )
+        return Response(status=204)
