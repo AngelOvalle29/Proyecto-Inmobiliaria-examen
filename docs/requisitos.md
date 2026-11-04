@@ -12,7 +12,7 @@ choca con algo escrito aquí, gana lo escrito aquí.
 |---|---:|---|
 | Sistema base: CRUD, arquitectura, código limpio y uso de GitHub | 5 | Hecho: una app de Django por dominio, con capas; specs 001 a 023 y revisión por PR |
 | Agente de inteligencia artificial | 2 | Hecho: asistente público con RAG y citas (specs 005 y 018) |
-| Flujo asíncrono con RabbitMQ o Kafka | 2 | Hecho: ingesta de documentos del asistente (spec 020); falta verificarla en producción |
+| Flujo asíncrono con RabbitMQ o Kafka | 2 | Hecho: ingesta de documentos del asistente (spec 020), verificada en producción |
 | Logs y auditoría en base de datos | 2 | Hecho: bitácora del sistema y del agente (specs 001 y 015) |
 | Reportería y Power BI | 2 | Hecho: 15 reportes con Excel y PDF, vistas `bi` y tablero `.pbix` (specs 016 y 021) |
 | Despliegue en producción | 1 | Hecho: Render, Neon, CloudAMQP, Vercel y Supabase (spec 002) |

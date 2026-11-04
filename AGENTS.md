@@ -55,6 +55,11 @@ embeddings · Gmail SMTP con contraseña de aplicación para las notificaciones.
 Prohibido por el enunciado del curso: SQLite (y similares), FastAPI, Node con
 JavaScript para la API.
 
+> **Qué se usa de verdad.** Esta tabla es el plan. Gmail SMTP no tiene código
+> que envíe correo, Redis no se usa y Recharts no está instalado. El estado real
+> de cada pieza, con su motivo, está en `docs/guia-del-sistema.md` §16.
+
+
 ---
 
 ## Flujo obligatorio: especificación primero

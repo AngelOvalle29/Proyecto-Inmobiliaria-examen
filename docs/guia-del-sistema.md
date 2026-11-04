@@ -6,7 +6,8 @@ reglas: aquí se explica **cómo encajan las piezas** y **por qué se hicieron
 así**, siguiendo el recorrido de una petición real.
 
 Si solo tiene diez minutos, lea §2 (el mapa), §4 (una petición de punta a
-punta) y §13 (las decisiones que más se preguntan).
+punta) y §13 (las decisiones que más se preguntan). §16 dice qué partes del
+plan original cambiaron o no se usan, y §17 reúne las páginas importantes.
 
 ---
 
@@ -525,3 +526,98 @@ al final, gunicorn con la API.
 | Una consulta | `backend/apps/<dominio>/selectors.py` |
 | Una pantalla | `frontend/src/paginas/<dominio>/` |
 | El despliegue | `specs/002-despliegue.md`, `render.yaml`, `backend/scripts/iniciar.sh` |
+
+---
+
+## 16. Cómo cambió el stack: qué se usa, qué no y por qué
+
+`CLAUDE.md`, `docs/arquitectura.md`, `docs/frontend.md` y
+`docs/modelo-datos.md` se escribieron al inicio, como plan. Algunas piezas se
+reemplazaron o se dejaron fuera en el camino. Esta sección es la fuente de
+verdad de lo que **realmente** corre.
+
+### 16.1 Lo que se usa
+
+| Pieza | Dónde se ve |
+|---|---|
+| Django 5.2 + DRF | `backend/requirements/base.txt` |
+| PostgreSQL 16 + pgvector | Neon en producción; `docker-compose.yml` en local |
+| Celery + RabbitMQ | CloudAMQP; una sola cola de negocio, `documentos` |
+| django-storages + boto3 | Supabase Storage en producción |
+| openpyxl y WeasyPrint | Exportadores de reportes |
+| google-genai | Solo en `apps/ia/proveedores/gemini.py` |
+| simplejwt, django-filter, drf-spectacular, whitenoise, cors-headers | La API |
+| React 19, TanStack Query y Table, React Hook Form, Zod, axios | `frontend/package.json` |
+| Tailwind CSS con tokens propios | `frontend/src/index.css` (spec 022) |
+
+### 16.2 Lo que cambió
+
+| Plan | Lo que quedó | Por qué |
+|---|---|---|
+| Despliegue en Railway | **Render** (API y worker en un contenedor), Neon, CloudAMQP y Vercel | Railway costaba entre $15 y $20 al mes y el equipo decidió no pagar; cambio del 2026-10-21 (spec 002) |
+| Archivos en disco | **Supabase Storage**, bucket privado con URL firmada | El disco de Render no es persistente: los archivos se pierden en cada despliegue. Supabase da 1 GB gratis con API S3 (spec 011) |
+| shadcn/ui como librería | **6 componentes copiados** en `componentes/ui` y adaptados al diseño editorial | shadcn se copia, no se instala: el código es nuestro y se puede explicar |
+| `PlanPago` como entidad | Sus datos (plazo, tasa, enganche) van **dentro de `ContratoVenta`** | Un contrato tiene un solo plan; una tabla aparte no aportaba nada (#18) |
+| `AvanceObra` como entidad | Cada avance queda en la **bitácora de auditoría** | El historial ya existía; solo hacía falta el porcentaje actual (#21) |
+| `EventoPropiedad` (línea de tiempo) | La **bitácora de auditoría** registra cada cambio de estado con su motivo | La auditoría ya guardaba esa historia; no se construyó una tabla aparte |
+
+### 16.3 Lo que está en la documentación o la configuración, pero no se usa
+
+| Pieza | Estado | Por qué |
+|---|---|---|
+| Redis | Comentado en `docker-compose.yml`; sin dependencia | Celery usa RabbitMQ como broker y no guarda resultados: el estado de la ingesta vive en la base |
+| Gmail SMTP | Variables `EMAIL_*` en `.env.example`; **no hay código que envíe correo** | Las notificaciones salieron del alcance: la rúbrica pide un solo flujo asíncrono |
+| Colas `notificaciones` y `reportes` | No existen | Iban con las notificaciones y con exportaciones en segundo plano; las exportaciones son síncronas con límite de 5,000 filas |
+| Modo interno del agente y sus herramientas | No existe; `herramientas_invocadas` de la bitácora queda vacío | Se priorizó el modo público con RAG y citas, que es lo que pide la rúbrica |
+| Recharts | No instalado | Las gráficas están en Power BI; el tablero de Inicio muestra totales |
+| Kafka | No se eligió | La rúbrica acepta RabbitMQ o Kafka; RabbitMQ con Celery es más simple y tiene plan gratuito |
+| Pillow (miniaturas) | Descartado | Sería una dependencia nueva; el navegador reduce las fotos (spec 019) |
+| GitHub Actions | `ci.yml` existe, nunca corrió | Bloqueo de la cuenta (#14); las pruebas se corren en cada PR |
+| `Amenidad` y `CotizacionDetalle` | No construidas | `CotizacionDetalle` quedó "si sobra tiempo" (#17); el detalle va dentro de la cotización. Ningún flujo ni reporte pide `Amenidad` |
+
+---
+
+## 17. Páginas importantes
+
+### 17.1 Del sistema
+
+| Página | URL | Para qué |
+|---|---|---|
+| Sistema (frontend) | https://proyecto-inmobiliaria-chi.vercel.app | Entrar con usuario y contraseña |
+| Asistente público | https://proyecto-inmobiliaria-chi.vercel.app/asistente | Preguntarle al agente sin iniciar sesión |
+| Salud de la API | https://inmobiliaria-api-x8gr.onrender.com/api/v1/health/ | Responde `{"estado":"ok","base_datos":"ok"}`; es lo que Render revisa para saber si el servicio vive |
+| Panel de administración | https://inmobiliaria-api-x8gr.onrender.com/admin/ | Crear usuarios y asignar roles; ver datos sin pasar por la API |
+| Documentación de la API | https://inmobiliaria-api-x8gr.onrender.com/api/docs/ | Swagger: cada endpoint, sus campos y sus errores; se puede probar con un token |
+| Esquema OpenAPI | https://inmobiliaria-api-x8gr.onrender.com/api/schema/ | De aquí salen los tipos del frontend (`npm run gen:api`) |
+
+La primera visita después de un rato sin uso tarda unos 50 segundos: Render
+despierta el contenedor.
+
+### 17.2 Pantallas del sistema
+
+| Pantalla | Ruta |
+|---|---|
+| Inicio (tablero) | `/` |
+| Reportes | `/reportes` |
+| Propiedades y su ficha | `/catalogo/propiedades`, `/catalogo/propiedades/{id}` |
+| Clientes, cotizaciones y agentes | `/crm/clientes`, `/crm/cotizaciones`, `/crm/agentes` |
+| Contratos de venta | `/ventas/contratos` |
+| Arrendamientos | `/arrendamientos/contratos` |
+| Proveedores y contratos de compra | `/compras/proveedores`, `/compras/contratos` |
+| Constructoras y proyectos | `/construccion/constructoras`, `/construccion/proyectos` |
+| Documentos del asistente | `/asistente/documentos` |
+
+### 17.3 De los proveedores (con la cuenta del equipo)
+
+| Servicio | Qué se ve ahí |
+|---|---|
+| GitHub (`DouGMV/Proyecto-Inmobiliaria`) | Código, PR, issues y el historial que evidencia el proceso |
+| Render | Logs de la API y del worker, variables de entorno, despliegues |
+| Vercel | Despliegues del frontend y la variable `VITE_API_URL` |
+| Neon | La base de datos, su SQL Editor y el rol `powerbi_reader` |
+| CloudAMQP | La cola de RabbitMQ y los mensajes procesados |
+| Supabase | El bucket con documentos e imágenes |
+| Google AI Studio | La llave y el consumo de Gemini |
+
+Las credenciales de cada servicio nunca van al repositorio: se configuran en
+el panel de cada uno (`CLAUDE.md` §7).
