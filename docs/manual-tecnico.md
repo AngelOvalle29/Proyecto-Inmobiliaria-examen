@@ -491,6 +491,25 @@ desde `apps/ia/documentos_demo/` y los indexa. Es idempotente. Sin llave, los
 carga sin indexar, y la indexación se puede repetir desde *Documentos del
 asistente* cuando haya llave.
 
+### 7.8 Catálogo público generado (spec 025)
+
+El asistente responde sobre las propiedades con el documento "Catálogo público
+de propiedades", que **se genera desde la base**:
+
+- `ia/catalogo_publico.py` arma el Markdown con las propiedades públicas
+  (`es_publica`), sus unidades, precios y estado, una sección por propiedad.
+- Antes de cada pregunta, `sincronizar_catalogo_publico` compara ese texto con
+  el guardado. Si cambió (una venta, una reserva, un arrendamiento), sube la
+  versión y lo indexa en ese momento, sin la cola, para que la respuesta ya lo
+  use. Si es igual, no hace nada.
+- El texto no lleva fecha: si la llevara, cambiaría en cada pregunta.
+- La bitácora del agente anota en `herramientas_invocadas` cuándo se regeneró.
+- Un administrador puede desactivarlo desde *Documentos del asistente*; entonces
+  no se vuelve a crear.
+
+`catalogo` no conoce a `ia`: por eso el catálogo se revisa al preguntar y no al
+cambiar el estado de una propiedad.
+
 ## 8. Mensajería (rol A, spec 020)
 
 El flujo con RabbitMQ es **la ingesta de los documentos del agente**: subir o
