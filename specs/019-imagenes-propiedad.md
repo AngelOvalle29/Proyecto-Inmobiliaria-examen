@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 019 |
-| **Estado** | Implementada (falta la verificación en producción, §8) |
+| **Estado** | Implementada y verificada en producción (2026-11-03) |
 | **Autor** | Douglas (rol A) |
 | **Revisor** | Marco André Bolaños Rojas (Lilfacce), aprobó la spec en DouGMV/Proyecto-Inmobiliaria#68 |
 | **Fecha** | 2026-11-01 |
@@ -212,7 +212,7 @@ src/paginas/catalogo/
 - [x] `CONSULTA` ve la galería y las portadas, sin botones de escritura; un
       `POST` suyo responde 403
 - [x] Cada escritura queda en la bitácora de auditoría
-- [ ] En producción, subir y ver funcionan contra Supabase
+- [x] En producción, subir y ver funcionan contra Supabase
 - [x] `pytest`, `ruff`, `npm run lint`, `npm run typecheck` y `npm run build`
       pasan
 
@@ -307,3 +307,11 @@ Verificación:
   borraron del bucket al terminar con `default_storage.delete`.
 - Falta el criterio de producción (§8) y ver con `CONSULTA` en la pantalla que
   no aparecen los botones; la API ya responde 403 en las pruebas.
+
+**Verificación en producción (2026-11-03, A).** Douglas subió las 14 fotos de
+la demo (dos por propiedad, de Unsplash con su licencia; créditos fuera del
+repositorio, junto a las fotos) contra Supabase, cambió la portada en la Torre
+Mirador y la lista muestra las 7 miniaturas. Con `CONSULTA` la pestaña
+Imágenes se ve sin botones. Queda sin marcar el criterio del error del
+navegador con un archivo no permitido, que no se probó en pantalla; la API ya
+lo cubre en las pruebas.

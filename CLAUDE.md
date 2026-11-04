@@ -64,6 +64,11 @@ El enunciado prohíbe explícitamente el vibecoding. Esto significa, en la prác
 
 No cambies ninguna de estas piezas sin consultarlo con el equipo.
 
+> **Qué se usa de verdad.** Esta tabla es el plan. Gmail SMTP no tiene código
+> que envíe correo, Redis no se usa y Recharts no está instalado. El estado real
+> de cada pieza, con su motivo, está en `docs/guia-del-sistema.md` §16.
+
+
 ---
 
 ## 4. Estructura del repositorio

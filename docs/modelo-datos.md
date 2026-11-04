@@ -6,6 +6,12 @@ quede completo.
 
 Las entidades marcadas con ★ son las que se presentan como núcleo en la defensa.
 
+> **Qué se construyó.** Este documento es el diseño inicial. No se
+> construyeron `Amenidad`, `EventoPropiedad`, `AvanceObra`, `PlanPago` ni
+> `CotizacionDetalle`: sus datos van en otra entidad o en la bitácora de
+> auditoría. El detalle y el motivo de cada una están en
+> `docs/guia-del-sistema.md` §16.
+
 ---
 
 ## 1. Catálogos base — app `core`

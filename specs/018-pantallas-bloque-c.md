@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | **Número** | 018 |
-| **Estado** | Implementada (falta el recorrido en producción, §9) |
+| **Estado** | Implementada y verificada en producción (2026-11-03) |
 | **Autor** | Angel Glicerio Ovalle Fernandez (rol C) |
 | **Revisor** | Douglas Gerardo Morales Velásquez (DouGMV) |
 | **Fecha** | 2026-10-31 |
@@ -217,7 +217,7 @@ endpoint que ya audita (specs 005, 006 y 017).
 | Nivel | Caso |
 |---|---|
 | Manual, local | Cada criterio de §8 con `seed_demo`, `cargar_demo_ia` y un usuario por rol |
-| Manual, producción | Un recorrido en Vercel: comprar, construir, pagar y preguntar al asistente. **Pendiente** hasta desplegar |
+| Manual, producción | Un recorrido en Vercel: comprar, construir, pagar y preguntar al asistente. **Hecho el 2026-11-03** (§11), en modo lectura para compras y construcción |
 | Estático | `typecheck` con los tipos generados |
 
 ## 10. Decisiones y alternativas descartadas
@@ -353,3 +353,17 @@ C el 2026-11-02** (Claude, rol C), en `feature/018-contratos-proyectos-pagos`:
 - Prueba al revés de la regla 7: si `useOpcionesPropiedad` ignora el estado,
   los dos formularios ofrecen las 11 propiedades y la revisión falla. La
   cotización de B sigue ofreciendo todas con y sin el cambio.
+
+**Recorrido en producción (2026-11-03, A).** Douglas siguió la guía de
+recorrido con la cuenta de administrador y un usuario de prueba por rol, y
+reportó que todo salió como se esperaba:
+- **Compras y construcción, solo lectura:** proveedores, contratos de compra,
+  constructoras y el detalle del proyecto del hotel se revisaron sin crear ni
+  cambiar nada, para no gastar las acciones que se muestran en vivo en la
+  defensa (completar Las Lomas, iniciar la gasolinera, finalizar el hotel).
+  Las escrituras de estas pantallas quedan cubiertas por la verificación local
+  y las pruebas de API.
+- **Permisos por rol:** los botones de escritura aparecen y desaparecen según
+  el rol, como en §3.
+- **Asistente público:** con el catálogo de propiedades indexado, respondió
+  con citas (spec 020).
