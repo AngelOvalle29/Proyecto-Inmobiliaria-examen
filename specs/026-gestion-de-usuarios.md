@@ -9,7 +9,7 @@
 | **Fecha** | 2026-11-04 |
 | **Apps afectadas** | `usuarios` (servicios, selectores, API) y `frontend/` (`paginas/usuarios`, menú) |
 | **Rama** | `feature/026-gestion-usuarios` |
-| **Pull request** | Enlace, una vez abierto |
+| **Pull request** | [DouGMV/Proyecto-Inmobiliaria#110](https://github.com/DouGMV/Proyecto-Inmobiliaria/pull/110) |
 
 ---
 
