@@ -64,9 +64,12 @@ El enunciado prohíbe explícitamente el vibecoding. Esto significa, en la prác
 
 No cambies ninguna de estas piezas sin consultarlo con el equipo.
 
-> **Qué se usa de verdad.** Esta tabla es el plan. Gmail SMTP no tiene código
-> que envíe correo, Redis no se usa y Recharts no está instalado. El estado real
-> de cada pieza, con su motivo, está en `docs/guia-del-sistema.md` §16.
+> **Qué se usa de verdad.** Esta tabla es el plan inicial. No se usan: Gmail
+> SMTP (no hay código que envíe correo; las notificaciones salieron del
+> alcance), Redis (Celery no guarda resultados), Recharts (las gráficas están
+> en Power BI) ni las colas `notificaciones` y `reportes` (solo existe
+> `documentos`). El agente solo tiene modo público con RAG. Railway se
+> reemplazó por Render el 2026-10-21 (spec 002).
 
 
 ---
