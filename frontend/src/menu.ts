@@ -58,6 +58,18 @@ export const PAGAN_CONSTRUCCION: Rol[] = [...ESCRIBEN_CONSTRUCCION, ROLES.CONTAB
 // Quiénes administran los documentos del asistente: también los leen solo
 // ellos (regla 14 de la spec 020).
 export const ADMINISTRAN_ASISTENTE: Rol[] = [ROLES.ADMINISTRADOR, ROLES.GERENTE]
+// Quiénes leen compras y construcción: lo que pagó la agencia y el
+// presupuesto de las obras no es para agentes ni consulta (spec 024, regla 1).
+export const LEEN_COMPRAS: Rol[] = [...ESCRIBEN_COMPRAS, ROLES.CONTABILIDAD]
+export const LEEN_CONSTRUCCION: Rol[] = [...ESCRIBEN_CONSTRUCCION, ROLES.CONTABILIDAD]
+// Un agente solo ve su propio perfil en la API (spec 024, regla 2): la
+// pantalla de agentes no le sirve.
+export const VEN_AGENTES: Rol[] = [
+  ROLES.ADMINISTRADOR,
+  ROLES.GERENTE,
+  ROLES.CONTABILIDAD,
+  ROLES.CONSULTA,
+]
 
 export const MENU: EntradaMenu[] = [
   { ruta: '/', etiqueta: 'Inicio' },
@@ -67,7 +79,7 @@ export const MENU: EntradaMenu[] = [
   { ruta: '/catalogo/tipos', etiqueta: 'Tipos de propiedad', grupo: 'Catálogo' },
   { ruta: '/crm/clientes', etiqueta: 'Clientes', grupo: 'CRM' },
   { ruta: '/crm/cotizaciones', etiqueta: 'Cotizaciones', grupo: 'CRM' },
-  { ruta: '/crm/agentes', etiqueta: 'Agentes', grupo: 'CRM' },
+  { ruta: '/crm/agentes', etiqueta: 'Agentes', roles: VEN_AGENTES, grupo: 'CRM' },
   { ruta: '/ventas/contratos', etiqueta: 'Contratos de venta', grupo: 'Ventas' },
   {
     ruta: '/arrendamientos/contratos',
@@ -75,14 +87,30 @@ export const MENU: EntradaMenu[] = [
     grupo: 'Arrendamientos',
   },
   // Las entradas de "Nuevo…" son botones de cada lista (spec 018, §5).
-  { ruta: '/compras/proveedores', etiqueta: 'Proveedores', grupo: 'Compras' },
-  { ruta: '/compras/contratos', etiqueta: 'Contratos de compra', grupo: 'Compras' },
+  {
+    ruta: '/compras/proveedores',
+    etiqueta: 'Proveedores',
+    roles: LEEN_COMPRAS,
+    grupo: 'Compras',
+  },
+  {
+    ruta: '/compras/contratos',
+    etiqueta: 'Contratos de compra',
+    roles: LEEN_COMPRAS,
+    grupo: 'Compras',
+  },
   {
     ruta: '/construccion/constructoras',
     etiqueta: 'Constructoras',
+    roles: LEEN_CONSTRUCCION,
     grupo: 'Construcción',
   },
-  { ruta: '/construccion/proyectos', etiqueta: 'Proyectos', grupo: 'Construcción' },
+  {
+    ruta: '/construccion/proyectos',
+    etiqueta: 'Proyectos',
+    roles: LEEN_CONSTRUCCION,
+    grupo: 'Construcción',
+  },
   // El asistente es público (spec 018, regla 8): aquí aparece para quien ya
   // inició sesión; la página no pide sesión.
   { ruta: '/asistente', etiqueta: 'Asistente', grupo: 'Asistente' },

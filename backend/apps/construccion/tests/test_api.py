@@ -44,11 +44,14 @@ def test_administracion_y_gerencia_crean(rol):
 
 
 @pytest.mark.parametrize("rol", NO_ESCRIBEN)
-def test_los_demas_roles_leen_pero_no_escriben(rol):
+def test_los_demas_roles_no_escriben_y_solo_contabilidad_lee(rol):
     constructora = ConstructoraFactory()
     http = cliente_http(rol)
+    # Spec 024, regla 1: de los que no escriben, solo contabilidad lee.
+    lectura = 200 if rol == NombreRol.CONTABILIDAD else 403
 
-    assert http.get(URL).status_code == 200
+    assert http.get(URL).status_code == lectura
+    assert http.get(f"{URL}{constructora.pk}/").status_code == lectura
     assert http.post(URL, datos(PaisFactory()), format="json").status_code == 403
     assert http.patch(f"{URL}{constructora.pk}/", {"nombre": "X"}).status_code == 403
     assert http.delete(f"{URL}{constructora.pk}/").status_code == 403
@@ -95,7 +98,7 @@ def test_filtros_por_calificacion_minima_y_busqueda():
     buena = ConstructoraFactory(calificacion=5, nombre="Obras Buenas")
     ConstructoraFactory(calificacion=2)
     ConstructoraFactory(calificacion=None)
-    http = cliente_http(NombreRol.CONSULTA)
+    http = cliente_http(NombreRol.CONTABILIDAD)
 
     def ids(parametros):
         return [c["id"] for c in http.get(URL, parametros).json()["results"]]

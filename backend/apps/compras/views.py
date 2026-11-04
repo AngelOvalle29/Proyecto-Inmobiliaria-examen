@@ -33,16 +33,18 @@ from .services import (
     desactivar_proveedor,
 )
 
-# Escriben administración y gerencia; todos los roles leen (spec 006, regla
-# 10, y spec 017, regla 24).
+# Escriben administración y gerencia (spec 006, regla 10, y spec 017, regla
+# 24). Leen además contabilidad, y nadie más: un agente no debe ver lo que
+# pagó la agencia ni el presupuesto de las obras (spec 024, regla 1).
 ESCRIBEN = [NombreRol.ADMINISTRADOR, NombreRol.GERENTE]
+LEEN = [*ESCRIBEN, NombreRol.CONTABILIDAD]
 
 
 class ProveedoresView(ListAPIView):
     """GET y POST /api/v1/proveedores/"""
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"POST": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "POST": ESCRIBEN}
     serializer_class = ProveedorSerializer
     filterset_class = ProveedorFilter
 
@@ -76,7 +78,7 @@ class ProveedorDetalleView(RetrieveAPIView):
     """
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"PATCH": ESCRIBEN, "DELETE": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "PATCH": ESCRIBEN, "DELETE": ESCRIBEN}
     serializer_class = ProveedorSerializer
 
     def get_queryset(self):
@@ -116,7 +118,7 @@ class ContratosCompraView(ListAPIView):
     """GET y POST /api/v1/contratos-compra/"""
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"POST": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "POST": ESCRIBEN}
     serializer_class = ContratoCompraSerializer
     filterset_class = ContratoCompraFilter
 
@@ -145,6 +147,7 @@ class ContratoCompraDetalleView(RetrieveAPIView):
     """GET /api/v1/contratos-compra/{id}/ (sin edición, spec 017 §10)."""
 
     permission_classes = [TieneRol]
+    roles_por_metodo = {"GET": LEEN}
     serializer_class = ContratoCompraSerializer
 
     def get_queryset(self):
@@ -155,7 +158,7 @@ class CompletarContratoCompraView(GenericAPIView):
     """POST /api/v1/contratos-compra/{id}/completar/ (regla 6)."""
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"POST": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "POST": ESCRIBEN}
     serializer_class = ContratoCompraSerializer
 
     def get_queryset(self):
@@ -179,7 +182,7 @@ class AnularContratoCompraView(GenericAPIView):
     """POST /api/v1/contratos-compra/{id}/anular/ (regla 7)."""
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"POST": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "POST": ESCRIBEN}
     serializer_class = ContratoCompraSerializer
 
     def get_queryset(self):

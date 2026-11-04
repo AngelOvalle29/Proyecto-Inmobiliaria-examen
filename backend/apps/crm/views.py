@@ -17,9 +17,9 @@ from apps.usuarios.enums import NombreRol
 from apps.usuarios.permissions import TieneRol
 
 from .filters import AgenteFilter, ClienteFilter, CotizacionFilter
-from .models import Cliente, Cotizacion
+from .models import Agente, Cliente, Cotizacion
 from .selectors import (
-    listar_agentes,
+    listar_agentes_visibles,
     listar_clientes_visibles,
     listar_cotizaciones_visibles,
     obtener_agente,
@@ -72,6 +72,13 @@ def _clientes_visibles(vista):
 # ---------- Agentes ----------
 
 
+def _agentes_visibles(vista):
+    """Igual que _clientes_visibles: un AGENTE solo ve su perfil (spec 024)."""
+    if getattr(vista, "swagger_fake_view", False):
+        return Agente.objects.none()
+    return listar_agentes_visibles(usuario=vista.request.user)
+
+
 class AgentesView(ListAPIView):
     """GET y POST /api/v1/agentes/"""
 
@@ -81,7 +88,7 @@ class AgentesView(ListAPIView):
     filterset_class = AgenteFilter
 
     def get_queryset(self):
-        return listar_agentes()
+        return _agentes_visibles(self)
 
     @extend_schema(
         request=AgenteCrearSerializer,
@@ -111,7 +118,7 @@ class AgenteDetalleView(RetrieveAPIView):
     serializer_class = AgenteSerializer
 
     def get_queryset(self):
-        return listar_agentes()
+        return _agentes_visibles(self)
 
     @extend_schema(
         request=AgenteEditarSerializer,

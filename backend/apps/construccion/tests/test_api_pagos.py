@@ -215,3 +215,24 @@ def test_el_listado_general_filtra_por_estado_y_proyecto():
     respuesta = http.get(PAGOS, {"estado": "PAGADO", "proyecto": proyecto["id"]})
 
     assert [p["id"] for p in respuesta.json()["results"]] == [pagado["id"]]
+
+
+@pytest.mark.parametrize(
+    ("rol", "esperado"),
+    [
+        (NombreRol.GERENTE, 200),
+        (NombreRol.CONTABILIDAD, 200),
+        (NombreRol.AGENTE, 403),
+        (NombreRol.CONSULTA, 403),
+    ],
+)
+def test_solo_quien_lee_construccion_ve_proyectos_y_pagos(rol, esperado):
+    """Spec 024, regla 1: el presupuesto y los pagos no son para agentes."""
+    proyecto = crear_proyecto()
+    http = cliente_http(rol)
+
+    assert http.get(f"{PROYECTOS}{proyecto['id']}/").status_code == esperado
+    assert http.get(f"{PROYECTOS}{proyecto['id']}/pagos/").status_code == esperado
+    assert http.get(PAGOS).status_code == esperado
+    # HEAD sigue la regla de GET (regla 4).
+    assert http.head(PAGOS).status_code == esperado

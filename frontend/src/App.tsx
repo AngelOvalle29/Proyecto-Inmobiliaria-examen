@@ -10,6 +10,9 @@ import {
   ESCRIBEN_COMPRAS,
   ESCRIBEN_CONSTRUCCION,
   ESCRIBEN_CRM,
+  LEEN_COMPRAS,
+  LEEN_CONSTRUCCION,
+  VEN_AGENTES,
 } from './menu'
 import { DetalleArrendamiento } from './paginas/arrendamientos/DetalleArrendamiento'
 import { FirmarArrendamiento } from './paginas/arrendamientos/FirmarArrendamiento'
@@ -109,7 +112,14 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
-      { path: '/crm/agentes', element: <ListaAgentes /> },
+      {
+        path: '/crm/agentes',
+        element: (
+          <RutaProtegida roles={VEN_AGENTES}>
+            <ListaAgentes />
+          </RutaProtegida>
+        ),
+      },
       {
         path: '/crm/agentes/nuevo',
         element: (
@@ -147,9 +157,17 @@ const enrutador = createBrowserRouter([
         ),
       },
       { path: '/arrendamientos/contratos/:id', element: <DetalleArrendamiento /> },
-      // Compras y construcción (spec 018): todos ven las listas; los
-      // formularios, solo quien escribe (regla 2).
-      { path: '/compras/proveedores', element: <ListaProveedores /> },
+      // Compras y construcción: leen administración, gerencia y contabilidad
+      // (spec 024, regla 1); los formularios, solo quien escribe (spec 018,
+      // regla 2).
+      {
+        path: '/compras/proveedores',
+        element: (
+          <RutaProtegida roles={LEEN_COMPRAS}>
+            <ListaProveedores />
+          </RutaProtegida>
+        ),
+      },
       {
         path: '/compras/proveedores/nuevo',
         element: (
@@ -166,7 +184,14 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
-      { path: '/compras/contratos', element: <ListaContratosCompra /> },
+      {
+        path: '/compras/contratos',
+        element: (
+          <RutaProtegida roles={LEEN_COMPRAS}>
+            <ListaContratosCompra />
+          </RutaProtegida>
+        ),
+      },
       {
         path: '/compras/contratos/nuevo',
         element: (
@@ -175,7 +200,14 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
-      { path: '/construccion/constructoras', element: <ListaConstructoras /> },
+      {
+        path: '/construccion/constructoras',
+        element: (
+          <RutaProtegida roles={LEEN_CONSTRUCCION}>
+            <ListaConstructoras />
+          </RutaProtegida>
+        ),
+      },
       {
         path: '/construccion/constructoras/nueva',
         element: (
@@ -192,7 +224,14 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
-      { path: '/construccion/proyectos', element: <ListaProyectos /> },
+      {
+        path: '/construccion/proyectos',
+        element: (
+          <RutaProtegida roles={LEEN_CONSTRUCCION}>
+            <ListaProyectos />
+          </RutaProtegida>
+        ),
+      },
       {
         path: '/construccion/proyectos/nuevo',
         element: (
@@ -201,8 +240,15 @@ const enrutador = createBrowserRouter([
           </RutaProtegida>
         ),
       },
-      // Todos lo ven; cada botón según el rol (spec 018, §5).
-      { path: '/construccion/proyectos/:id', element: <DetalleProyecto /> },
+      // Cada botón según el rol (spec 018, §5).
+      {
+        path: '/construccion/proyectos/:id',
+        element: (
+          <RutaProtegida roles={LEEN_CONSTRUCCION}>
+            <DetalleProyecto />
+          </RutaProtegida>
+        ),
+      },
       {
         path: '/asistente/documentos',
         element: (
