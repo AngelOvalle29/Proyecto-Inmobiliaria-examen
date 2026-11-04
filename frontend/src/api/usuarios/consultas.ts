@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { clienteApi } from '../cliente'
-import type { components } from '../tipos.generados'
+import type { components, operations } from '../tipos.generados'
 
 export type UsuarioActual = components['schemas']['UsuarioActual']
 type PaginaUsuarios = components['schemas']['PaginatedUsuarioListadoList']
@@ -46,4 +46,44 @@ export function useOpcionesUsuarioAgente(texto: string) {
     })),
     cargando: consulta.isFetching,
   }
+}
+
+// ---------- Gestión de usuarios (spec 026) ----------
+
+export type UsuarioListado = components['schemas']['UsuarioListado']
+export type UsuarioDetalle = components['schemas']['UsuarioDetalle']
+
+/** Filtros de GET /usuarios/: estado, rol, búsqueda y página. */
+export type FiltrosUsuarios = NonNullable<
+  operations['v1_usuarios_list']['parameters']['query']
+>
+
+/** Los usuarios del sistema; sin estado, solo los activos. */
+export function useUsuarios(filtros: FiltrosUsuarios) {
+  return useQuery({
+    queryKey: ['usuarios', 'lista', filtros],
+    queryFn: async () =>
+      (await clienteApi.get<PaginaUsuarios>('/usuarios/', { params: filtros })).data,
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** Una cuenta, para el formulario de edición. */
+export function useUsuario(id: number) {
+  return useQuery({
+    queryKey: ['usuarios', 'detalle', id],
+    queryFn: async () =>
+      (await clienteApi.get<UsuarioDetalle>(`/usuarios/${id}/`)).data,
+  })
+}
+
+export type NombreRol = components['schemas']['RolEnum']
+
+/** Cómo se muestra cada rol. Record obliga a cubrir los cinco. */
+export const ETIQUETAS_ROL: Record<NombreRol, string> = {
+  ADMINISTRADOR: 'Administrador',
+  GERENTE: 'Gerente',
+  AGENTE: 'Agente',
+  CONTABILIDAD: 'Contabilidad',
+  CONSULTA: 'Consulta',
 }

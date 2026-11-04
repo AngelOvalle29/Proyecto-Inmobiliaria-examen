@@ -72,7 +72,8 @@ def test_devuelve_solo_los_datos_minimos(gerente):
     respuesta = gerente.get(USUARIOS)
 
     usuario = respuesta.json()["results"][0]
-    assert set(usuario) == {"id", "email", "nombre_completo", "rol", "pais"}
+    # Sin teléfono ni último acceso; activo lo agregó la spec 026.
+    assert set(usuario) == {"id", "email", "nombre_completo", "rol", "pais", "activo"}
 
 
 def test_el_pais_puede_venir_nulo(gerente):
