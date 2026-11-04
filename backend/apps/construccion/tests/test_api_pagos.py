@@ -77,13 +77,14 @@ def test_administracion_gerencia_y_contabilidad_programan_y_pagan(rol):
 
 
 @pytest.mark.parametrize("rol", NO_PAGAN)
-def test_agente_y_consulta_leen_pero_no_programan_ni_pagan(rol):
+def test_agente_y_consulta_no_leen_ni_programan_ni_pagan(rol):
+    """Spec 024, regla 1: tampoco leen los pagos."""
     proyecto = crear_proyecto()
     pago = programar(cliente_http(), proyecto).json()
     http = cliente_http(rol)
 
-    assert http.get(f"{PROYECTOS}{proyecto['id']}/pagos/").status_code == 200
-    assert http.get(PAGOS).status_code == 200
+    assert http.get(f"{PROYECTOS}{proyecto['id']}/pagos/").status_code == 403
+    assert http.get(PAGOS).status_code == 403
     assert programar(http, proyecto).status_code == 403
     respuesta = http.post(
         f"{PAGOS}{pago['id']}/pagar/",
