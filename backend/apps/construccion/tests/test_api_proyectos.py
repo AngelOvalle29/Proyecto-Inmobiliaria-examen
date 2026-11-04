@@ -74,9 +74,11 @@ def test_administracion_y_gerencia_registran(rol):
 
 
 @pytest.mark.parametrize("rol", NO_ESCRIBEN)
-def test_los_demas_roles_leen_pero_no_registran(rol):
+def test_los_demas_roles_no_registran_y_solo_contabilidad_lee(rol):
     http = cliente_http(rol)
-    assert http.get(URL).status_code == 200
+    # Spec 024, regla 1: de los que no escriben, solo contabilidad lee.
+    lectura = 200 if rol == NombreRol.CONTABILIDAD else 403
+    assert http.get(URL).status_code == lectura
     assert registrar(http).status_code == 403
 
 

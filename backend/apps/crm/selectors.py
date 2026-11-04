@@ -30,6 +30,25 @@ def listar_agentes() -> QuerySet[Agente]:
     )
 
 
+def listar_agentes_visibles(*, usuario: Usuario) -> QuerySet[Agente]:
+    """
+    Los agentes que el usuario puede ver en la pantalla de agentes (spec 024,
+    regla 2).
+
+    - ADMINISTRADOR, GERENTE, CONTABILIDAD y CONSULTA: todos.
+    - AGENTE: solo su propio perfil. La comisión y el teléfono de sus
+      compañeros no le sirven para vender. El perfil de otro no se encuentra
+      y la API responde 404, como un cliente fuera de su cartera.
+
+    listar_agentes sigue sin filtro: lo usan los campos que eligen un agente,
+    a los que un AGENTE no llega (spec 004, regla 12).
+    """
+    agentes = listar_agentes()
+    if usuario.rol.nombre != NombreRol.AGENTE:
+        return agentes
+    return agentes.filter(usuario=usuario)
+
+
 def obtener_agente(*, agente_id: int) -> Agente | None:
     """Un agente activo con sus datos de listado, o None si no existe."""
     return listar_agentes().filter(pk=agente_id).first()

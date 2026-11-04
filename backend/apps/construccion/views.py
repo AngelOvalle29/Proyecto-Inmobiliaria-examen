@@ -53,9 +53,11 @@ from .services import (
     suspender_proyecto,
 )
 
-# Escriben administración y gerencia; todos los roles leen (spec 006, regla
-# 10, y spec 017, regla 24).
+# Escriben administración y gerencia (spec 006, regla 10, y spec 017, regla
+# 24). Leen además contabilidad, y nadie más: un agente no debe ver lo que
+# pagó la agencia ni el presupuesto de las obras (spec 024, regla 1).
 ESCRIBEN = [NombreRol.ADMINISTRADOR, NombreRol.GERENTE]
+LEEN = [*ESCRIBEN, NombreRol.CONTABILIDAD]
 # Los pagos los registra también contabilidad, como los de ventas (regla 24).
 PAGAN = [*ESCRIBEN, NombreRol.CONTABILIDAD]
 
@@ -64,7 +66,7 @@ class ConstructorasView(ListAPIView):
     """GET y POST /api/v1/constructoras/"""
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"POST": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "POST": ESCRIBEN}
     serializer_class = ConstructoraSerializer
     filterset_class = ConstructoraFilter
 
@@ -98,7 +100,7 @@ class ConstructoraDetalleView(RetrieveAPIView):
     """
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"PATCH": ESCRIBEN, "DELETE": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "PATCH": ESCRIBEN, "DELETE": ESCRIBEN}
     serializer_class = ConstructoraSerializer
 
     def get_queryset(self):
@@ -138,7 +140,7 @@ class ProyectosView(ListAPIView):
     """GET y POST /api/v1/proyectos-construccion/"""
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"POST": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "POST": ESCRIBEN}
     serializer_class = ProyectoSerializer
     filterset_class = ProyectoFilter
 
@@ -172,7 +174,7 @@ class ProyectoDetalleView(RetrieveAPIView):
     """
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"PATCH": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "PATCH": ESCRIBEN}
     serializer_class = ProyectoDetalleSerializer
 
     def get_queryset(self):
@@ -206,7 +208,7 @@ class AccionProyectoView(GenericAPIView):
     """
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"POST": ESCRIBEN}
+    roles_por_metodo = {"GET": LEEN, "POST": ESCRIBEN}
     serializer_class = ProyectoSerializer
 
     def get_queryset(self):
@@ -321,7 +323,7 @@ class PagosProyectoView(ListAPIView):
     """
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"POST": PAGAN}
+    roles_por_metodo = {"GET": LEEN, "POST": PAGAN}
     serializer_class = PagoSerializer
 
     def _proyecto(self):
@@ -354,6 +356,7 @@ class PagosConstructoraView(ListAPIView):
     """GET /api/v1/pagos-constructora/ (todos los pagos, con filtros)."""
 
     permission_classes = [TieneRol]
+    roles_por_metodo = {"GET": LEEN}
     serializer_class = PagoSerializer
     filterset_class = PagoFilter
 
@@ -365,7 +368,7 @@ class AccionPagoView(GenericAPIView):
     """Base de /pagar/ y /anular/: quién paga y dónde se busca el pago."""
 
     permission_classes = [TieneRol]
-    roles_por_metodo = {"POST": PAGAN}
+    roles_por_metodo = {"GET": LEEN, "POST": PAGAN}
     serializer_class = PagoSerializer
 
     def get_queryset(self):

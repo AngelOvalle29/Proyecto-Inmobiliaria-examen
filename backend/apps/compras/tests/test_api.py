@@ -58,12 +58,14 @@ def test_administracion_y_gerencia_crean(rol):
 
 
 @pytest.mark.parametrize("rol", NO_ESCRIBEN)
-def test_los_demas_roles_leen_pero_no_escriben(rol):
+def test_los_demas_roles_no_escriben_y_solo_contabilidad_lee(rol):
     proveedor = ProveedorFactory()
     http = cliente_http(rol)
+    # Spec 024, regla 1: de los que no escriben, solo contabilidad lee.
+    lectura = 200 if rol == NombreRol.CONTABILIDAD else 403
 
-    assert http.get(URL).status_code == 200
-    assert http.get(f"{URL}{proveedor.pk}/").status_code == 200
+    assert http.get(URL).status_code == lectura
+    assert http.get(f"{URL}{proveedor.pk}/").status_code == lectura
     assert http.post(URL, datos_banco(PaisFactory()), format="json").status_code == 403
     assert http.patch(f"{URL}{proveedor.pk}/", {"nombre": "X"}).status_code == 403
     assert http.delete(f"{URL}{proveedor.pk}/").status_code == 403
@@ -116,7 +118,7 @@ def test_filtros_por_tipo_pais_y_busqueda():
     pais = PaisFactory()
     banco = ProveedorFactory(pais=pais, nombre="Banco Uno", nit="1234567K")
     ProveedorFactory(tipo=TipoProveedor.GOBIERNO, nombre="Municipalidad")
-    http = cliente_http(NombreRol.CONSULTA)
+    http = cliente_http(NombreRol.CONTABILIDAD)
 
     def ids(parametros):
         return [p["id"] for p in http.get(URL, parametros).json()["results"]]
