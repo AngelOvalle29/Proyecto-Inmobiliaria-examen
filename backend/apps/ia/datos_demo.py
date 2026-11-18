@@ -44,6 +44,12 @@ DOCUMENTOS_DEMO = [
         TipoDocumentoRAG.LEGAL,
         "MEX",
     ),
+    (
+        "programa-referidos.md",
+        "Programa de referidos",
+        TipoDocumentoRAG.POLITICA,
+        None,
+    ),
 ]
 
 
